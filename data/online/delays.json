@@ -3,36 +3,36 @@
  "info": "Opóźnienia pociągów aktualizowane online. Edytuj ten plik w repozytorium, aby gra pobrała nowe opóźnienia.",
  "delays": [
   {
-   "nr": "91134",
-   "delay_min": 6
-  },
-  {
-   "nr": "91116",
-   "delay_min": 3
-  },
-  {
-   "nr": "21870",
+   "nr": "21446",
    "delay_min": 12
   },
   {
-   "nr": "91108",
+   "nr": "21425",
    "delay_min": 15
   },
   {
-   "nr": "44609",
+   "nr": "21707",
    "delay_min": 3
   },
   {
-   "nr": "21828",
+   "nr": "21622",
    "delay_min": 4
   },
   {
-   "nr": "1708",
+   "nr": "21626",
    "delay_min": 12
   },
   {
-   "nr": "21823",
+   "nr": "21620",
    "delay_min": 15
+  },
+  {
+   "nr": "19126",
+   "delay_min": 8
+  },
+  {
+   "nr": "19102",
+   "delay_min": 4
   }
  ]
 }

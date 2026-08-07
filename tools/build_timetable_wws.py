@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Generator całodobowego rozkładu jazdy dla Warszawy Wschodniej.
+"""Rozkład jazdy Warszawy Wschodniej odtworzony z realnej siatki połączeń.
 
-Tryb REALNY ROZKŁAD JAZDY startuje o rzeczywistej godzinie, więc rozkład
-musi pokrywać pełną dobę (cykl dobowy):
-  * AOE (aglomeracyjne) co 30 min/kierunek w porze 04:30-23:30,
-  * ROJ (regionalne) co godzinę w porze 04:50-22:50,
-  * MPE/EIE/EIP (dalekobieżne) co ok. 2 h w porze 05:00-23:00,
-  * TDE/TME (towarowe, przeloty) całą dobę co ok. 3 h,
-  * nocą dodatkowo PWE/LPE oraz towarowe na Grochów,
-  * kilka pociągów rozpoczynających i kończących bieg (skład z/do Grochowa).
+Źródło: realna oferta przewozowa przez stację Warszawa Wschodnia
+(stan ~2025): SKM S1/S2, Koleje Mazowieckie R6/R7, PKP Intercity
+(sprintery W-wa Wschodnia — Białystok: Esperanto, Zamenhof, Prząśniczka;
+IC Żubr, IC Cracovia, IC Hańcza, IC Podlasiak, IC Skaryna, pociągi do
+Lublina i Zamościa, EC Berlin—Warszawa kończące bieg na Wschodniej,
+EIP/EIC kończące bieg z Krakowa/Gdyni/Wrocławia) oraz ruch towarowy.
+
+Godziny i numery pociągów są PRZYBLIŻONE (odtworzone, nie pobrane z
+oficjalnego zestawienia). Oficjalne dane można zaciągnąć narzędziem
+tools/pobierz_rozklad_ic.py i podmienić przez aktualizację online.
 
 Uruchomienie:
     python3 tools/build_timetable_wws.py
-zapisuje data/locations/warszawa_wschodnia/timetable.json, kopiuje go do
-data/online/ oraz odświeża data/online/delays.json.
 """
 
 import json
@@ -26,6 +26,9 @@ entries = []
 
 
 def hm(h, m):
+    while m >= 60:
+        m -= 60
+        h += 1
     return "%02d:%02d" % (h % 24, m)
 
 
@@ -50,93 +53,200 @@ def add(nr, kat, z, do, we, wy, tor, arr=None, dep=None, postoj=0,
     entries.append(e)
 
 
-# ---- AOE: aglomeracyjne co 30 min/kierunek, 04:30-23:30 -------------------
-nr_e, nr_w = 21801, 21802
-for h in range(4, 24):
-    for m in (5, 35):
-        if h == 4 and m == 5:
-            continue
-        tor_e = "1" if (h * 2 + m // 30) % 2 == 0 else "3"
-        add(nr_e, "AOE", "Pruszków", "Otwock", "it1P", "it1W", tor_e,
-            hm(h, m), hm(h, m + 2), 2)
-        nr_e += 2
-    for m in (20, 50):
-        tor_w = "2" if (h * 2 + m // 30) % 2 == 0 else "4"
-        add(nr_w, "AOE", "Otwock", "Pruszków", "it2W", "it2P", tor_w,
-            hm(h, m), hm(h, m + 2), 2)
-        nr_w += 2
+# =====================================================================
+# SKM — linia S1 Pruszków — Otwock (przez średnicę podmiejską)
+# szczyt co 20 min, poza szczytem co 30 min
+# =====================================================================
+SZCZYT = (6, 7, 8, 14, 15, 16, 17)
+nr = 21401
+for h in range(5, 24):
+    minuty = (4, 24, 44) if h in SZCZYT else (14, 44)
+    for i, m in enumerate(minuty):
+        tor = "1" if (h + i) % 2 else "3"
+        add(nr, "AOE", "Pruszków", "Otwock", "it1P", "it1W", tor,
+            hm(h, m), hm(h, m + 1), 1)
+        nr += 2
+nr = 21402
+for h in range(5, 24):
+    minuty = (9, 29, 49) if h in SZCZYT else (19, 49)
+    for i, m in enumerate(minuty):
+        tor = "2" if (h + i) % 2 else "4"
+        add(nr, "AOE", "Otwock", "Pruszków", "it2W", "it2P", tor,
+            hm(h, m), hm(h, m + 1), 1)
+        nr += 2
 
-# ---- ROJ: regionalne co godzinę, 04:50-22:50 ------------------------------
-nr_e, nr_w = 91101, 91102
+# =====================================================================
+# SKM — linia S2 Sulejówek Miłosna — W-wa Lotnisko Chopina
+# szczyt co 30 min, poza co 60 min
+# =====================================================================
+nr = 21601
 for h in range(5, 23):
-    kier_e = "Mińsk Mazowiecki" if h % 2 == 0 else "Siedlce"
-    add(nr_e, "ROJ", "W-wa Zachodnia", kier_e, "it1P", "it1W",
-        "3" if h % 2 == 0 else "1", hm(h, 27), hm(h, 29), 2)
-    nr_e += 2
-    add(nr_w, "ROJ", kier_e, "W-wa Zachodnia", "it2W", "it2P",
-        "4" if h % 2 == 0 else "2", hm(h, 44), hm(h, 46), 2)
-    nr_w += 2
+    minuty = (0, 30) if h in SZCZYT else (0,)
+    for m in minuty:
+        add(nr, "AOE", "Lotnisko Chopina", "Sulejówek Miłosna", "it1P", "it1W",
+            "3" if h % 2 else "1", hm(h, m + 7), hm(h, m + 8), 1)
+        nr += 2
+nr = 21602
+for h in range(5, 23):
+    minuty = (15, 45) if h in SZCZYT else (30,)
+    for m in minuty:
+        add(nr, "AOE", "Sulejówek Miłosna", "Lotnisko Chopina", "it2W", "it2P",
+            "4" if h % 2 else "2", hm(h, m + 2), hm(h, m + 3), 1)
+        nr += 2
 
-# ---- dalekobieżne ---------------------------------------------------------
-NAZWY = ["Podlasiak", "Sawa", "Hetman", "Kmicic", "Bug", "Narew",
-         "Cukrownik", "Żeromski", "Norwid", "Skarga"]
-nr_e, nr_w, ni = 1701, 1702, 0
-for h in range(5, 23, 2):
-    kat = ["MPE", "EIE", "EIP"][(h // 2) % 3]
-    przez_otwock = h % 4 == 1
-    do = "Lublin Główny" if przez_otwock else ("Białystok" if h % 3 else "Terespol")
-    nazwa = NAZWY[ni % len(NAZWY)] if kat in ("EIE", "EIP") else ""
-    ni += 1
-    add(nr_e, kat, "W-wa Zachodnia", do, "it1D",
-        "it1W" if przez_otwock else "it1R",
-        "5" if h % 4 < 2 else "7", hm(h, 12), hm(h, 16), 4, nazwa=nazwa)
-    nr_e += 2
-for h in range(6, 24, 2):
-    kat = ["MPE", "EIE", "EIP"][(h // 2) % 3]
-    z_otwocka = h % 4 == 2
-    z = "Lublin Główny" if z_otwocka else ("Białystok" if h % 3 else "Terespol")
-    nazwa = NAZWY[ni % len(NAZWY)] if kat in ("EIE", "EIP") else ""
-    ni += 1
-    add(nr_w, kat, z, "W-wa Zachodnia",
-        "it2W" if z_otwocka else "it2R", "it2D",
-        "6" if h % 4 < 2 else "8", hm(h, 41), hm(h, 45), 4, nazwa=nazwa)
-    nr_w += 2
+# =====================================================================
+# Koleje Mazowieckie — R7 W-wa Zachodnia/Grodzisk — Dęblin (przez Otwock)
+# co godzinę
+# =====================================================================
+nr = 21701
+for h in range(4, 23):
+    add(nr, "ROJ", "Grodzisk Mazowiecki", "Dęblin", "it1P", "it1W",
+        "1" if h % 2 else "3", hm(h, 52), hm(h, 54), 2)
+    nr += 2
+nr = 21702
+for h in range(5, 24):
+    add(nr, "ROJ", "Dęblin", "Grodzisk Mazowiecki", "it2W", "it2P",
+        "2" if h % 2 else "4", hm(h, 6), hm(h, 8), 2)
+    nr += 2
 
-# ---- towarowe: przeloty całą dobę -----------------------------------------
-nr_t = 44601
-for h in range(0, 24, 3):
-    add(nr_t, "TME" if h % 2 else "TDE", "Pruszków", "Małaszewicze",
-        "it1D", "it1R", "7", hm(h, 52), przelot=True)
-    nr_t += 2
-    add(nr_t, "TDE" if h % 2 else "TME", "Małaszewicze", "Pruszków",
-        "it2R", "it2D", "8", hm((h + 1) % 24, 22), przelot=True)
-    nr_t += 2
-# towarowe na Grochów (przez tor 9)
-add(44120, "TDE", "Pruszków", "Grochów", "it2D", "itG", "9", "06:08", przelot=True)
-add(44122, "TDE", "Pruszków", "Grochów", "it2D", "itG", "9", "18:08", przelot=True)
+# =====================================================================
+# Koleje Mazowieckie — R6 W-wa Zachodnia — Siedlce (przez Mińsk Maz.)
+# co godzinę (w grze wyjazd wschodni wspólny — uproszczenie schematu)
+# =====================================================================
+nr = 19101
+for h in range(4, 23):
+    do = "Siedlce" if h % 2 else "Mińsk Mazowiecki"
+    add(nr, "ROJ", "W-wa Zachodnia", do, "it1P", "it1W",
+        "3" if h % 2 else "1", hm(h, 33), hm(h, 35), 2)
+    nr += 2
+nr = 19102
+for h in range(5, 24):
+    z = "Siedlce" if h % 2 else "Mińsk Mazowiecki"
+    add(nr, "ROJ", z, "W-wa Zachodnia", "it2W", "it2P",
+        "4" if h % 2 else "2", hm(h, 21), hm(h, 23), 2)
+    nr += 2
 
-# ---- noc: próżne składy i lokomotywy --------------------------------------
-add(38801, "PWE", "W-wa Grochów", "Pruszków", "it1D", "it1R", "7", "00:35", przelot=True)
-add(38803, "PWE", "Pruszków", "W-wa Grochów", "it2R", "it2D", "8", "02:15", przelot=True)
-add(48901, "LPE", "W-wa Zachodnia", "Białystok", "it1D", "it1R", "5", "03:05", "03:07", 2)
+# =====================================================================
+# PKP Intercity — kierunek Białystok/Suwałki (LK 6, wyjazd wschodni it1R)
+# =====================================================================
+# sprintery W-wa Wschodnia — Białystok (zaczynają/kończą bieg na Wschodniej)
+add(1110, "EIE", "W-wa Wschodnia", "Białystok", "itG", "it1R", "5",
+    dep="06:20", start=True, nazwa="Esperanto")
+add(1112, "EIE", "W-wa Wschodnia", "Białystok", "itG", "it1R", "5",
+    dep="15:20", start=True, nazwa="Zamenhof")
+add(1111, "EIE", "Białystok", "W-wa Wschodnia", "it2R", "itG", "6",
+    arr="09:35", koniec=True, nazwa="Esperanto")
+add(1113, "EIE", "Białystok", "W-wa Wschodnia", "it2R", "itG", "6",
+    arr="18:40", koniec=True, nazwa="Zamenhof")
+# przez stację
+add(1130, "EIE", "Łódź Fabryczna", "Białystok", "it1D", "it1R", "5",
+    "18:07", "18:11", 4, nazwa="Prząśniczka")
+add(1131, "EIE", "Białystok", "Łódź Fabryczna", "it2R", "it2D", "8",
+    "10:44", "10:48", 4, nazwa="Prząśniczka")
+add(3120, "MPE", "Kraków Główny", "Białystok", "it1D", "it1R", "5",
+    "10:07", "10:11", 4, nazwa="Cracovia")
+add(3121, "MPE", "Białystok", "Kraków Główny", "it2R", "it2D", "8",
+    "16:44", "16:48", 4, nazwa="Cracovia")
+add(8120, "MPE", "Szczecin Główny", "Białystok", "it1D", "it1R", "7",
+    "12:07", "12:11", 4, nazwa="Żubr")
+add(8121, "MPE", "Białystok", "Szczecin Główny", "it2R", "it2D", "6",
+    "13:44", "13:48", 4, nazwa="Żubr")
+add(3140, "MPE", "Kraków Główny", "Suwałki", "it1D", "it1R", "7",
+    "07:07", "07:11", 4, nazwa="Hańcza")
+add(3141, "MPE", "Suwałki", "Kraków Główny", "it2R", "it2D", "8",
+    "19:44", "19:48", 4, nazwa="Hańcza")
+add(5120, "MPE", "W-wa Zachodnia", "Suwałki", "it1D", "it1R", "5",
+    "08:07", "08:11", 4, nazwa="Podlasiak")
+add(5121, "MPE", "Suwałki", "W-wa Zachodnia", "it2R", "it2D", "6",
+    "17:44", "17:48", 4, nazwa="Podlasiak")
 
-# ---- pociągi rozpoczynające i kończące bieg -------------------------------
-add(1731, "MPE", "W-wa Wschodnia", "Lublin Główny", "itG", "it1W", "7",
-    dep="05:40", start=True, nazwa="Słowacki")
-add(4501, "EIE", "W-wa Wschodnia", "Białystok", "itG", "it1R", "5",
-    dep="14:35", start=True, nazwa="Kmicic")
-add(3902, "MPE", "Lublin Główny", "W-wa Wschodnia", "it2W", "itG", "6",
-    arr="09:22", koniec=True, nazwa="Hetman")
-add(4504, "EIE", "Białystok", "W-wa Wschodnia", "it2R", "itG", "8",
-    arr="21:17", koniec=True, nazwa="Narew")
+# =====================================================================
+# PKP Intercity — kierunek Terespol (LK 2)
+# =====================================================================
+add(1310, "MPE", "Łódź Fabryczna", "Terespol", "it1D", "it1R", "7",
+    "09:07", "09:11", 4, nazwa="Skaryna")
+add(1311, "MPE", "Terespol", "Łódź Fabryczna", "it2R", "it2D", "8",
+    "16:07", "16:11", 4, nazwa="Skaryna")
+add(1330, "MPE", "W-wa Zachodnia", "Terespol", "it1D", "it1R", "5",
+    "13:07", "13:11", 4)
+add(1331, "MPE", "Terespol", "W-wa Zachodnia", "it2R", "it2D", "6",
+    "11:37", "11:41", 4)
+
+# =====================================================================
+# PKP Intercity — kierunek Lublin/Zamość (przez Otwock, wyjazd it1W)
+# =====================================================================
+add(2110, "MPE", "W-wa Zachodnia", "Lublin Główny", "it1D", "it1W", "5",
+    "06:07", "06:11", 4)
+add(2112, "EIE", "W-wa Zachodnia", "Lublin Główny", "it1D", "it1W", "7",
+    "12:22", "12:26", 4, nazwa="Wieniawski")
+add(2114, "MPE", "W-wa Zachodnia", "Lublin Główny", "it1D", "it1W", "5",
+    "17:07", "17:11", 4)
+add(2111, "MPE", "Lublin Główny", "W-wa Zachodnia", "it2W", "it2D", "8",
+    "08:41", "08:45", 4)
+add(2113, "EIE", "Lublin Główny", "W-wa Zachodnia", "it2W", "it2D", "6",
+    "14:41", "14:45", 4, nazwa="Wieniawski")
+add(2115, "MPE", "Lublin Główny", "W-wa Zachodnia", "it2W", "it2D", "8",
+    "20:41", "20:45", 4)
+add(2130, "MPE", "W-wa Wschodnia", "Zamość", "itG", "it1W", "7",
+    dep="07:50", start=True, nazwa="Zamoyski")
+add(2131, "MPE", "Zamość", "W-wa Wschodnia", "it2W", "itG", "6",
+    arr="20:35", koniec=True, nazwa="Hetman")
+
+# =====================================================================
+# EC Berlin — Warszawa Wschodnia (kończą/zaczynają bieg na Wschodniej)
+# =====================================================================
+for i, dep in enumerate(("05:45", "09:45", "13:45", "17:45")):
+    add(40 + 2 * i, "EIE", "W-wa Wschodnia", "Berlin Hbf", "itG", "it2D", "8",
+        dep=dep, start=True, nazwa="Berlin-Warszawa-Express")
+for i, arr in enumerate(("10:05", "14:05", "18:05", "22:05")):
+    add(41 + 2 * i, "EIE", "Berlin Hbf", "W-wa Wschodnia", "it1D", "itG", "7",
+        arr=arr, koniec=True, nazwa="Berlin-Warszawa-Express")
+
+# =====================================================================
+# EIP/EIC kończące bieg na Wschodniej (z Krakowa, Gdyni, Wrocławia)
+# =====================================================================
+add(3100, "EIP", "Kraków Główny", "W-wa Wschodnia", "it1D", "itG", "5",
+    arr="08:50", koniec=True)
+add(3102, "EIP", "W-wa Wschodnia", "Kraków Główny", "itG", "it2D", "5",
+    dep="09:40", start=True)
+add(3104, "EIP", "Kraków Główny", "W-wa Wschodnia", "it1D", "itG", "7",
+    arr="16:50", koniec=True)
+add(3106, "EIP", "W-wa Wschodnia", "Kraków Główny", "itG", "it2D", "7",
+    dep="17:40", start=True)
+add(5100, "EIE", "Gdynia Główna", "W-wa Wschodnia", "it1D", "itG", "5",
+    arr="12:50", koniec=True)
+add(5102, "EIE", "W-wa Wschodnia", "Gdynia Główna", "itG", "it2D", "5",
+    dep="13:40", start=True)
+add(6100, "MPE", "Wrocław Główny", "W-wa Wschodnia", "it1D", "itG", "7",
+    arr="19:50", koniec=True)
+add(6102, "MPE", "W-wa Wschodnia", "Wrocław Główny", "itG", "it2D", "5",
+    dep="06:40", start=True)
+
+# =====================================================================
+# Ruch towarowy — przeloty (całodobowo) + obsługa Grochowa
+# =====================================================================
+nr = 44601
+for h in (0, 2, 4, 8, 11, 16, 20, 22):
+    add(nr, "TME" if h % 2 else "TDE", "Pruszków", "Małaszewicze",
+        "it1D", "it1R", "7" if h % 2 else "9", hm(h, 37), przelot=True)
+    nr += 2
+    add(nr, "TDE" if h % 2 else "TME", "Małaszewicze", "Pruszków",
+        "it2R", "it2D", "8", hm((h + 1) % 24, 12), przelot=True)
+    nr += 2
+add(44120, "TDE", "Pruszków", "Grochów", "it2D", "itG", "9", "05:52", przelot=True)
+add(44122, "TDE", "Pruszków", "Grochów", "it2D", "itG", "9", "18:22", przelot=True)
+add(38801, "PWE", "W-wa Grochów", "Pruszków", "it1D", "it1R", "7", "01:35", przelot=True)
+add(38803, "PWE", "Pruszków", "W-wa Grochów", "it2R", "it2D", "8", "03:15", przelot=True)
 
 
 def klucz(e):
-    t = e.get("przyjazd", e.get("odjazd", "99:99"))
-    return t
+    return e.get("przyjazd", e.get("odjazd", "99:99"))
 
 
 entries.sort(key=klucz)
+
+nrs = [e["nr"] for e in entries]
+assert len(nrs) == len(set(nrs)), "zduplikowane numery pociągów"
 
 base = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
 data = {"start_time": "04:45", "entries": entries}
@@ -144,18 +254,15 @@ tt_path = os.path.join(base, "data", "locations", "warszawa_wschodnia", "timetab
 with open(tt_path, "w", encoding="utf-8") as f:
     json.dump(data, f, ensure_ascii=False, indent=1)
     f.write("\n")
-online_path = os.path.join(base, "data", "online", "timetable_warszawa_wschodnia.json")
-with open(online_path, "w", encoding="utf-8") as f:
+with open(os.path.join(base, "data", "online", "timetable_warszawa_wschodnia.json"),
+          "w", encoding="utf-8") as f:
     json.dump(data, f, ensure_ascii=False, indent=1)
     f.write("\n")
 
-# opóźnienia online dla kilku pociągów z wygenerowanego rozkładu
 kandydaci = [e for e in entries if not e.get("start")]
-delays = []
-for e in R.sample(kandydaci, 8):
-    delays.append({"nr": e["nr"], "delay_min": R.choice([3, 4, 6, 8, 12, 15])})
-delays_path = os.path.join(base, "data", "online", "delays.json")
-with open(delays_path, "w", encoding="utf-8") as f:
+delays = [{"nr": e["nr"], "delay_min": R.choice([3, 4, 6, 8, 12, 15])}
+          for e in R.sample(kandydaci, 8)]
+with open(os.path.join(base, "data", "online", "delays.json"), "w", encoding="utf-8") as f:
     json.dump({
         "generated": "2026-08-01T17:00:00Z",
         "info": "Opóźnienia pociągów aktualizowane online. Edytuj ten plik w repozytorium, aby gra pobrała nowe opóźnienia.",
@@ -164,4 +271,3 @@ with open(delays_path, "w", encoding="utf-8") as f:
     f.write("\n")
 
 print("Rozkład: %d pozycji -> %s" % (len(entries), tt_path))
-print("Opóźnienia online: %d pozycji" % len(delays))
