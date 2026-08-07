@@ -29,6 +29,7 @@ var track_order: Array = []
 var track_of_seg := {}      # seg_id -> nr
 var platforms: Array = []
 var labels: Array = []
+var decor: Array = []
 var bounds := Rect2(0, 0, 2000, 900)
 
 
@@ -47,7 +48,7 @@ func load_file(path: String) -> bool:
 		points[str(p["id"])] = v
 		min_p = min_p.min(v)
 		max_p = max_p.max(v)
-	bounds = Rect2(min_p - Vector2(60, 60), (max_p - min_p) + Vector2(120, 120))
+	bounds = Rect2(min_p - Vector2(160, 80), (max_p - min_p) + Vector2(320, 160))
 	for sdef in data.get("segments", []):
 		var sid := str(sdef["id"])
 		var a := str(sdef["from"])
@@ -97,6 +98,7 @@ func load_file(path: String) -> bool:
 		track_of_seg[str(tr["seg"])] = nr
 	platforms = data.get("platforms", [])
 	labels = data.get("labels", [])
+	decor = data.get("decor", [])
 	return true
 
 

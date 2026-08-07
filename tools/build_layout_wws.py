@@ -239,6 +239,18 @@ labels = [
     {"text": "tor postojowy", "x": 900, "y": 828, "size": 11},
 ]
 
+# elementy dekoracyjne pulpitu (jak w SimRail): przejazd w poziomie stacji,
+# kasetka skrótu posterunku, znaki km na szlakach
+decor = [
+    {"type": "crossing", "x": 1000, "y1": 250, "y2": 860, "label": "MIEJSCOWY", "km": "4.160"},
+    {"type": "lb", "x": 985, "y": 878, "label": "Wsch"},
+    {"type": "km", "x": 205, "y": Y["t1"], "km": "2.156"},
+    {"type": "km", "x": 205, "y": Y["t6"], "km": "2.210"},
+    {"type": "km", "x": 1800, "y": Y["t1"], "km": "6.484"},
+    {"type": "km", "x": 1800, "y": Y["t6"], "km": "6.520"},
+    {"type": "km", "x": 1835, "y": Y["t9"], "km": "1.884"},
+]
+
 # ------------------------------------------------------------- walidacja ---
 def validate():
     err = []
@@ -296,6 +308,7 @@ def main():
         "tracks": tracks,
         "platforms": platforms,
         "labels": labels,
+        "decor": decor,
     }
     out = os.path.join(os.path.dirname(__file__), "..",
                        "data", "locations", "warszawa_wschodnia", "layout.json")

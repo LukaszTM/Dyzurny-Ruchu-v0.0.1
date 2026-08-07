@@ -274,6 +274,8 @@ func _process(_d: float) -> void:
 				return
 			_ok("Zgłoszenie usterki — rozpoczęto usuwanie (ETA %d min)" % int(
 				(float(ev2["usun_at"]) - sim.sim_time) / 60.0))
+			# deterministycznie: skróć czas naprawy, aby test nie zależał od FPS
+			ev2["usun_at"] = sim.sim_time + 30.0
 			_dalej()
 		14:
 			if sim.events.by_id(ev_id).is_empty():

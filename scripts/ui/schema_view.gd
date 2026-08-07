@@ -1,28 +1,32 @@
 class_name SchemaView
 extends Node2D
-## Obraz świetlny pulpitu nastawczego — odwzorowanie wyglądu komputerowych
-## nastawnic stosowanych na PKP: czarne tło, szare tory, biała droga
-## przebiegu utwierdzonego, czerwona zajętość, numery rozjazdów z ich
-## położeniem (+ / −), sygnalizatory w postaci trójkątów.
+## Obraz pulpitu nastawczego LCS — odwzorowanie wyglądu z SimRail:
+## czarne tło; szare tory; biała droga przebiegu utwierdzonego; czerwona
+## zajętość ze strzałkami kierunku; sygnalizatory jako podwójne groty
+## z nazwami na żółto; numery rozjazdów z położeniem +/−; seledynowe
+## obwódki wybranych przycisków i nazwy odcinków zbliżania; czerwone
+## kasetki z numerami pociągów; różowe znaki km i linia przejazdu;
+## kasetka skrótu posterunku na dole.
 
 const COL_BG := Color("000000")
-const COL_TOR := Color("858585")
+const COL_TOR := Color("8a8a8a")
 const COL_UTW := Color("f2f2f2")
 const COL_NAST := Color("00c8d7")
-const COL_ZAJETY := Color("cf1020")
+const COL_ZAJETY := Color("d01020")
 const COL_ZAMK := Color("d08000")
-const COL_OPIS := Color("b9b9b9")
-const COL_SYG := Color("d8a72a")
+const COL_OPIS := Color("9a9a9a")
+const COL_ZOLTY := Color("c8a018")
 const COL_SEL := Color("00e5ff")
-const COL_PERON := Color("6f6f6f")
 const COL_NR := Color("e8e8e8")
+const COL_CYJAN := Color("00b0c0")
+const COL_ROZOWY := Color("d060d0")
+const COL_KASETA := Color("9e0e0e")
 
-const CAT_COL := {
-	"EIP": Color("8b5cf6"), "EIE": Color("6d28d9"), "MPE": Color("2563eb"),
-	"MOE": Color("0891b2"), "ROJ": Color("16a34a"), "AOE": Color("22c55e"),
-	"TDE": Color("a16207"), "TME": Color("92400e"), "PWE": Color("64748b"),
-	"LPE": Color("64748b"), "MAN": Color("f59e0b"),
-}
+const CHEV_GO := Color("18c832")
+const CHEV_MAN := Color("f0f0f0")
+const CHEV_STOP := Color("8a8a8a")
+
+const RZYM := ["I", "II", "III"]
 
 var sim: SimCore = null
 var layout: StationLayout
@@ -51,10 +55,10 @@ func fit_to_view() -> void:
 	if vp.x <= 0.0:
 		return
 	var z: float = minf(vp.x / maxf(layout.bounds.size.x, 1.0),
-		(vp.y - 190.0) / maxf(layout.bounds.size.y, 1.0))
+		(vp.y - 150.0) / maxf(layout.bounds.size.y, 1.0))
 	z = clampf(z, 0.25, 2.0)
 	cam.zoom = Vector2(z, z)
-	cam.position = layout.bounds.get_center() + Vector2(0, 30.0 / z)
+	cam.position = layout.bounds.get_center() + Vector2(0, 40.0 / z)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -123,13 +127,13 @@ func pick(world: Vector2) -> Dictionary:
 
 
 func _sig_pos(sg: Dictionary) -> Vector2:
-	return layout.pos(str(sg["point"])) + Vector2(0, 15 if int(sg["dir"]) > 0 else -15)
+	return layout.pos(str(sg["point"])) + Vector2(0, 16 if int(sg["dir"]) > 0 else -16)
 
 
 func _line_end_rect(lid: String) -> Rect2:
 	var p := layout.pos(lid)
 	var out := -1.0 if int(layout.line_ends[lid]["dir_in"]) > 0 else 1.0
-	return Rect2(p + Vector2(out * 46.0 - 30.0, -13.0), Vector2(60, 26))
+	return Rect2(p + Vector2(out * 48.0 - 34.0, -16.0), Vector2(68, 32))
 
 
 # ---------------------------------------------------------------- rysunek --
@@ -138,8 +142,9 @@ func _draw() -> void:
 	if layout == null:
 		return
 	var blink := fmod(Time.get_ticks_msec() / 400.0, 2.0) < 1.0
-	draw_rect(Rect2(layout.bounds.position - Vector2(400, 400),
-		layout.bounds.size + Vector2(800, 800)), COL_BG)
+	draw_rect(Rect2(layout.bounds.position - Vector2(500, 500),
+		layout.bounds.size + Vector2(1000, 1000)), COL_BG)
+	_draw_decor_under()
 	_draw_platforms()
 	_draw_segments(blink)
 	_draw_switches(blink)
@@ -148,18 +153,60 @@ func _draw() -> void:
 	_draw_tarcze()
 	_draw_signals(blink)
 	_draw_trains(blink)
+	_draw_decor_over()
 	for lb in layout.labels:
 		draw_string(_font, Vector2(float(lb["x"]), float(lb["y"])), str(lb["text"]),
-			HORIZONTAL_ALIGNMENT_LEFT, -1, int(lb.get("size", 12)), COL_OPIS.darkened(0.35))
+			HORIZONTAL_ALIGNMENT_LEFT, -1, int(lb.get("size", 12)), COL_OPIS.darkened(0.45))
+
+
+## Różowa linia przejazdu — rysowana pod torami.
+func _draw_decor_under() -> void:
+	for d in layout.decor:
+		if str(d["type"]) == "crossing":
+			var x := float(d["x"])
+			var y1 := float(d["y1"])
+			var y2 := float(d["y2"])
+			draw_line(Vector2(x, y1), Vector2(x, y2), COL_ROZOWY, 1.6)
+			draw_line(Vector2(x, y1), Vector2(x - 5, y1 - 9), COL_ROZOWY, 1.6)
+			draw_line(Vector2(x, y1), Vector2(x + 5, y1 - 9), COL_ROZOWY, 1.6)
+			draw_line(Vector2(x, y2), Vector2(x - 5, y2 + 9), COL_ROZOWY, 1.6)
+			draw_line(Vector2(x, y2), Vector2(x + 5, y2 + 9), COL_ROZOWY, 1.6)
+			draw_string(_font, Vector2(x - 34, y1 - 26), str(d.get("label", "")),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 11, COL_NR)
+			draw_string(_font, Vector2(x - 18, y1 - 13), str(d.get("km", "")),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 11, COL_NR)
+
+
+## Kasetka skrótu posterunku i znaki km — nad torami.
+func _draw_decor_over() -> void:
+	for d in layout.decor:
+		match str(d["type"]):
+			"lb":
+				var p := Vector2(float(d["x"]), float(d["y"]))
+				var r := Rect2(p, Vector2(46, 28))
+				draw_rect(r, COL_BG)
+				draw_rect(r, COL_NR, false, 1.5)
+				draw_rect(Rect2(p + Vector2(5, 5), Vector2(24, 12)), COL_NR, false, 1.0)
+				draw_circle(p + Vector2(11, 21), 3.0, COL_NR)
+				draw_string(_font, p + Vector2(2, 44), "\"%s\"" % str(d.get("label", "")),
+					HORIZONTAL_ALIGNMENT_LEFT, -1, 12, COL_NR)
+			"km":
+				var q := Vector2(float(d["x"]), float(d["y"]))
+				draw_line(q + Vector2(0, 10), q + Vector2(0, -2), COL_ROZOWY, 1.6)
+				draw_line(q + Vector2(0, -2), q + Vector2(-5, -10), COL_ROZOWY, 1.6)
+				draw_line(q + Vector2(0, -2), q + Vector2(5, -10), COL_ROZOWY, 1.6)
+				draw_string(_font, q + Vector2(-16, -16), str(d.get("km", "")),
+					HORIZONTAL_ALIGNMENT_LEFT, -1, 10, COL_NR)
 
 
 func _draw_platforms() -> void:
 	for pl in layout.platforms:
 		var r := Rect2(float(pl["x"]), float(pl["y"]), float(pl["w"]), float(pl["h"]))
 		draw_rect(r, COL_BG)
-		draw_rect(r, COL_PERON, false, 1.5)
-		draw_string(_font, r.position + Vector2(6, r.size.y - 2), str(pl["name"]),
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 10, COL_OPIS)
+		draw_rect(r, Color("c8c8c8"), false, 1.5)
+		draw_rect(r.grow(-3.0), Color("6f6f6f"), false, 1.0)
+		draw_string(_font, r.position + Vector2(r.size.x / 2.0 - 24.0, r.size.y - 3), str(pl["name"]),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("d8d8d8"))
 
 
 func _seg_color(sid: String, blink: bool) -> Color:
@@ -183,25 +230,50 @@ func _draw_segments(blink: bool) -> void:
 		var a := layout.pos(str(sdef["from"]))
 		var b := layout.pos(str(sdef["to"]))
 		var col := _seg_color(sid, blink)
-		var w := 4.0 if str(sdef["kind"]) != "szlak" else 3.0
 		if str(sdef["kind"]) == "szlak":
-			_draw_dashed(a, b, col, w)
+			_draw_szlak(sid, a, b, col)
 		else:
-			draw_line(a, b, col, w)
+			draw_line(a, b, col, 4.0)
 		if inter.closed_segs.has(sid):
 			var m := (a + b) / 2.0
 			draw_line(m + Vector2(-7, -7), m + Vector2(7, 7), COL_ZAMK, 2.0)
 			draw_line(m + Vector2(-7, 7), m + Vector2(7, -7), COL_ZAMK, 2.0)
 
 
-func _draw_dashed(a: Vector2, b: Vector2, col: Color, w: float) -> void:
-	var d := a.distance_to(b)
-	var dir := (b - a).normalized()
-	var x := 0.0
-	while x < d:
-		var e: float = minf(x + 11.0, d)
-		draw_line(a + dir * x, a + dir * e, col, w)
-		x = e + 7.0
+## Szlak z odcinkami zbliżania: groty jak w SimRail + seledynowe nazwy ISp….
+func _draw_szlak(sid: String, a: Vector2, b: Vector2, col: Color) -> void:
+	draw_line(a, b, col.darkened(0.2), 3.0)
+	var line_end_id := str(layout.segments[sid]["from"])
+	if not layout.is_line_end(line_end_id):
+		line_end_id = str(layout.segments[sid]["to"])
+	var le: Dictionary = layout.line_ends.get(line_end_id, {})
+	var dir_in := int(le.get("dir_in", 1))
+	var sig := _entry_signal_for(line_end_id)
+	var d := 1.0 if dir_in > 0 else -1.0
+	for i in range(3):
+		var t := (i + 1.0) / 4.0
+		var m := a.lerp(b, t if dir_in > 0 else 1.0 - t)
+		_chevron(m, d, col.darkened(0.1), 5.0, 1.6)
+		if sig != "" and i < 2:
+			draw_string(_font, m + Vector2(-14, 19), "%sSp%s" % [RZYM[1 - i], sig],
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 8, COL_CYJAN)
+
+
+func _entry_signal_for(line_end_id: String) -> String:
+	if not layout.line_ends.has(line_end_id):
+		return ""
+	var dir_in := int(layout.line_ends[line_end_id]["dir_in"])
+	var adj: Dictionary = layout.adj_e if dir_in > 0 else layout.adj_w
+	for edge in adj.get(line_end_id, []):
+		var s := layout.signal_at(str(edge["to"]), dir_in)
+		if s != "":
+			return s
+	return ""
+
+
+func _chevron(p: Vector2, d: float, col: Color, r: float, w: float) -> void:
+	draw_line(p + Vector2(-r * d, -r), p + Vector2(r * 0.6 * d, 0), col, w)
+	draw_line(p + Vector2(r * 0.6 * d, 0), p + Vector2(-r * d, r), col, w)
 
 
 func _draw_switches(blink: bool) -> void:
@@ -216,8 +288,8 @@ func _draw_switches(blink: bool) -> void:
 			col = COL_NAST if blink else COL_NAST.darkened(0.5)
 		elif inter.sw_locked.has(wid):
 			col = COL_UTW
-		draw_string(_font, p + Vector2(-14, -8), wid, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, col)
-		draw_string(_font, p + Vector2(6, -8), pos_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11,
+		draw_string(_font, p + Vector2(-15, -7), wid, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, col)
+		draw_string(_font, p + Vector2(5, -10), pos_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 10,
 			COL_NR if not inter.sw_failed.has(wid) else COL_ZAMK)
 		if inter.sw_failed.has(wid) and blink:
 			draw_arc(p, 10.0, 0, TAU, 20, COL_ZAMK, 2.0)
@@ -233,34 +305,37 @@ func _draw_track_numbers() -> void:
 		var a := layout.pos(str(tr["a"]))
 		var b := layout.pos(str(tr["b"]))
 		var m := (a + b) / 2.0
-		draw_string(_font, m + Vector2(-4, -8), nr, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, COL_NR)
+		draw_string(_font, m + Vector2(-4, -7), nr, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, COL_NR)
 
 
 func _draw_line_ends(blink: bool) -> void:
 	for lid in layout.line_end_order:
 		var le: Dictionary = layout.line_ends[lid]
+		var p := layout.pos(lid)
+		var na_zachodzie := int(le["dir_in"]) > 0
+		var out := -1.0 if na_zachodzie else 1.0
 		var r := _line_end_rect(lid)
-		var na_zewnatrz := int(le["dir_in"]) > 0
-		draw_rect(r, COL_BG)
+		draw_rect(r, Color("2a2a2a"))
 		draw_rect(r, COL_TOR, false, 1.5)
-		var c := r.get_center()
-		var ad := -1.0 if na_zewnatrz else 1.0
-		draw_line(c + Vector2(-9 * ad, 0), c + Vector2(9 * ad, 0), COL_OPIS, 2.0)
-		draw_line(c + Vector2(9 * ad, 0), c + Vector2(3 * ad, -4), COL_OPIS, 2.0)
-		draw_line(c + Vector2(9 * ad, 0), c + Vector2(3 * ad, 4), COL_OPIS, 2.0)
-		draw_string(_font, c + Vector2(-24, -16), lid, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, COL_OPIS)
-		var nm := "%s  %s" % [str(le["name"]), str(le["lk"])]
-		var np := r.position + Vector2(-4, r.size.y + 13) if na_zewnatrz else r.position + Vector2(-4, r.size.y + 13)
-		draw_string(_font, np, nm, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, COL_OPIS.darkened(0.2))
+		draw_string(_font, r.position + Vector2(6, 20), lid, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, COL_NR)
+		if str(le["tor"]) != "":
+			draw_string(_font, r.position + Vector2(r.size.x - 16.0, 20), str(le["tor"]),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 11, COL_ZOLTY)
+		var nazwa := "%s %s" % [str(le["name"]), str(le["lk"])]
+		draw_string(_font, p + Vector2(out * 44.0 - 34.0, 30.0), nazwa,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 10, COL_OPIS)
+		# czerwona kasetka z numerem oczekującego pociągu (jak w SimRail)
 		var q: Array = sim.queues.get(lid, [])
 		if not q.is_empty():
 			var t: Train = sim.trains.get(int(q[0]))
-			var txt := "%s" % (t.nr if t != null else "?")
+			var nr_txt := t.nr if t != null else "?"
 			if q.size() > 1:
-				txt += "  (+%d)" % (q.size() - 1)
-			var box := Rect2(r.position + Vector2(0, -46), Vector2(maxf(58.0, txt.length() * 8.0), 24))
-			draw_rect(box, COL_ZAJETY if blink else COL_ZAJETY.darkened(0.35))
-			draw_string(_font, box.position + Vector2(6, 17), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
+				nr_txt += " +%d" % (q.size() - 1)
+			var box := Rect2(p + Vector2(out * 48.0 - 44.0, 40.0), Vector2(88, 34))
+			draw_rect(box, COL_KASETA if blink else COL_KASETA.darkened(0.25))
+			draw_rect(box, Color("d8d8d8"), false, 1.0)
+			draw_string(_font, box.position + Vector2(8, 22), nr_txt,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("ffffff"))
 		if str(sim.selected.get("kind", "")) == "line_end" and str(sim.selected.get("id", "")) == lid:
 			draw_rect(r.grow(4.0), COL_SEL, false, 2.0)
 
@@ -268,10 +343,11 @@ func _draw_line_ends(blink: bool) -> void:
 func _draw_tarcze() -> void:
 	for to in layout.tarcze_ostrz:
 		var p := Vector2(float(to["x"]), float(to["y"]))
-		draw_line(p + Vector2(0, 12), p + Vector2(0, -2), Color("d060d0"), 1.5)
-		draw_line(p + Vector2(0, -2), p + Vector2(-6, -11), Color("d060d0"), 1.5)
-		draw_line(p + Vector2(0, -2), p + Vector2(6, -11), Color("d060d0"), 1.5)
-		draw_string(_font, p + Vector2(-12, 26), str(to["id"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 9, COL_OPIS.darkened(0.3))
+		var d := 1.0 if p.x < layout.bounds.get_center().x else -1.0
+		_chevron(p + Vector2(-4 * d, 0), d, COL_TOR, 6.0, 1.6)
+		_chevron(p + Vector2(5 * d, 0), d, COL_TOR, 6.0, 1.6)
+		draw_string(_font, p + Vector2(-14, 22), str(to["id"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, COL_ZOLTY)
+		draw_string(_font, p + Vector2(-14, -14), str(to.get("km", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, 9, COL_OPIS)
 
 
 func _draw_signals(blink: bool) -> void:
@@ -279,60 +355,62 @@ func _draw_signals(blink: bool) -> void:
 		var sg: Dictionary = layout.signals[sid]
 		var p := _sig_pos(sg)
 		var base := layout.pos(str(sg["point"]))
-		draw_line(base, p, COL_TOR.darkened(0.2), 1.0)
+		draw_line(base, p, Color("505050"), 1.0)
 		var a := inter.aspect(sid)
-		var col := Color("cf1020")
+		var col := CHEV_STOP
 		match a:
 			Interlocking.ASPECT_JAZDA:
-				col = Color("22c55e")
+				col = CHEV_GO
 			Interlocking.ASPECT_MANEWR:
-				col = Color("f2f2f2")
+				col = CHEV_MAN
 			Interlocking.ASPECT_SZ:
-				col = Color("f2f2f2") if blink else Color("404040")
+				col = CHEV_MAN if blink else Color("484848")
 		var d := 1.0 if int(sg["dir"]) > 0 else -1.0
-		var manewrowa: bool = str(sg["typ"]) == "manewrowy"
-		var pts := PackedVector2Array([
-			p + Vector2(-7 * d, -7), p + Vector2(7 * d, 0), p + Vector2(-7 * d, 7)])
-		if manewrowa:
-			draw_rect(Rect2(p - Vector2(6, 6), Vector2(12, 12)), col, not manewrowa)
-			draw_rect(Rect2(p - Vector2(6, 6), Vector2(12, 12)), col, false, 2.0)
+		if str(sg["typ"]) == "manewrowy":
+			draw_rect(Rect2(p - Vector2(9, 8), Vector2(18, 16)), Color("1c1c1c"))
+			draw_rect(Rect2(p - Vector2(9, 8), Vector2(18, 16)), col, false, 1.5)
+			_chevron(p + Vector2(-1 * d, 0), d, col, 5.0, 2.0)
 		else:
-			draw_colored_polygon(pts, col)
+			_chevron(p + Vector2(-5 * d, 0), d, col, 7.0, 2.4)
+			_chevron(p + Vector2(5 * d, 0), d, col, 7.0, 2.4)
 		if inter.is_signal_failed(sid):
-			draw_line(p + Vector2(-9, -9), p + Vector2(9, 9), COL_ZAMK, 2.0)
-			draw_line(p + Vector2(-9, 9), p + Vector2(9, -9), COL_ZAMK, 2.0)
+			draw_line(p + Vector2(-10, -9), p + Vector2(10, 9), COL_ZAMK, 2.0)
+			draw_line(p + Vector2(-10, 9), p + Vector2(10, -9), COL_ZAMK, 2.0)
 		if inter.tab.has(sid):
-			draw_rect(Rect2(p + Vector2(-11, -11), Vector2(22, 22)), COL_ZAMK, false, 1.5)
+			draw_rect(Rect2(p + Vector2(-12, -11), Vector2(24, 22)), COL_ZAMK, false, 1.5)
 		if sim.pending_start == sid:
-			draw_arc(p, 13.0, 0, TAU, 26, COL_SEL, 2.5)
+			draw_arc(p, 14.0, 0, TAU, 28, COL_SEL, 2.5)
 		elif str(sim.selected.get("kind", "")) == "signal" and str(sim.selected.get("id", "")) == sid:
-			draw_arc(p, 13.0, 0, TAU, 26, COL_SEL.darkened(0.4), 1.5)
-		var off := Vector2(-8, 24) if int(sg["dir"]) > 0 else Vector2(-8, -16)
-		draw_string(_font, p + off, sid, HORIZONTAL_ALIGNMENT_LEFT, -1, 11,
-			COL_SEL if sim.pending_start == sid else COL_SYG)
+			draw_arc(p, 14.0, 0, TAU, 28, COL_SEL.darkened(0.45), 1.5)
+		var off := Vector2(-7, 30) if int(sg["dir"]) > 0 else Vector2(-7, -22)
+		draw_string(_font, p + off, sid, HORIZONTAL_ALIGNMENT_LEFT, -1, 12,
+			COL_SEL if sim.pending_start == sid else COL_ZOLTY)
 
 
 func _draw_trains(blink: bool) -> void:
 	for t: Train in sim.trains.values():
 		if t.state == Train.State.OCZEKUJE or t.state == Train.State.ZAKONCZONY:
 			continue
-		var col: Color = CAT_COL.get(t.rodzaj, Color("9ca3af"))
 		var body := t.body_points()
-		for i in range(body.size() - 1):
-			draw_line(body[i], body[i + 1], col, 9.0)
+		if body.size() >= 2:
+			var dirv := body[body.size() - 1] - body[0]
+			var d := 1.0 if dirv.x >= 0.0 else -1.0
+			for i in range(body.size() - 1):
+				var m := (body[i] + body[i + 1]) / 2.0
+				_chevron(m, d, Color("ff8080"), 5.0, 2.0)
 		var head := t.head_pos()
-		var lbl := "%s %s" % [t.rodzaj, t.nr]
-		var lp := head + Vector2(-18, -16)
-		var box := Rect2(lp + Vector2(-5, -12), Vector2(12 + lbl.length() * 7.0, 17))
-		draw_rect(box, Color(0, 0, 0, 0.85))
-		var border := col
+		var box := Rect2(head + Vector2(-34, -46), Vector2(84, 26))
+		draw_rect(box, COL_KASETA)
+		var border := Color("d8d8d8")
 		if t.state == Train.State.GOTOWY and blink:
-			border = Color("22c55e")
+			border = CHEV_GO
 		elif t.stop_reason != "":
 			border = COL_ZAMK
-		draw_rect(box, border, false, 1.5)
-		draw_string(_font, lp, lbl, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("eef2f7"))
+		draw_rect(box, border, false, 1.2)
+		draw_string(_font, box.position + Vector2(6, 18), t.nr,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("ffffff"))
 		if t.state == Train.State.GOTOWY:
-			draw_string(_font, lp + Vector2(0, 26), "GOTÓW", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("22c55e"))
+			draw_string(_font, box.position + Vector2(2, 40), "GOTÓW", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, CHEV_GO)
 		elif t.stop_reason != "":
-			draw_string(_font, lp + Vector2(0, 26), t.stop_reason.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 9, COL_ZAMK)
+			draw_string(_font, box.position + Vector2(2, 40), t.stop_reason.to_upper(),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 9, COL_ZAMK)

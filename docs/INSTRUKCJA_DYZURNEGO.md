@@ -2,25 +2,29 @@
 
 ## 1. Pulpit nastawczy
 
-Obraz świetlny wzorowany na komputerowych nastawnicach stosowanych na PKP.
+Obraz świetlny odwzorowany na LCS z gry SimRail: na środku u góry pasek
+poleceń, pod nim „Dyżurny ruchu: …” i nazwa posterunku; zegar w lewym
+dolnym rogu; ekrany pomocnicze pod przyciskami w prawym górnym rogu.
 
 | Element | Wygląd |
 |---|---|
 | tor wolny | szara linia |
-| droga przebiegu w trakcie nastawiania | miga na niebiesko (przestawiane rozjazdy) |
+| droga przebiegu w trakcie nastawiania | miga na seledynowo (przestawiane rozjazdy) |
 | droga przebiegu utwierdzona | biała linia |
-| zajętość toru | czerwona linia |
+| zajętość toru | czerwona linia z grotami kierunku jazdy |
 | zamknięcie toru | pomarańczowa, przekreślona |
-| semafor | trójkąt zwrócony w kierunku jazdy: czerwony — „Stój”, zielony — sygnał zezwalający, biały — manewrowy, biały migający — sygnał zastępczy |
-| tarcza manewrowa | kwadrat (Tm1, Tm2, Tm3) |
+| semafor | podwójny grot w kierunku jazdy: szary — „Stój”, zielony — sygnał zezwalający, biały — manewrowy, biały migający — Sz; nazwa na żółto |
+| tarcza manewrowa | pojedynczy grot w ramce (Tm1, Tm2, Tm3) |
 | rozjazd | numer + położenie: **+** zasadnicze, **−** zwrotne |
-| przycisk szlaku | prostokąt ze strzałką na krańcu pulpitu (it1P, it2R, itG …) |
-| pociąg oczekujący | czerwony prostokąt z numerem przy przycisku szlaku |
+| kasetka szlaku | szary prostokąt na krańcu pulpitu (it1P, it2R, itG …) z numerem toru szlakowego |
+| odcinki zbliżania | groty na szlaku z seledynowymi nazwami ISp…, IISp… |
+| pociąg | czerwona kasetka z numerem (przy szlaku — oczekujący, nad głowicą składu — jadący) |
+| znaki km, przejazd | różowe widły z kilometrażem, różowa linia pionowa |
 | usterka | pomarańczowe przekreślenie / migająca obwódka |
 | tabliczka ostrzegawcza | pomarańczowa ramka wokół elementu |
 
 Widok: **prawy przycisk myszy** — przesuwanie, **rolka** — powiększenie,
-**Dopasuj widok** — wyśrodkowanie schematu.
+**WIDOK** — dopasowanie schematu do okna.
 
 ## 2. Nastawianie przebiegu (dwuprzyciskowe)
 

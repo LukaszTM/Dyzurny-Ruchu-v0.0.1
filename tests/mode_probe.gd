@@ -1,7 +1,7 @@
 extends Node
-## Sonda trybów i ekranów. Uruchamia symulację w trybie wskazanym zmienną
-## SIM_MODE (timetable/random/tutorial), przyspiesza ją, automatycznie
-## odpowiada na rozmowy przychodzące i cyklicznie przełącza wszystkie ekrany,
+## Sonda trybów i ekranów. Tworzy symulację, przyspiesza ją, automatycznie
+## odpowiada na rozmowy przychodzące i cyklicznie osadza wszystkie ekrany
+## jako własne dzieci (nie podmienia sceny głównej — sonda żyje cały czas),
 ## aby wychwycić błędy czasu wykonania w interfejsie.
 ##
 ##   SIM_MODE=random godot --headless --path . res://tests/ModeProbe.tscn --quit-after 8000
@@ -11,8 +11,11 @@ const EKRANY := [
 	GameState.SCENE_EVENTS, GameState.SCENE_COMMS,
 ]
 
+var sim: SimCore
+var ekran: Node = null
 var i := 0
 var t := 0.0
+var cykle := 0
 
 
 func _ready() -> void:
@@ -22,16 +25,27 @@ func _ready() -> void:
 	Settings.online_enabled = false
 	Settings.traffic_intensity = 40.0
 	Settings.event_freq_min = 1.0 if mode != GameState.MODE_TUTORIAL else 0.0
-	GameState.start_simulation(mode, "warszawa_wschodnia")
+	GameState.mode = mode
+	sim = SimCore.new()
+	add_child(sim)
+	sim.setup(mode, "warszawa_wschodnia")
+	GameState.sim = sim
+	sim.time_scale = 20.0
+	_pokaz(0)
 	print("SONDA TRYBU: ", mode)
 
 
+func _pokaz(idx: int) -> void:
+	if ekran != null:
+		ekran.queue_free()
+	var scena: PackedScene = load(EKRANY[idx % EKRANY.size()])
+	ekran = scena.instantiate()
+	add_child(ekran)
+
+
 func _process(delta: float) -> void:
-	var sim := GameState.sim as SimCore
 	if sim == null:
 		return
-	sim.time_scale = 20.0
-	# automatyczna obsługa łączności, aby ruch nie stanął
 	for c in sim.comms.pending_calls():
 		sim.comms.answer_call(int(c["id"]), true)
 	for tr: Train in sim.trains.values():
@@ -46,4 +60,7 @@ func _process(delta: float) -> void:
 	if t >= 1.2:
 		t = 0.0
 		i += 1
-		GameState.open_scene(EKRANY[i % EKRANY.size()])
+		cykle += 1
+		_pokaz(i)
+		if cykle % EKRANY.size() == 0:
+			print("SONDA: pełny cykl ekranów nr %d" % (cykle / EKRANY.size()))

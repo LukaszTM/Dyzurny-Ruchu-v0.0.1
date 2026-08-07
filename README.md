@@ -1,10 +1,15 @@
-# Dyżurny Ruchu — Symulator LCS (v0.1.0)
+# Dyżurny Ruchu — Symulator LCS (v0.2.0)
 
-Symulator pracy **dyżurnego ruchu** w Lokalnym Centrum Sterowania (LCS),
-wzorowany na trybie dyżurnego ruchu z gry SimRail i na rzeczywistych
-komputerowych nastawnicach PKP. Pierwsza lokalizacja: **Warszawa Wschodnia**
-(9 torów, 31 rozjazdów, 27 sygnalizatorów, 4 kierunki szlakowe + stacja
-techniczna Grochów).
+Symulator pracy **dyżurnego ruchu** w Lokalnym Centrum Sterowania (LCS).
+Wygląd i obsługa pulpitu odwzorowane na trybie dyżurnego ruchu z gry
+**SimRail**: czarny obraz świetlny z szarymi torami, pasek poleceń
+PRZEBIEG POCIĄGOWY … OPS na środku u góry z nazwą posterunku i nazwiskiem
+dyżurnego, listwa poleceń sygnalizatora STOP…KTAB, semafory jako podwójne
+groty z żółtymi nazwami, seledynowe obwódki wybranych przycisków, czerwone
+kasetki z numerami pociągów, różowe znaki km i przejazd, zegar w lewym
+dolnym rogu; wykaz pociągów w jasnym stylu z kolorowymi kolumnami.
+Pierwsza lokalizacja: **Warszawa Wschodnia** (9 torów, 31 rozjazdów,
+27 sygnalizatorów, 4 kierunki szlakowe + stacja techniczna Grochów).
 
 Silnik: **Godot 4.3+** (renderer Compatibility).
 

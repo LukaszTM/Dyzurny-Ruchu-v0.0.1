@@ -1,8 +1,10 @@
 extends Node
-## Ekran główny — pulpit nastawczy.
-## Górna belka: polecenia nastawcze (PP/PM/ZD/ZDM/ZW/ZWP/OPS) oraz przejścia
-## do pozostałych ekranów. Na pulpicie zwijane okno skróconego rozkładu
-## z czterema najbliższymi pociągami.
+## Ekran główny — pulpit nastawczy w układzie jak w SimRail:
+## na środku u góry pasek poleceń (PRZEBIEG POCIĄGOWY … OPS), pod nim
+## „Dyżurny ruchu: …” i nazwa posterunku; zegar w lewym dolnym rogu;
+## menu sygnalizatora jako pozioma listwa STOP…KTAB pod paskiem poleceń;
+## dyskretne przyciski ekranów w prawym górnym rogu; zwijane okno
+## skróconego rozkładu z czterema najbliższymi pociągami.
 
 var sim: SimCore
 var schema: SchemaView
@@ -10,7 +12,7 @@ var ui: CanvasLayer
 var cmd_buttons := {}
 var clock_lbl: Label
 var msg_lbl: Label
-var sel_lbl: Label
+var stan_lbl: Label
 var pause_btn: Button
 var speed_btns: Array = []
 var mini: PanelContainer
@@ -20,8 +22,10 @@ var mini_collapsed := false
 var mini_toggle: Button
 var comms_btn: Button
 var events_btn: Button
-var sig_popup: PopupPanel
-var sig_popup_id := ""
+var nav_btns: Array = []
+var sig_bar: PanelContainer
+var sig_bar_title: Label
+var sig_bar_id := ""
 var sig_buttons := {}
 var tut_panel: PanelContainer
 var tut_head: Label
@@ -45,7 +49,7 @@ func _ready() -> void:
 	_build_ui()
 	EventBus.message.connect(_on_message)
 	EventBus.panel_state_changed.connect(_refresh_cmd)
-	EventBus.element_selected.connect(func(_k, _i): _refresh_sel())
+	EventBus.element_selected.connect(func(_k, _i): _refresh_stan())
 	EventBus.comms_changed.connect(_refresh_badges)
 	EventBus.comms_call_added.connect(func(_c): _refresh_badges())
 	EventBus.random_event_started.connect(func(_e): _refresh_badges())
@@ -69,7 +73,7 @@ func _process(delta: float) -> void:
 		_acc = 0.0
 		_refresh_mini()
 		_refresh_badges()
-		_refresh_sel()
+		_refresh_stan()
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -98,7 +102,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_F5:
 			GameState.open_scene(GameState.SCENE_COMMS)
 		KEY_ESCAPE:
-			if sim.pending_start != "":
+			if sig_bar.visible:
+				sig_bar.visible = false
+			elif sim.pending_start != "":
 				sim.pending_start = ""
 				EventBus.panel_state_changed.emit()
 			else:
@@ -111,125 +117,222 @@ func _build_ui() -> void:
 	ui = CanvasLayer.new()
 	add_child(ui)
 
-	var top := PanelContainer.new()
+	# --- pasek poleceń wyśrodkowany u góry (jak w SimRail) ---
+	var top := VBoxContainer.new()
 	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	var top_vb := VBoxContainer.new()
-	top_vb.add_theme_constant_override("separation", 2)
-
-	# --- wiersz 1: polecenia nastawcze ---
-	var r1 := HBoxContainer.new()
-	r1.add_theme_constant_override("separation", 4)
+	top.offset_top = 8.0
+	top.add_theme_constant_override("separation", 2)
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 5)
 	for cmd in [SimCore.CMD_PP, SimCore.CMD_PM, SimCore.CMD_ZD, SimCore.CMD_ZDM,
 			SimCore.CMD_ZW, SimCore.CMD_ZWP, SimCore.CMD_OPS]:
 		var b := Button.new()
 		b.text = str(SimCore.CMD_LABELS[cmd])
 		b.tooltip_text = str(SimCore.CMD_HELP[cmd])
-		b.toggle_mode = true
+		b.focus_mode = Control.FOCUS_NONE
 		b.pressed.connect(func(): sim.set_cmd_mode(cmd))
 		cmd_buttons[cmd] = b
-		r1.add_child(b)
-	var sp1 := Control.new()
-	sp1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	r1.add_child(sp1)
-	var st_lbl := Label.new()
-	st_lbl.text = "%s   •   dyżurny ruchu: %s" % [sim.layout.station_name.to_upper(), Settings.dyzurny_name]
-	st_lbl.add_theme_color_override("font_color", UICommon.COL_SZARY)
-	r1.add_child(st_lbl)
-	clock_lbl = Label.new()
-	clock_lbl.add_theme_font_size_override("font_size", 24)
-	clock_lbl.add_theme_color_override("font_color", Color("22c55e"))
-	r1.add_child(clock_lbl)
-	pause_btn = Button.new()
-	pause_btn.text = "⏸"
-	pause_btn.pressed.connect(func(): sim.toggle_pause())
-	r1.add_child(pause_btn)
-	for sp in [1.0, 2.0, 5.0, 10.0]:
-		var sb := Button.new()
-		sb.text = "%dx" % int(sp)
-		sb.toggle_mode = true
-		sb.set_meta("speed", sp)
-		sb.pressed.connect(func(): sim.set_speed(sp))
-		speed_btns.append(sb)
-		r1.add_child(sb)
-	top_vb.add_child(r1)
+		row.add_child(b)
+	top.add_child(row)
+	var dyz := Label.new()
+	dyz.text = "Dyżurny ruchu: %s" % Settings.dyzurny_name
+	dyz.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dyz.add_theme_font_size_override("font_size", 11)
+	dyz.add_theme_color_override("font_color", Color("8a8a8a"))
+	top.add_child(dyz)
+	var st_name := Label.new()
+	st_name.text = sim.layout.station_name.to_upper()
+	st_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	st_name.add_theme_font_size_override("font_size", 22)
+	st_name.add_theme_color_override("font_color", Color("8a8a8a"))
+	top.add_child(st_name)
+	ui.add_child(top)
 
-	# --- wiersz 2: ekrany ---
-	var r2 := HBoxContainer.new()
-	r2.add_theme_constant_override("separation", 4)
-	var nav := [
-		["ROZKŁAD JAZDY (F2)", GameState.SCENE_TIMETABLE],
-		["EDR (F3)", GameState.SCENE_EDR],
-		["ZDARZENIA (F4)", GameState.SCENE_EVENTS],
-		["ŁĄCZNOŚĆ (F5)", GameState.SCENE_COMMS],
+	# --- listwa menu sygnalizatora (STOP…KTAB) pod paskiem poleceń ---
+	sig_bar = PanelContainer.new()
+	sig_bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	sig_bar.offset_top = 96.0
+	sig_bar.visible = false
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("101010")
+	sb.border_color = Color("3a3a3a")
+	sb.set_border_width_all(1)
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 6
+	sig_bar.add_theme_stylebox_override("panel", sb)
+	var sig_vb := VBoxContainer.new()
+	sig_bar_title = Label.new()
+	sig_bar_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sig_bar_title.add_theme_font_size_override("font_size", 12)
+	sig_bar_title.add_theme_color_override("font_color", Color("e8e8e8"))
+	sig_vb.add_child(sig_bar_title)
+	var sig_hb := HBoxContainer.new()
+	sig_hb.add_theme_constant_override("separation", 5)
+	for cmd in SimCore.SIGNAL_CMDS:
+		var b2 := Button.new()
+		b2.text = cmd
+		b2.custom_minimum_size = Vector2(58, 0)
+		b2.focus_mode = Control.FOCUS_NONE
+		b2.pressed.connect(func():
+			sim.exec_signal_cmd(sig_bar_id, cmd)
+			_refresh_signal_bar())
+		sig_buttons[cmd] = b2
+		sig_hb.add_child(b2)
+	var zamknij := Button.new()
+	zamknij.text = "✕"
+	zamknij.focus_mode = Control.FOCUS_NONE
+	zamknij.pressed.connect(func(): sig_bar.visible = false)
+	UICommon.style_nav_button(zamknij)
+	sig_hb.add_child(zamknij)
+	sig_vb.add_child(sig_hb)
+	sig_bar.add_child(sig_vb)
+	ui.add_child(sig_bar)
+
+	# --- nawigacja: prawy dolny róg (nie zasłania paska poleceń) ---
+	var nav := HBoxContainer.new()
+	nav.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	nav.offset_left = -664.0
+	nav.offset_top = -34.0
+	nav.offset_right = -8.0
+	nav.offset_bottom = -8.0
+	nav.alignment = BoxContainer.ALIGNMENT_END
+	nav.add_theme_constant_override("separation", 4)
+	var defs := [
+		["ROZKŁAD F2", GameState.SCENE_TIMETABLE],
+		["EDR F3", GameState.SCENE_EDR],
+		["ZDARZENIA F4", GameState.SCENE_EVENTS],
+		["ŁĄCZNOŚĆ F5", GameState.SCENE_COMMS],
 	]
-	for item in nav:
+	for item in defs:
 		var nb := Button.new()
 		nb.text = str(item[0])
+		nb.focus_mode = Control.FOCUS_NONE
 		var path := str(item[1])
 		nb.pressed.connect(func(): GameState.open_scene(path))
+		UICommon.style_nav_button(nb)
 		if path == GameState.SCENE_COMMS:
 			comms_btn = nb
 		elif path == GameState.SCENE_EVENTS:
 			events_btn = nb
-		r2.add_child(nb)
-	var sp2 := Control.new()
-	sp2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	r2.add_child(sp2)
-	var fit := Button.new()
-	fit.text = "Dopasuj widok"
-	fit.pressed.connect(func(): schema.fit_to_view())
-	r2.add_child(fit)
+		nav_btns.append(nb)
+		nav.add_child(nb)
 	var sett := Button.new()
-	sett.text = "USTAWIENIA"
+	sett.text = "USTAW."
+	sett.focus_mode = Control.FOCUS_NONE
 	sett.pressed.connect(func(): settings_dialog.popup_centered())
-	r2.add_child(sett)
+	UICommon.style_nav_button(sett)
+	nav.add_child(sett)
 	var hlp := Button.new()
-	hlp.text = "POMOC (F1)"
+	hlp.text = "POMOC F1"
+	hlp.focus_mode = Control.FOCUS_NONE
 	hlp.pressed.connect(func(): help_dialog.popup_centered())
-	r2.add_child(hlp)
+	UICommon.style_nav_button(hlp)
+	nav.add_child(hlp)
 	var menu := Button.new()
-	menu.text = "ZAKOŃCZ DYŻUR"
+	menu.text = "KONIEC"
+	menu.focus_mode = Control.FOCUS_NONE
 	menu.pressed.connect(func(): exit_dialog.popup_centered())
-	r2.add_child(menu)
-	top_vb.add_child(r2)
-	top.add_child(top_vb)
-	ui.add_child(top)
+	UICommon.style_nav_button(menu)
+	nav.add_child(menu)
+	ui.add_child(nav)
+
+	# --- lewy górny róg: pauza i tempo ---
+	var czas := HBoxContainer.new()
+	czas.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	czas.offset_left = 8.0
+	czas.offset_top = 6.0
+	czas.add_theme_constant_override("separation", 4)
+	pause_btn = Button.new()
+	pause_btn.text = "⏸"
+	pause_btn.focus_mode = Control.FOCUS_NONE
+	pause_btn.pressed.connect(func(): sim.toggle_pause())
+	UICommon.style_nav_button(pause_btn)
+	czas.add_child(pause_btn)
+	for sp in [1.0, 2.0, 5.0, 10.0]:
+		var b3 := Button.new()
+		b3.text = "%dx" % int(sp)
+		b3.focus_mode = Control.FOCUS_NONE
+		b3.set_meta("speed", sp)
+		b3.pressed.connect(func(): sim.set_speed(sp))
+		UICommon.style_nav_button(b3)
+		speed_btns.append(b3)
+		czas.add_child(b3)
+	var fit := Button.new()
+	fit.text = "WIDOK"
+	fit.tooltip_text = "Dopasuj widok pulpitu"
+	fit.focus_mode = Control.FOCUS_NONE
+	fit.pressed.connect(func(): schema.fit_to_view())
+	UICommon.style_nav_button(fit)
+	czas.add_child(fit)
+	ui.add_child(czas)
 
 	_build_mini()
-	_build_bottom()
-	_build_signal_popup()
+
+	# --- zegar w lewym dolnym rogu (jak w SimRail) ---
+	clock_lbl = Label.new()
+	clock_lbl.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	clock_lbl.offset_left = 14.0
+	clock_lbl.offset_top = -46.0
+	clock_lbl.add_theme_font_size_override("font_size", 28)
+	clock_lbl.add_theme_color_override("font_color", Color("9a9a9a"))
+	ui.add_child(clock_lbl)
+
+	# --- dolny środek: stan pulpitu + komunikat ---
+	var bot := VBoxContainer.new()
+	bot.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	bot.offset_top = -84.0
+	bot.offset_bottom = -34.0
+	bot.offset_left = 240.0
+	bot.offset_right = -240.0
+	bot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stan_lbl = Label.new()
+	stan_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stan_lbl.add_theme_font_size_override("font_size", 11)
+	stan_lbl.add_theme_color_override("font_color", Color("6a7a8a"))
+	bot.add_child(stan_lbl)
+	msg_lbl = Label.new()
+	msg_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	msg_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	msg_lbl.add_theme_font_size_override("font_size", 13)
+	bot.add_child(msg_lbl)
+	ui.add_child(bot)
+
 	_build_tutorial()
 
 	settings_dialog = SettingsDialog.new()
 	ui.add_child(settings_dialog)
 	help_dialog = AcceptDialog.new()
 	help_dialog.title = "Pomoc — obsługa pulpitu nastawczego"
-	help_dialog.dialog_text = """NASTAWIANIE PRZEBIEGU (dwuprzyciskowe, jak na kolei)
-1. Wybierz rodzaj polecenia: PRZEBIEG POCIĄGOWY albo PRZEBIEG MANEWROWY.
-2. Naciśnij przycisk POCZĄTKU drogi przebiegu — sygnalizator, spod którego
-   ma odbyć się jazda.
-3. Naciśnij przycisk KOŃCA drogi przebiegu — sygnalizator na końcu toru
-   albo przycisk szlaku (prostokąt na krańcu pulpitu).
-Urządzenia wybiorą drogę przebiegu, przestawią rozjazdy (odcinek miga na
-niebiesko), utwierdzą przebieg (biel), a potem podadzą sygnał zezwalający.
+	help_dialog.dialog_text = """NASTAWIANIE PRZEBIEGU (dwuprzyciskowe)
+1. Wybierz na górnym pasku: PRZEBIEG POCIĄGOWY albo PRZEBIEG MANEWROWY.
+2. Kliknij przycisk POCZĄTKU drogi przebiegu (sygnalizator) — dostanie
+   seledynową obwódkę.
+3. Kliknij przycisk KOŃCA (sygnalizator na końcu toru albo kasetkę szlaku).
+Urządzenia wybiorą drogę, przestawią rozjazdy (odcinki migają), utwierdzą
+przebieg (biel) i podadzą sygnał — grot semafora zmieni kolor na zielony
+(jazda pociągowa) albo biały (manewrowa).
 
-POZOSTAŁE POLECENIA
+POZOSTAŁE POLECENIA PASKA
 ZD / ZDM — zwolnienie drogi przebiegu pociągowego / manewrowego.
 ZW  — indywidualne przestawienie rozjazdu (+ / −).
 ZWP — zwolnienie awaryjne przebiegu z kontrolą czasu 180 s.
 OPS — opis wskazanego elementu.
 
-MENU SYGNALIZATORA — prawy przycisk myszy na sygnalizatorze:
+MENU SYGNALIZATORA — prawy przycisk myszy na sygnalizatorze otwiera listwę:
 STOP / OSTOP — nakaz i odwołanie sygnału „Stój”.
-SZ / SZP — sygnał zastępczy jednorazowy / powtarzalny (przy usterce semafora).
+SZ / SZP — sygnał zastępczy jednorazowy / powtarzalny (czerwone przyciski).
 NSZ / NSZP — skasowanie sygnału zastępczego.
 WTAB / KTAB — założenie i skasowanie tabliczki ostrzegawczej.
 
-ZAPOWIADANIE — wyprawienie pociągu na szlak wymaga pozwolenia sąsiedniego
-posterunku (ekran ŁĄCZNOŚĆ). Po przyjeździe potwierdź przyjazd, po odjeździe
-oznajmij odjazd. Usterki usuwane są dopiero po zgłoszeniu właściwej służbie.
+ZAPOWIADANIE (ekran ŁĄCZNOŚĆ, F5) — wyprawienie pociągu wymaga pozwolenia
+sąsiedniego posterunku; po odjeździe oznajmij odjazd, po przyjeździe
+potwierdź przyjazd. Usterki zgłaszaj właściwej służbie (ekran ZDARZENIA).
 
-WIDOK: prawy przycisk myszy — przesuwanie, rolka — powiększenie.
+WIDOK: prawy przycisk myszy — przesuwanie, rolka — zoom.
 KLAWISZE: Spacja — pauza, 1/2/3/4 — tempo, F1–F5 — ekrany, Esc — wyjście."""
 	ui.add_child(help_dialog)
 	exit_dialog = ConfirmationDialog.new()
@@ -242,26 +345,38 @@ KLAWISZE: Spacja — pauza, 1/2/3/4 — tempo, F1–F5 — ekrany, Esc — wyjś
 func _build_mini() -> void:
 	mini = PanelContainer.new()
 	mini.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	mini.offset_left = -430.0
-	mini.offset_top = 86.0
-	mini.offset_right = -12.0
+	mini.offset_left = -450.0
+	mini.offset_top = 8.0
+	mini.offset_right = -8.0
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("0c0c0c")
+	sb.border_color = Color("3a3a3a")
+	sb.set_border_width_all(1)
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 6
+	mini.add_theme_stylebox_override("panel", sb)
 	var vb := VBoxContainer.new()
 	var head := HBoxContainer.new()
 	var title := Label.new()
 	title.text = "NAJBLIŻSZE POCIĄGI"
-	title.add_theme_font_size_override("font_size", 12)
-	title.add_theme_color_override("font_color", UICommon.COL_AKCENT)
+	title.add_theme_font_size_override("font_size", 11)
+	title.add_theme_color_override("font_color", Color("8a8a8a"))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(title)
 	var full := Button.new()
-	full.text = "pełny rozkład"
-	full.add_theme_font_size_override("font_size", 10)
+	full.text = "wykaz"
+	full.focus_mode = Control.FOCUS_NONE
 	full.pressed.connect(func(): GameState.open_scene(GameState.SCENE_TIMETABLE))
+	UICommon.style_nav_button(full)
 	head.add_child(full)
 	mini_toggle = Button.new()
 	mini_toggle.text = "▲"
+	mini_toggle.focus_mode = Control.FOCUS_NONE
 	mini_toggle.tooltip_text = "Zwiń / rozwiń okno"
 	mini_toggle.pressed.connect(_toggle_mini)
+	UICommon.style_nav_button(mini_toggle)
 	head.add_child(mini_toggle)
 	vb.add_child(head)
 	mini_body = VBoxContainer.new()
@@ -279,55 +394,23 @@ func _toggle_mini() -> void:
 	mini_toggle.text = "▼" if mini_collapsed else "▲"
 
 
-func _build_bottom() -> void:
-	var bottom := PanelContainer.new()
-	bottom.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	bottom.offset_top = -56.0
-	var vb := VBoxContainer.new()
-	sel_lbl = Label.new()
-	sel_lbl.add_theme_font_size_override("font_size", 12)
-	sel_lbl.add_theme_color_override("font_color", UICommon.COL_SZARY)
-	vb.add_child(sel_lbl)
-	msg_lbl = Label.new()
-	msg_lbl.add_theme_font_size_override("font_size", 13)
-	msg_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vb.add_child(msg_lbl)
-	bottom.add_child(vb)
-	ui.add_child(bottom)
+func _open_signal_menu(sig_id: String, _screen_pos: Vector2) -> void:
+	sig_bar_id = sig_id
+	sig_bar.visible = true
+	_refresh_signal_bar()
 
 
-func _build_signal_popup() -> void:
-	sig_popup = PopupPanel.new()
-	var vb := VBoxContainer.new()
-	var t := Label.new()
-	t.name = "Tytul"
-	t.add_theme_color_override("font_color", UICommon.COL_AKCENT)
-	vb.add_child(t)
-	var grid := GridContainer.new()
-	grid.columns = 4
+func _refresh_signal_bar() -> void:
+	if sig_bar_id == "" or not sim.layout.signals.has(sig_bar_id):
+		sig_bar.visible = false
+		return
+	var sg: Dictionary = sim.layout.signals[sig_bar_id]
+	sig_bar_title.text = "%s  —  %s,  %s" % [
+		sig_bar_id, str(sg["typ"]), Interlocking.aspect_name(sim.inter.aspect(sig_bar_id))]
+	var en := sim.signal_menu_enabled(sig_bar_id)
 	for cmd in SimCore.SIGNAL_CMDS:
-		var b := Button.new()
-		b.text = cmd
-		b.custom_minimum_size = Vector2(64, 0)
-		b.pressed.connect(func():
-			sim.exec_signal_cmd(sig_popup_id, cmd)
-			sig_popup.hide())
-		sig_buttons[cmd] = b
-		grid.add_child(b)
-	vb.add_child(grid)
-	sig_popup.add_child(vb)
-	ui.add_child(sig_popup)
-
-
-func _open_signal_menu(sig_id: String, screen_pos: Vector2) -> void:
-	sig_popup_id = sig_id
-	var t := sig_popup.get_child(0).get_node("Tytul") as Label
-	var sg: Dictionary = sim.layout.signals[sig_id]
-	t.text = "%s — %s (%s)" % [sig_id, str(sg["typ"]), Interlocking.aspect_name(sim.inter.aspect(sig_id))]
-	var en := sim.signal_menu_enabled(sig_id)
-	for cmd in SimCore.SIGNAL_CMDS:
-		(sig_buttons[cmd] as Button).disabled = not bool(en.get(cmd, false))
-	sig_popup.popup(Rect2i(Vector2i(screen_pos) + Vector2i(6, 6), Vector2i(300, 90)))
+		var czerw: bool = cmd in ["SZ", "SZP", "NSZ", "NSZP"]
+		UICommon.style_signal_button(sig_buttons[cmd] as Button, bool(en.get(cmd, false)), czerw)
 
 
 func _build_tutorial() -> void:
@@ -337,8 +420,8 @@ func _build_tutorial() -> void:
 	tut_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	tut_panel.offset_left = 12.0
 	tut_panel.offset_right = 620.0
-	tut_panel.offset_top = -230.0
-	tut_panel.offset_bottom = -62.0
+	tut_panel.offset_top = -252.0
+	tut_panel.offset_bottom = -58.0
 	var vb := VBoxContainer.new()
 	tut_head = Label.new()
 	tut_head.add_theme_color_override("font_color", UICommon.COL_AKCENT)
@@ -371,45 +454,47 @@ func _build_tutorial() -> void:
 
 func _refresh_cmd() -> void:
 	for cmd in cmd_buttons:
-		(cmd_buttons[cmd] as Button).button_pressed = (cmd == sim.cmd_mode)
+		UICommon.style_cmd_button(cmd_buttons[cmd] as Button, cmd == sim.cmd_mode)
 	pause_btn.text = "▶" if sim.paused else "⏸"
 	for b in speed_btns:
-		b.button_pressed = absf(float(b.get_meta("speed")) - sim.time_scale) < 0.01
-	_refresh_sel()
+		var akt: bool = absf(float(b.get_meta("speed")) - sim.time_scale) < 0.01
+		b.add_theme_color_override("font_color", Color("e8e8e8") if akt else Color("9a9a9a"))
+	_refresh_stan()
 
 
-func _refresh_sel() -> void:
-	if sel_lbl == null:
+func _refresh_stan() -> void:
+	if stan_lbl == null:
 		return
 	var parts: Array = []
-	parts.append("Polecenie: %s" % str(SimCore.CMD_LABELS.get(sim.cmd_mode, sim.cmd_mode)))
+	parts.append(str(SimCore.CMD_LABELS.get(sim.cmd_mode, sim.cmd_mode)))
 	if sim.pending_start != "":
-		parts.append("początek drogi przebiegu: %s — wskaż koniec" % sim.pending_start)
+		parts.append("początek: %s — wskaż koniec drogi przebiegu" % sim.pending_start)
 	var czek := 0
 	for lid in sim.queues:
 		czek += (sim.queues[lid] as Array).size()
-	parts.append("oczekuje przed stacją: %d" % czek)
+	if czek > 0:
+		parts.append("oczekuje: %d" % czek)
 	parts.append("na stacji: %d" % sim.trains.size())
 	var awar: Array = []
 	for r in sim.inter.routes.values():
 		if float(r["emergency_at"]) > 0.0:
-			awar.append("%s: %ds" % [str(r["signal_id"]), int(float(r["emergency_at"]) - sim.sim_time)])
+			awar.append("%s %ds" % [str(r["signal_id"]), int(float(r["emergency_at"]) - sim.sim_time)])
 	if not awar.is_empty():
-		parts.append("zwolnienie awaryjne — " + ", ".join(awar))
-	sel_lbl.text = "   |   ".join(parts)
+		parts.append("ZWP: " + ", ".join(awar))
+	if sim.paused:
+		parts.append("PAUZA")
+	stan_lbl.text = "   •   ".join(parts)
 
 
 func _refresh_badges() -> void:
 	if comms_btn != null:
 		var n := sim.comms.pending_calls().size()
-		comms_btn.text = "ŁĄCZNOŚĆ (F5)" if n == 0 else "☎ ŁĄCZNOŚĆ (%d) (F5)" % n
-		comms_btn.add_theme_color_override("font_color",
-			Color("f59e0b") if n > 0 else UICommon.COL_TEKST)
+		comms_btn.text = "ŁĄCZNOŚĆ F5" if n == 0 else "☎ ŁĄCZNOŚĆ (%d)" % n
+		UICommon.style_nav_button(comms_btn, n > 0)
 	if events_btn != null:
 		var m := sim.events.unreported_count()
-		events_btn.text = "ZDARZENIA (F4)" if m == 0 else "⚠ ZDARZENIA (%d) (F4)" % m
-		events_btn.add_theme_color_override("font_color",
-			Color("cf1020") if m > 0 else UICommon.COL_TEKST)
+		events_btn.text = "ZDARZENIA F4" if m == 0 else "⚠ ZDARZENIA (%d)" % m
+		UICommon.style_nav_button(events_btn, m > 0)
 
 
 func _refresh_mini() -> void:
@@ -422,12 +507,12 @@ func _refresh_mini() -> void:
 		mini_rows.add_child(UICommon.small("Brak zapowiedzianych pociągów."))
 		return
 	var hdr := HBoxContainer.new()
-	for txt in [["Pociąg", 96], ["Relacja", 170], ["Tor", 34], ["Godz.", 52], ["Stan", 96]]:
+	for txt in [["Pociąg", 92], ["Relacja", 168], ["Tor", 30], ["Godz.", 56], ["Stan", 90]]:
 		var l := Label.new()
 		l.text = str(txt[0])
 		l.custom_minimum_size = Vector2(float(txt[1]), 0)
 		l.add_theme_font_size_override("font_size", 10)
-		l.add_theme_color_override("font_color", UICommon.COL_AKCENT)
+		l.add_theme_color_override("font_color", Color("6a6a6a"))
 		hdr.add_child(l)
 	mini_rows.add_child(hdr)
 	for e in lista:
@@ -435,15 +520,15 @@ func _refresh_mini() -> void:
 		var t_ref: float = e["dep"] if float(e["dep"]) >= 0.0 else e["arr"]
 		if float(e["actual_arr"]) < 0.0 and float(e["arr"]) >= 0.0:
 			t_ref = float(e["arr"])
-		var kol := Color("d7dee8")
+		var kol := Color("c8c8c8")
 		if int(e["delay"]) > 0:
 			kol = Color("f0b429")
 		var cells := [
-			["%s %s" % [str(e["kat"]), str(e["nr"])], 96],
-			["%s → %s" % [str(e["z"]), str(e["do"])], 170],
-			[str(e["tor"]), 34],
-			[SimUtil.fmt_hm(t_ref) + ("+%d" % int(e["delay"]) if int(e["delay"]) > 0 else ""), 52],
-			[str(e["status"]), 96],
+			["%s %s" % [str(e["kat"]), str(e["nr"])], 92],
+			["%s → %s" % [str(e["z"]), str(e["do"])], 168],
+			[str(e["tor"]), 30],
+			[SimUtil.fmt_hm(t_ref) + ("+%d" % int(e["delay"]) if int(e["delay"]) > 0 else ""), 56],
+			[str(e["status"]), 90],
 		]
 		for c2 in cells:
 			var l2 := Label.new()
@@ -478,4 +563,4 @@ func _on_message(text: String, level: int) -> void:
 		1:
 			msg_lbl.add_theme_color_override("font_color", Color("fbbf24"))
 		_:
-			msg_lbl.add_theme_color_override("font_color", Color("d7dee8"))
+			msg_lbl.add_theme_color_override("font_color", Color("c8c8c8"))
