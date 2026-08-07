@@ -1,0 +1,9 @@
+{
+  "id": "warszawa_wschodnia",
+  "name": "Warszawa Wschodnia",
+  "short": "WWS",
+  "layout": "layout.json",
+  "timetable": "timetable.json",
+  "start_time_random": "12:00",
+  "description": "Stacja węzłowa na warszawskiej linii średnicowej. Uproszczony schemat LCS: grupa podmiejska (tory 1-4, perony 1-2), grupa dalekobieżna (tory 5-8, perony 3-4), tor postojowy 9 oraz łącznica do zaplecza technicznego Grochów."
+}
