@@ -47,6 +47,7 @@ var poc_grp := ButtonGroup.new()
 var dod_info: Label
 var status_lbl: Label
 var zakladka := 0
+var pelna_data: CheckBox
 var tab_btns: Array = []
 var wykaz_box: VBoxContainer
 var opis_box: VBoxContainer
@@ -68,7 +69,10 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if sim == null:
 		return
-	clock.text = SimUtil.fmt_time(sim.sim_time)
+	if pelna_data != null and pelna_data.button_pressed and sim.date_str() != "":
+		clock.text = "%s  %s" % [sim.date_str(), SimUtil.fmt_time(sim.sim_time)]
+	else:
+		clock.text = SimUtil.fmt_time(sim.sim_time)
 	_acc += delta
 	if _acc >= 2.0:
 		_acc = 0.0
@@ -161,9 +165,8 @@ func _build() -> void:
 	st_opt.disabled = true
 	st_row.add_child(st_opt)
 	st_row.add_child(_ciemny("Pełna data:"))
-	var pd := CheckBox.new()
-	pd.disabled = true
-	st_row.add_child(pd)
+	pelna_data = CheckBox.new()
+	st_row.add_child(pelna_data)
 	root.add_child(st_row)
 
 	# --- filtry ---

@@ -33,8 +33,14 @@ Silnik: **Godot 4.3+** (renderer Compatibility).
 - **EDR — Elektroniczny Dziennik Ruchu** (zastąpił dziennik papierowy):
   zapowiedzi, przebiegi, ruch, manewry, usterki, wpisy własne; filtrowanie
   i zapis do pliku.
-- **Dwa tryby ruchu**: wg rozkładu jazdy oraz losowy (natężenie ustawiane
-  w opcjach gry).
+- **Dwa tryby ruchu**:
+  - **REALNY ROZKŁAD JAZDY** — czas rzeczywisty: gra zaczyna się o aktualnej
+    dacie i godzinie systemowej, obowiązuje całodobowy rozkład (158 pociągów)
+    aktualny dla tej pory; nie można przyspieszać czasu ani zmieniać natężenia
+    ruchu, a usterki występują losowo ze stałą częstotliwością, na którą gracz
+    nie ma wpływu; po północy rozkład dobowy zaczyna się od nowa,
+  - **RUCH LOSOWY** — pociągi generowane losowo, natężenie i częstotliwość
+    zdarzeń ustawiane w opcjach gry, tempo 1–10×.
 - **Osobne ekrany** (F2–F5): rozkład jazdy, EDR, zdarzenia, łączność —
   otwierane w nowej scenie; symulacja działa dalej w tle.
 - **Zwijane okno skróconego rozkładu** na pulpicie — cztery najbliższe

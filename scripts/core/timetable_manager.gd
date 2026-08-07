@@ -162,6 +162,19 @@ func set_status(idx: int, status: String) -> void:
 		entries[idx]["status"] = status
 
 
+## Nowa doba (rozkład dobowy) — wyzeruj stan wszystkich pozycji.
+func reset_for_new_day() -> void:
+	for e in entries:
+		e["zapowiedziany"] = false
+		e["train_id"] = 0
+		e["stock_id"] = 0
+		e["converted"] = false
+		e["status"] = ""
+		e["actual_arr"] = -1.0
+		e["actual_dep"] = -1.0
+		e["potwierdzony"] = false
+
+
 ## Najbliższe pozycje rozkładu do skróconego podglądu na pulpicie.
 func upcoming(now: float, count: int) -> Array:
 	var kand: Array = []

@@ -43,11 +43,17 @@ var edr: EDR
 var comms: Comms
 var tutorial = null
 
+## Stała częstotliwość zdarzeń losowych w trybie realnego rozkładu [min] —
+## gracz nie ma na nią wpływu.
+const REAL_EVENT_FREQ := 25.0
+
 var mode := GameState.MODE_TIMETABLE
 var location := {}
 var sim_time := 0.0
 var time_scale := 1.0
 var paused := false
+var real_mode := false     # tryb REALNY ROZKŁAD JAZDY: czas rzeczywisty
+var sim_date := {}         # {year, month, day} — data w grze
 
 var trains := {}
 var next_train_id := 1
@@ -91,9 +97,17 @@ func setup(p_mode: String, location_id: String) -> void:
 
 	match mode:
 		GameState.MODE_TIMETABLE:
+			# REALNY ROZKŁAD JAZDY: start o rzeczywistej dacie i godzinie,
+			# czas płynie jak w rzeczywistości, częstotliwość usterek stała.
+			real_mode = true
 			tt.load_file("%s/%s" % [location["dir"], location.get("timetable", "timetable.json")])
-			sim_time = tt.start_time
+			var teraz := Time.get_datetime_dict_from_system()
+			sim_date = {"year": teraz["year"], "month": teraz["month"], "day": teraz["day"]}
+			sim_time = float(int(teraz["hour"]) * 3600 + int(teraz["minute"]) * 60 + int(teraz["second"]))
+			tt.start_time = sim_time
 			tt.skip_past(sim_time)
+			time_scale = 1.0
+			events.freq_min = REAL_EVENT_FREQ
 		GameState.MODE_RANDOM:
 			sim_time = SimUtil.parse_hhmm(str(location.get("start_time_random", "12:00")))
 			gen.enabled = true
@@ -125,6 +139,9 @@ func _process(delta: float) -> void:
 		return
 	var dt := delta * time_scale
 	sim_time += dt
+	if sim_time >= 86400.0:
+		sim_time -= 86400.0
+		_next_day()
 	inter.step(sim_time)
 	tt.step(sim_time)
 	gen.step(sim_time)
@@ -600,5 +617,40 @@ func toggle_pause() -> void:
 
 
 func set_speed(v: float) -> void:
+	if real_mode:
+		show_message("W trybie REALNY ROZKŁAD JAZDY czas płynie jak w rzeczywistości — nie można go przyspieszyć.", 1)
+		return
 	time_scale = v
 	EventBus.panel_state_changed.emit()
+
+
+## Data w grze jako tekst (dd.mm.rrrr).
+func date_str() -> String:
+	if sim_date.is_empty():
+		return ""
+	return "%02d.%02d.%04d" % [int(sim_date["day"]), int(sim_date["month"]), int(sim_date["year"])]
+
+
+## Przejście przez północ: nowa doba, rozkład dobowy zaczyna się od nowa.
+func _next_day() -> void:
+	if sim_date.is_empty():
+		return
+	var d := int(sim_date["day"]) + 1
+	var m := int(sim_date["month"])
+	var y := int(sim_date["year"])
+	var dni := 31
+	match m:
+		4, 6, 9, 11:
+			dni = 30
+		2:
+			dni = 29 if (y % 4 == 0 and (y % 100 != 0 or y % 400 == 0)) else 28
+	if d > dni:
+		d = 1
+		m += 1
+		if m > 12:
+			m = 1
+			y += 1
+	sim_date = {"year": y, "month": m, "day": d}
+	tt.reset_for_new_day()
+	tt.skip_past(sim_time)
+	edr.add(sim_time, "Służba", "Nowa doba %s — rozkład jazdy obowiązuje od początku." % date_str())

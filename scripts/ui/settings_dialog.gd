@@ -88,6 +88,10 @@ func _init() -> void:
 	vb.add_child(UICommon.small(
 		"Przy wyłączonym zapowiadaniu pociągi zgłaszają się automatycznie, a wyprawienie " +
 		"na szlak nie wymaga pozwolenia sąsiedniego posterunku."))
+	vb.add_child(UICommon.small(
+		"UWAGA: w trybie REALNY ROZKŁAD JAZDY czas płynie jak w rzeczywistości, natężenie " +
+		"ruchu wynika z rozkładu, a częstotliwość zdarzeń losowych jest stała — powyższe " +
+		"suwaki natężenia i zdarzeń dotyczą wyłącznie trybu RUCH LOSOWY."))
 
 	vb.add_child(UICommon.section("Aktualizacje online (rozkład jazdy i opóźnienia)"))
 	online_chk = CheckBox.new()
@@ -158,6 +162,6 @@ func _apply() -> void:
 	Settings.save_cfg()
 	Settings.apply()
 	var sim := GameState.sim
-	if sim != null and is_instance_valid(sim):
+	if sim != null and is_instance_valid(sim) and not sim.real_mode:
 		sim.events.freq_min = Settings.event_freq_min
 		sim.events.schedule_next(sim.sim_time)

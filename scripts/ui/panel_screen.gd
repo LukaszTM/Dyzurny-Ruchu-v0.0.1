@@ -11,6 +11,7 @@ var schema: SchemaView
 var ui: CanvasLayer
 var cmd_buttons := {}
 var clock_lbl: Label
+var date_lbl: Label
 var msg_lbl: Label
 var stan_lbl: Label
 var pause_btn: Button
@@ -67,6 +68,7 @@ func _process(delta: float) -> void:
 	if sim == null:
 		return
 	clock_lbl.text = SimUtil.fmt_time(sim.sim_time)
+	date_lbl.text = sim.date_str()
 	schema.queue_redraw()
 	_acc += delta
 	if _acc >= 1.0:
@@ -252,15 +254,22 @@ func _build_ui() -> void:
 	pause_btn.pressed.connect(func(): sim.toggle_pause())
 	UICommon.style_nav_button(pause_btn)
 	czas.add_child(pause_btn)
-	for sp in [1.0, 2.0, 5.0, 10.0]:
-		var b3 := Button.new()
-		b3.text = "%dx" % int(sp)
-		b3.focus_mode = Control.FOCUS_NONE
-		b3.set_meta("speed", sp)
-		b3.pressed.connect(func(): sim.set_speed(sp))
-		UICommon.style_nav_button(b3)
-		speed_btns.append(b3)
-		czas.add_child(b3)
+	if not sim.real_mode:
+		for sp in [1.0, 2.0, 5.0, 10.0]:
+			var b3 := Button.new()
+			b3.text = "%dx" % int(sp)
+			b3.focus_mode = Control.FOCUS_NONE
+			b3.set_meta("speed", sp)
+			b3.pressed.connect(func(): sim.set_speed(sp))
+			UICommon.style_nav_button(b3)
+			speed_btns.append(b3)
+			czas.add_child(b3)
+	else:
+		var rt := Label.new()
+		rt.text = "CZAS RZECZYWISTY"
+		rt.add_theme_font_size_override("font_size", 11)
+		rt.add_theme_color_override("font_color", Color("6a6a6a"))
+		czas.add_child(rt)
 	var fit := Button.new()
 	fit.text = "WIDOK"
 	fit.tooltip_text = "Dopasuj widok pulpitu"
@@ -272,14 +281,22 @@ func _build_ui() -> void:
 
 	_build_mini()
 
-	# --- zegar w lewym dolnym rogu (jak w SimRail) ---
+	# --- zegar (z datą) w lewym dolnym rogu (jak w SimRail) ---
+	var zegar_vb := VBoxContainer.new()
+	zegar_vb.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	zegar_vb.offset_left = 14.0
+	zegar_vb.offset_top = -66.0
+	zegar_vb.add_theme_constant_override("separation", 0)
+	zegar_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	date_lbl = Label.new()
+	date_lbl.add_theme_font_size_override("font_size", 12)
+	date_lbl.add_theme_color_override("font_color", Color("6a6a6a"))
+	zegar_vb.add_child(date_lbl)
 	clock_lbl = Label.new()
-	clock_lbl.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	clock_lbl.offset_left = 14.0
-	clock_lbl.offset_top = -46.0
 	clock_lbl.add_theme_font_size_override("font_size", 28)
 	clock_lbl.add_theme_color_override("font_color", Color("9a9a9a"))
-	ui.add_child(clock_lbl)
+	zegar_vb.add_child(clock_lbl)
+	ui.add_child(zegar_vb)
 
 	# --- dolny środek: stan pulpitu + komunikat ---
 	var bot := VBoxContainer.new()

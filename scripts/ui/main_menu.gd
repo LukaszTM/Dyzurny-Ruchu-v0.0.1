@@ -52,8 +52,8 @@ func _ready() -> void:
 	_update_desc()
 	vb.add_child(HSeparator.new())
 
-	_btn(vb, "▶   RUCH WG ROZKŁADU JAZDY",
-		"Prowadzenie ruchu zgodnie z rozkładem; opóźnienia aktualizowane online.",
+	_btn(vb, "▶   REALNY ROZKŁAD JAZDY",
+		"Czas rzeczywisty: gra zaczyna się o aktualnej dacie i godzinie, rozkład obowiązuje dla tej pory. Bez przyspieszania czasu, usterki losowe o stałej częstotliwości.",
 		func(): _start(GameState.MODE_TIMETABLE))
 	_btn(vb, "▶   RUCH LOSOWY",
 		"Pociągi generowane losowo; natężenie ruchu ustawiasz w Ustawieniach.",

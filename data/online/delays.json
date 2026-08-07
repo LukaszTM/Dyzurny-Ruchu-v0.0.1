@@ -1,11 +1,38 @@
 {
-  "generated": "2026-08-07T12:00:00Z",
-  "info": "Opóźnienia pociągów aktualizowane online. Edytuj ten plik w repozytorium, aby gra pobrała nowe opóźnienia.",
-  "delays": [
-    {"nr": "5100", "delay_min": 4},
-    {"nr": "21200", "delay_min": 12},
-    {"nr": "91522", "delay_min": 3},
-    {"nr": "44601", "delay_min": 20},
-    {"nr": "3902", "delay_min": 6}
-  ]
+ "generated": "2026-08-01T17:00:00Z",
+ "info": "Opóźnienia pociągów aktualizowane online. Edytuj ten plik w repozytorium, aby gra pobrała nowe opóźnienia.",
+ "delays": [
+  {
+   "nr": "91134",
+   "delay_min": 6
+  },
+  {
+   "nr": "91116",
+   "delay_min": 3
+  },
+  {
+   "nr": "21870",
+   "delay_min": 12
+  },
+  {
+   "nr": "91108",
+   "delay_min": 15
+  },
+  {
+   "nr": "44609",
+   "delay_min": 3
+  },
+  {
+   "nr": "21828",
+   "delay_min": 4
+  },
+  {
+   "nr": "1708",
+   "delay_min": 12
+  },
+  {
+   "nr": "21823",
+   "delay_min": 15
+  }
+ ]
 }

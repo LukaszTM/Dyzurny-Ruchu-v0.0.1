@@ -113,14 +113,21 @@ przebiegów, jazdy pociągów, manewry, usterki i wpisy własne dyżurnego.
 Zapisy można filtrować po rodzaju i numerze pociągu, dodać wpis własny
 oraz zapisać dziennik do pliku (`user://EDR_RRRRMMDD_stacja.txt`).
 
-## 8. Rozkład jazdy (F2)
+## 8. Tryb REALNY ROZKŁAD JAZDY
+
+Gra zaczyna się o **aktualnej dacie i godzinie** (zegar z datą w lewym dolnym
+rogu pulpitu). Czas płynie jak w rzeczywistości — tempa nie można zmienić,
+natężenie ruchu wynika z całodobowego rozkladu, a usterki występują losowo ze
+stałą częstotliwością. Po północy rozkład dobowy obowiązuje od początku.
+
+## 9. Rozkład jazdy (F2)
 
 Pełny wykaz pociągów posterunku: godziny planowe i rzeczywiste, opóźnienia,
 tor, kierunki, stacja początkowa i końcowa oraz status. Przycisk
 **Aktualizuj online** pobiera świeże opóźnienia i uzupełnienia rozkładu.
 Na pulpicie widoczne jest zwijane okno z **czterema najbliższymi pociągami**.
 
-## 9. Wskazówki
+## 10. Wskazówki
 
 - Pociągi podmiejskie przyjmuj na tory 1 i 3 (kierunek wschodni) oraz
   2 i 4 (zachodni); dalekobieżne odpowiednio 5, 7 i 6, 8.

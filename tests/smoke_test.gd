@@ -25,6 +25,9 @@ func _ready() -> void:
 	sim = SimCore.new()
 	add_child(sim)
 	sim.setup(GameState.MODE_TIMETABLE, "warszawa_wschodnia")
+	# deterministycznie: bez losowych zdarzeń w tle testu
+	sim.events.freq_min = 0.0
+	sim.events.next_at = -1.0
 	sim.time_scale = 20.0
 	GameState.sim = sim
 

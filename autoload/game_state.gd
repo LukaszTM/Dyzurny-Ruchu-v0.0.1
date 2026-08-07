@@ -26,7 +26,7 @@ func mode_name() -> String:
 		MODE_TUTORIAL:
 			return "Tryb nauki"
 		_:
-			return "Ruch rozkładowy"
+			return "Realny rozkład jazdy"
 
 
 func start_simulation(p_mode: String, p_location: String) -> void:

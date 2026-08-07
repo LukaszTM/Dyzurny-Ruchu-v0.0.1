@@ -31,6 +31,9 @@ func _ready() -> void:
 	sim.setup(mode, "warszawa_wschodnia")
 	GameState.sim = sim
 	sim.time_scale = 20.0
+	if mode != GameState.MODE_TUTORIAL:
+		sim.events.freq_min = 1.0
+		sim.events.schedule_next(sim.sim_time)
 	_pokaz(0)
 	print("SONDA TRYBU: ", mode)
 

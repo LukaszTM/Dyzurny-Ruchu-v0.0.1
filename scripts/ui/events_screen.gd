@@ -27,10 +27,16 @@ func _ready() -> void:
 	vb.offset_bottom = -10.0
 	add_child(vb)
 
-	vb.add_child(UICommon.small(
-		"Częstotliwość zdarzeń losowych ustawiasz w USTAWIENIACH gry. " +
-		"Usterki nie ustępują samoczynnie — należy je zgłosić właściwej służbie, " +
-		"dopiero wtedy rozpoczyna się ich usuwanie."))
+	if sim.real_mode:
+		vb.add_child(UICommon.small(
+			"Tryb REALNY ROZKŁAD JAZDY: usterki występują losowo, a ich częstotliwość " +
+			"jest stała i nie podlega zmianie. Usterki nie ustępują samoczynnie — należy " +
+			"je zgłosić właściwej służbie, dopiero wtedy rozpoczyna się ich usuwanie."))
+	else:
+		vb.add_child(UICommon.small(
+			"Częstotliwość zdarzeń losowych ustawiasz w USTAWIENIACH gry. " +
+			"Usterki nie ustępują samoczynnie — należy je zgłosić właściwej służbie, " +
+			"dopiero wtedy rozpoczyna się ich usuwanie."))
 	vb.add_child(UICommon.section("Zdarzenia czynne"))
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
