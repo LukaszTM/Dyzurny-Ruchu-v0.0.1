@@ -5,8 +5,8 @@ config_version=5
 [application]
 
 config/name="Dyżurny Ruchu — Symulator LCS"
-config/description="Symulator Lokalnego Centrum Sterowania (LCS) — stacja Warszawa Wschodnia. Tryb ruchu losowego i rozkładowego, dziennik dyżurnego, zdarzenia losowe, manewry, samouczek."
-config/version="0.0.1"
+config/description="Symulator pracy dyżurnego ruchu w Lokalnym Centrum Sterowania — stacja Warszawa Wschodnia. Nastawianie przebiegów wg zasad stosowanych na PKP, zapowiadanie telefoniczne, EDR, zdarzenia losowe, manewry, samouczek."
+config/version="0.1.0"
 run/main_scene="res://scenes/MainMenu.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://icon.svg"

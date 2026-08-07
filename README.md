@@ -1,46 +1,54 @@
-# Dyżurny Ruchu — Symulator LCS (v0.0.1)
+# Dyżurny Ruchu — Symulator LCS (v0.1.0)
 
 Symulator pracy **dyżurnego ruchu** w Lokalnym Centrum Sterowania (LCS),
-wzorowany na trybie dyżurnego ruchu z gry SimRail. Pierwsza lokalizacja:
-**Warszawa Wschodnia** (schemat uproszczony: grupa podmiejska — tory 1–4,
-perony 1–2; grupa dalekobieżna — tory 5–8, perony 3–4; tor postojowy 9
-i łącznica do zaplecza technicznego Grochów).
+wzorowany na trybie dyżurnego ruchu z gry SimRail i na rzeczywistych
+komputerowych nastawnicach PKP. Pierwsza lokalizacja: **Warszawa Wschodnia**
+(9 torów, 31 rozjazdów, 27 sygnalizatorów, 4 kierunki szlakowe + stacja
+techniczna Grochów).
 
-Silnik: **Godot 4.3+** (renderer Compatibility — działa też na słabszych GPU).
+Silnik: **Godot 4.3+** (renderer Compatibility).
 
 ## Funkcje
 
-- **Dwa tryby ruchu:**
-  - *Ruch losowy* — pociągi generowane losowo, **natężenie (poc./h) regulowane
-    suwakiem** w trakcie gry (zakładka „Ruch"),
-  - *Ruch wg rozkładu jazdy* — pełny rozkład stacji z priorytetami torów,
-    pociągami kończącymi/zaczynającymi bieg i przelotami towarowymi.
-- **Pulpit nastawczy** w stylu rzeczywistych systemów zdalnego sterowania:
-  odcinki podświetlane wg stanu (wolny / przebieg pociągowy / przebieg
-  manewrowy / zajęty / zamknięty), semafory i tarcze manewrowe, sekcyjne
-  zwalnianie przebiegów, kontrola wrogości przebiegów.
-- **Podgląd rozkładu jazdy** z opóźnieniami i statusami pociągów.
-- **Dziennik ruchu dyżurnego** — wpisy automatyczne i ręczne, zapis do pliku.
-- **Zdarzenia losowe** z regulowaną częstotliwością: usterki rozjazdów,
-  usterki semaforów (obsługa **sygnałem zastępczym Sz**), osoby postronne
-  i zwierzęta na torach, awarie taboru.
-- **Przejazdy manewrowe** — podstawianie i odstawianie składów z/do zaplecza
-  Grochów, tryb manewrowy (przebiegi „białe"), zlecenia manewrowe.
-- **Rozkład jazdy i opóźnienia aktualizowane online** (HTTP/JSON, adresy
-  konfigurowalne w ustawieniach; przy braku sieci gra korzysta z danych
-  lokalnych).
-- **Tryb nauki** — samouczek krok po kroku dla początkujących: przyjęcie
-  i wyprawienie pociągu, dziennik, sygnał zastępczy, jazdy manewrowe.
-- **Ustawienia**: wybór rozdzielczości, tryb okna (okno / pełny ekran /
-  bez ramki), VSync, adresy aktualizacji online.
+- **Nastawianie przebiegów odwzorowane 1:1 z praktyką kolejową** —
+  dwuprzyciskowe: rodzaj polecenia (PRZEBIEG POCIĄGOWY / MANEWROWY) →
+  przycisk początku → przycisk końca drogi przebiegu. Urządzenia same
+  wybierają drogę, przestawiają rozjazdy, utwierdzają przebieg i dopiero
+  wtedy podają sygnał. Sekcyjne zwalnianie za pociągiem, kontrola wrogości
+  przebiegów, rozjazdy z położeniem + / −.
+  Polecenia pulpitu: **ZD, ZDM, ZW, ZWP, OPS**; menu sygnalizatora:
+  **STOP, OSTOP, SZ, SZP, NSZ, NSZP, WTAB, KTAB**.
+- **System łączności między posterunkami** — pełne telefoniczne
+  zapowiadanie pociągów: żądanie i danie pozwolenia, oznajmienie odjazdu
+  (nr pociągu, godzina, tor), potwierdzenie przyjazdu „w całości”, monity.
+  Bez pozwolenia sąsiada urządzenia nie pozwolą wyprawić pociągu na szlak.
+- **System zgłaszania usterek** — usterki nie ustępują same; trzeba je
+  zgłosić właściwej służbie (Automatyk SRK, SOK, Dyspozytor przewoźnika),
+  a wtedy symulowany jest przyjazd służby i usuwanie usterki.
+- **EDR — Elektroniczny Dziennik Ruchu** (zastąpił dziennik papierowy):
+  zapowiedzi, przebiegi, ruch, manewry, usterki, wpisy własne; filtrowanie
+  i zapis do pliku.
+- **Dwa tryby ruchu**: wg rozkładu jazdy oraz losowy (natężenie ustawiane
+  w opcjach gry).
+- **Osobne ekrany** (F2–F5): rozkład jazdy, EDR, zdarzenia, łączność —
+  otwierane w nowej scenie; symulacja działa dalej w tle.
+- **Zwijane okno skróconego rozkładu** na pulpicie — cztery najbliższe
+  pociągi.
+- **Przejazdy manewrowe** — podstawianie i odstawianie składów ze stacji
+  technicznej Grochów, zlecenia manewrowe.
+- **Rozkład jazdy i opóźnienia aktualizowane online** (HTTP/JSON).
+- **Tryb nauki** — 17-krokowy samouczek: zapowiadanie, nastawianie
+  przebiegów, EDR, sygnał zastępczy, zgłaszanie usterek, manewry, rozjazdy.
+- **Ustawienia**: rozdzielczość, tryb okna, VSync, nazwisko dyżurnego,
+  natężenie ruchu, praca manewrowa, częstotliwość zdarzeń, zapowiadanie,
+  adresy aktualizacji online.
 - **Modułowe lokalizacje** — nowe stacje dodaje się bez zmian w kodzie
-  (patrz `docs/DODAWANIE_LOKALIZACJI.md`).
+  (`docs/DODAWANIE_LOKALIZACJI.md`).
 
 ## Uruchomienie
 
-1. Zainstaluj [Godot 4.3+](https://godotengine.org/download) (wystarczy
-   wersja standardowa, bez .NET).
-2. Otwórz projekt (`project.godot`) w Godot i naciśnij **F5**, albo z konsoli:
+1. Zainstaluj [Godot 4.3+](https://godotengine.org/download).
+2. Otwórz `project.godot` i naciśnij **F5**, albo z konsoli:
 
    ```bash
    godot --path .
@@ -50,59 +58,63 @@ Silnik: **Godot 4.3+** (renderer Compatibility — działa też na słabszych GP
 
 | Akcja | Sterowanie |
 |---|---|
-| Ustawienie przebiegu | klik semafor początkowy → klik semafor docelowy lub portal wyjazdowy |
-| Tryb manewrowy | przełącznik na dolnym pasku lub klawisz **M** |
-| Sygnał zastępczy (Sz) / zwolnienie przebiegu | przyciski na dolnym pasku po wybraniu semafora |
-| Przesuwanie pulpitu | prawy lub środkowy przycisk myszy |
-| Zoom | rolka myszy |
+| Nastawienie przebiegu | wybierz PRZEBIEG POCIĄGOWY/MANEWROWY → klik początku → klik końca |
+| Menu sygnalizatora | prawy przycisk myszy na sygnalizatorze |
+| Przesuwanie pulpitu / zoom | prawy przycisk myszy / rolka |
 | Pauza | **Spacja** |
-| Tempo symulacji 1x/2x/5x/10x | klawisze **1/2/3/4** |
+| Tempo 1x/2x/5x/10x | **1 / 2 / 3 / 4** |
+| Rozkład / EDR / Zdarzenia / Łączność | **F2 / F3 / F4 / F5** |
 | Pomoc | **F1** |
+| Powrót, wyjście | **Esc** |
 
-Szczegółowa instrukcja: `docs/INSTRUKCJA_DYZURNEGO.md`.
-
-## Aktualizacje online
-
-Gra cyklicznie (oraz na żądanie — przycisk „Aktualizuj online" w zakładce
-„Rozkład jazdy") pobiera:
-
-- **opóźnienia**: `data/online/delays.json`,
-- **uzupełnienia rozkładu**: `data/online/timetable_warszawa_wschodnia.json`.
-
-Domyślne adresy wskazują na pliki w tym repozytorium (gałąź `main`) — edycja
-pliku w repozytorium zmienia opóźnienia u wszystkich graczy. Adresy można
-zmienić w **Ustawieniach** (np. na własny serwer).
+Pełna instrukcja: `docs/INSTRUKCJA_DYZURNEGO.md`.
 
 ## Struktura projektu
 
 ```
-autoload/          # singletony: EventBus, Settings, Locations, GameState
-scenes/            # sceny: MainMenu, Simulator
-scripts/sim/       # logika: układ torowy, srk, pociągi, rozkład, zdarzenia
-scripts/ui/        # pulpit i panele interfejsu
-data/locations/    # lokalizacje (każda stacja = katalog z JSON)
+autoload/          # EventBus, Settings, Locations, GameState (właściciel symulacji)
+scenes/            # MainMenu, Panel, RozkladJazdy, EDR, Zdarzenia, Lacznosc
+scripts/core/      # rdzeń: układ torowy, urządzenia srk, pociągi, rozkład,
+                   # zdarzenia, EDR, łączność, samouczek
+scripts/ui/        # pulpit nastawczy i ekrany pomocnicze
+data/locations/    # lokalizacje (stacja = katalog z plikami JSON)
 data/online/       # pliki serwowane graczom jako aktualizacje online
+tools/             # generator i walidator układu torowego
+tests/             # testy headless
 docs/              # instrukcje
 ```
 
+Symulacja żyje jako dziecko autoloadu `GameState`, dlatego przełączanie
+ekranów nie przerywa prowadzenia ruchu.
+
 ## Testy (headless)
 
-Test dymny pełnej pętli rozgrywki (wjazd → odjazd, manewry, Sz, zwolnienie
-doraźne, dziennik, rozkład):
+Test dymny pełnej pętli — 22 kontrole: zapowiadanie, nastawianie
+dwuprzyciskowe, utwierdzenie i położenia rozjazdów, wjazd, potwierdzenie
+przyjazdu, odmowa wyprawienia bez pozwolenia, wyjazd, manewry, usterka
+semafora i sygnał zastępczy, zgłoszenie usterki i jej usunięcie, ZW, ZD,
+wrogość przebiegów, EDR:
 
 ```bash
-godot --headless --path . res://tests/SmokeTest.tscn --quit-after 20000
+godot --headless --path . res://tests/SmokeTest.tscn --quit-after 60000
 ```
 
-Sonda trybów (wychwytywanie błędów runtime przy dużym natężeniu ruchu
-i częstych zdarzeniach):
+Sonda trybów — uruchamia symulację przy dużym natężeniu ruchu i częstych
+zdarzeniach oraz cyklicznie przełącza wszystkie ekrany:
 
 ```bash
-SIM_MODE=random godot --headless --path . res://tests/ModeProbe.tscn --quit-after 6000
+SIM_MODE=random godot --headless --path . res://tests/ModeProbe.tscn --quit-after 5000
 ```
 
-## Licencja / status
+Walidacja układu torowego:
 
-Wersja 0.0.1 — szkielet rozgrywki z pełną pętlą: przyjmowanie, wyprawianie,
-manewry, zdarzenia, dziennik, rozkład online. Schemat stacji jest świadomie
-uproszczony względem rzeczywistej Warszawy Wschodniej.
+```bash
+python3 tools/build_layout_wws.py
+```
+
+## Status
+
+Wersja 0.1.0. Schemat Warszawy Wschodniej jest świadomie uproszczony
+względem rzeczywistej stacji. Nazwy poleceń pulpitu odpowiadają
+konwencjom spotykanym na nastawnicach komputerowych PKP; w konkretnej
+instalacji mogą się różnić.

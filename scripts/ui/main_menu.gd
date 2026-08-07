@@ -1,6 +1,5 @@
 extends Control
-## Menu główne: wybór lokalizacji, trybu gry (losowy / rozkładowy /
-## samouczek), ustawienia i wyjście.
+## Menu główne — wybór posterunku i trybu pracy.
 
 var loc_opt: OptionButton
 var loc_desc: Label
@@ -9,7 +8,7 @@ var settings_dialog: SettingsDialog
 
 func _ready() -> void:
 	var bg := ColorRect.new()
-	bg.color = Color("0c1117")
+	bg.color = Color("070a0e")
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
@@ -18,62 +17,57 @@ func _ready() -> void:
 	add_child(center)
 
 	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 12)
-	vb.custom_minimum_size = Vector2(560, 0)
+	vb.add_theme_constant_override("separation", 10)
+	vb.custom_minimum_size = Vector2(620, 0)
 	center.add_child(vb)
 
 	var title := Label.new()
 	title.text = "DYŻURNY RUCHU"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 52)
-	title.add_theme_color_override("font_color", Color("2ee56b"))
+	title.add_theme_font_size_override("font_size", 54)
+	title.add_theme_color_override("font_color", Color("22c55e"))
 	vb.add_child(title)
 
-	var subtitle := Label.new()
-	subtitle.text = "Symulator Lokalnego Centrum Sterowania"
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.add_theme_font_size_override("font_size", 18)
-	subtitle.add_theme_color_override("font_color", Color("9aa7b8"))
-	vb.add_child(subtitle)
-
+	var sub := Label.new()
+	sub.text = "Symulator Lokalnego Centrum Sterowania"
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.add_theme_font_size_override("font_size", 18)
+	sub.add_theme_color_override("font_color", UICommon.COL_SZARY)
+	vb.add_child(sub)
 	vb.add_child(HSeparator.new())
 
-	var loc_lbl := Label.new()
-	loc_lbl.text = "Posterunek (lokalizacja):"
-	vb.add_child(loc_lbl)
+	var ll := Label.new()
+	ll.text = "Posterunek ruchu:"
+	vb.add_child(ll)
 	loc_opt = OptionButton.new()
 	for loc in Locations.locations:
 		loc_opt.add_item(str(loc.get("name", "?")))
 	if loc_opt.item_count == 0:
-		loc_opt.add_item("BRAK LOKALIZACJI")
+		loc_opt.add_item("BRAK ZAINSTALOWANYCH LOKALIZACJI")
 		loc_opt.disabled = true
 	loc_opt.item_selected.connect(func(_i): _update_desc())
 	vb.add_child(loc_opt)
-	loc_desc = Label.new()
-	loc_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	loc_desc.add_theme_font_size_override("font_size", 12)
-	loc_desc.add_theme_color_override("font_color", Color("6d7889"))
+	loc_desc = UICommon.small("")
 	vb.add_child(loc_desc)
 	_update_desc()
-
 	vb.add_child(HSeparator.new())
 
-	_add_button(vb, "▶  Ruch wg rozkładu jazdy",
-		"Prowadź ruch zgodnie z rozkładem — z opóźnieniami aktualizowanymi online.",
+	_btn(vb, "▶   RUCH WG ROZKŁADU JAZDY",
+		"Prowadzenie ruchu zgodnie z rozkładem; opóźnienia aktualizowane online.",
 		func(): _start(GameState.MODE_TIMETABLE))
-	_add_button(vb, "▶  Ruch losowy",
-		"Losowo generowane pociągi — natężenie ruchu regulujesz w trakcie gry.",
+	_btn(vb, "▶   RUCH LOSOWY",
+		"Pociągi generowane losowo; natężenie ruchu ustawiasz w Ustawieniach.",
 		func(): _start(GameState.MODE_RANDOM))
-	_add_button(vb, "🎓  Tryb nauki (samouczek)",
-		"Krok po kroku: przebiegi, dziennik, sygnał zastępczy, manewry.",
+	_btn(vb, "🎓   TRYB NAUKI",
+		"Samouczek krok po kroku: zapowiadanie, przebiegi, EDR, usterki, manewry.",
 		func(): _start(GameState.MODE_TUTORIAL))
-	_add_button(vb, "⚙  Ustawienia",
-		"Rozdzielczość, tryb okna, adresy aktualizacji online.",
+	_btn(vb, "⚙   USTAWIENIA",
+		"Rozdzielczość, natężenie ruchu, praca manewrowa, zdarzenia, aktualizacje online.",
 		func(): settings_dialog.popup_centered())
-	_add_button(vb, "✕  Zakończ", "", func(): get_tree().quit())
+	_btn(vb, "✕   ZAKOŃCZ", "", func(): get_tree().quit())
 
 	var ver := Label.new()
-	ver.text = "wersja 0.0.1 — silnik Godot 4"
+	ver.text = "wersja 0.1.0 — silnik Godot 4"
 	ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ver.add_theme_font_size_override("font_size", 11)
 	ver.add_theme_color_override("font_color", Color("475261"))
@@ -83,11 +77,11 @@ func _ready() -> void:
 	add_child(settings_dialog)
 
 
-func _add_button(parent: VBoxContainer, text: String, tip: String, cb: Callable) -> void:
+func _btn(parent: VBoxContainer, text: String, tip: String, cb: Callable) -> void:
 	var b := Button.new()
 	b.text = text
 	b.tooltip_text = tip
-	b.custom_minimum_size = Vector2(0, 44)
+	b.custom_minimum_size = Vector2(0, 46)
 	b.add_theme_font_size_override("font_size", 17)
 	b.pressed.connect(cb)
 	parent.add_child(b)
@@ -97,12 +91,10 @@ func _update_desc() -> void:
 	if Locations.locations.is_empty():
 		loc_desc.text = ""
 		return
-	var loc: Dictionary = Locations.locations[loc_opt.selected]
-	loc_desc.text = str(loc.get("description", ""))
+	loc_desc.text = str(Locations.locations[loc_opt.selected].get("description", ""))
 
 
 func _start(mode: String) -> void:
 	if Locations.locations.is_empty():
 		return
-	var loc: Dictionary = Locations.locations[loc_opt.selected]
-	GameState.start_simulation(mode, str(loc.get("id", "")))
+	GameState.start_simulation(mode, str(Locations.locations[loc_opt.selected].get("id", "")))

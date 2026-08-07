@@ -1,6 +1,6 @@
 class_name SimUtil
 extends RefCounted
-## Funkcje pomocnicze (czas symulacji).
+## Funkcje pomocnicze — formatowanie czasu i opóźnień.
 
 
 static func fmt_time(sec: float) -> String:
@@ -16,7 +16,7 @@ static func fmt_time(sec: float) -> String:
 static func fmt_hm(sec: float) -> String:
 	if sec < 0:
 		return "—"
-	var t := int(sec)
+	var t := int(round(sec))
 	@warning_ignore("integer_division")
 	var h := (t / 3600) % 24
 	@warning_ignore("integer_division")
@@ -35,3 +35,9 @@ static func fmt_delay(minutes: int) -> String:
 	if minutes <= 0:
 		return ""
 	return " (+%d min)" % minutes
+
+
+static func fmt_signed(minutes: int) -> String:
+	if minutes == 0:
+		return "0"
+	return "%+d" % minutes

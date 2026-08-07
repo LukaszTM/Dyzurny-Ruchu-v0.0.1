@@ -1,6 +1,6 @@
 extends Node
-## Ustawienia gry: rozdzielczość, tryb okna, adresy aktualizacji online.
-## Zapisywane do user://settings.cfg.
+## Ustawienia gry: obraz, symulacja (natężenie ruchu, manewry, zdarzenia),
+## aktualizacje online. Zapis do user://settings.cfg.
 
 const CFG_PATH := "user://settings.cfg"
 
@@ -15,13 +15,23 @@ const RESOLUTIONS: Array[Vector2i] = [
 
 const WINDOW_MODE_NAMES := ["Okno", "Pełny ekran", "Okno bez ramki"]
 
+# obraz
 var resolution: Vector2i = Vector2i(1600, 900)
-var window_mode: int = 0 # 0 okno, 1 pełny ekran, 2 bez ramki
+var window_mode: int = 0
 var vsync: bool = true
+
+# symulacja
+var dyzurny_name: String = "DYŻURNY-1"
+var traffic_intensity: float = 16.0     # pociągi/h w trybie ruchu losowego
+var shunting_enabled: bool = true       # generowanie pracy manewrowej
+var event_freq_min: float = 12.0        # średni odstęp zdarzeń losowych [min]; 0 = wył.
+var require_zapowiadanie: bool = true   # wymagaj telefonicznego zapowiadania pociągów
+
+# online
 var online_enabled: bool = true
 var url_delays: String = "https://raw.githubusercontent.com/LukaszTM/Dyzurny-Ruchu-v0.0.1/main/data/online/delays.json"
 var url_timetable: String = "https://raw.githubusercontent.com/LukaszTM/Dyzurny-Ruchu-v0.0.1/main/data/online/timetable_warszawa_wschodnia.json"
-var autosave_log: bool = true
+var autosave_edr: bool = true
 
 
 func _ready() -> void:
@@ -38,10 +48,15 @@ func load_cfg() -> void:
 		resolution = res
 	window_mode = int(cfg.get_value("display", "window_mode", window_mode))
 	vsync = bool(cfg.get_value("display", "vsync", vsync))
+	dyzurny_name = str(cfg.get_value("sim", "dyzurny", dyzurny_name))
+	traffic_intensity = float(cfg.get_value("sim", "intensity", traffic_intensity))
+	shunting_enabled = bool(cfg.get_value("sim", "shunting", shunting_enabled))
+	event_freq_min = float(cfg.get_value("sim", "event_freq", event_freq_min))
+	require_zapowiadanie = bool(cfg.get_value("sim", "zapowiadanie", require_zapowiadanie))
 	online_enabled = bool(cfg.get_value("online", "enabled", online_enabled))
 	url_delays = str(cfg.get_value("online", "url_delays", url_delays))
 	url_timetable = str(cfg.get_value("online", "url_timetable", url_timetable))
-	autosave_log = bool(cfg.get_value("log", "autosave", autosave_log))
+	autosave_edr = bool(cfg.get_value("edr", "autosave", autosave_edr))
 
 
 func save_cfg() -> void:
@@ -49,10 +64,15 @@ func save_cfg() -> void:
 	cfg.set_value("display", "resolution", resolution)
 	cfg.set_value("display", "window_mode", window_mode)
 	cfg.set_value("display", "vsync", vsync)
+	cfg.set_value("sim", "dyzurny", dyzurny_name)
+	cfg.set_value("sim", "intensity", traffic_intensity)
+	cfg.set_value("sim", "shunting", shunting_enabled)
+	cfg.set_value("sim", "event_freq", event_freq_min)
+	cfg.set_value("sim", "zapowiadanie", require_zapowiadanie)
 	cfg.set_value("online", "enabled", online_enabled)
 	cfg.set_value("online", "url_delays", url_delays)
 	cfg.set_value("online", "url_timetable", url_timetable)
-	cfg.set_value("log", "autosave", autosave_log)
+	cfg.set_value("edr", "autosave", autosave_edr)
 	cfg.save(CFG_PATH)
 
 

@@ -1,29 +1,49 @@
 extends Node
-## Sonda trybów: uruchamia symulator w trybie z zmiennej środowiskowej
-## SIM_MODE (random/timetable/tutorial) w przyspieszeniu, do wychwycenia
-## błędów runtime. Uruchomienie:
-##   SIM_MODE=random godot --headless --path . res://tests/ModeProbe.tscn --quit-after 4000
+## Sonda trybów i ekranów. Uruchamia symulację w trybie wskazanym zmienną
+## SIM_MODE (timetable/random/tutorial), przyspiesza ją, automatycznie
+## odpowiada na rozmowy przychodzące i cyklicznie przełącza wszystkie ekrany,
+## aby wychwycić błędy czasu wykonania w interfejsie.
+##
+##   SIM_MODE=random godot --headless --path . res://tests/ModeProbe.tscn --quit-after 8000
 
-var sim = null
+const EKRANY := [
+	GameState.SCENE_PANEL, GameState.SCENE_TIMETABLE, GameState.SCENE_EDR,
+	GameState.SCENE_EVENTS, GameState.SCENE_COMMS,
+]
+
+var i := 0
+var t := 0.0
 
 
 func _ready() -> void:
 	var mode := OS.get_environment("SIM_MODE")
 	if mode == "":
 		mode = GameState.MODE_RANDOM
-	GameState.mode = mode
-	GameState.location_id = "warszawa_wschodnia"
-	var scene: PackedScene = load("res://scenes/Simulator.tscn")
-	sim = scene.instantiate()
-	add_child(sim)
-	print("MODE PROBE: ", mode)
+	Settings.online_enabled = false
+	Settings.traffic_intensity = 40.0
+	Settings.event_freq_min = 1.0 if mode != GameState.MODE_TUTORIAL else 0.0
+	GameState.start_simulation(mode, "warszawa_wschodnia")
+	print("SONDA TRYBU: ", mode)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	var sim := GameState.sim as SimCore
 	if sim == null:
 		return
 	sim.time_scale = 20.0
-	if sim.gen.enabled:
-		sim.gen.intensity = 40.0
-	if sim.events.freq_min > 0.0:
-		sim.events.freq_min = 1.0
+	# automatyczna obsługa łączności, aby ruch nie stanął
+	for c in sim.comms.pending_calls():
+		sim.comms.answer_call(int(c["id"]), true)
+	for tr: Train in sim.trains.values():
+		if tr.actual_arr >= 0.0 and not tr.manewrowy:
+			sim.comms.confirm_arrival(tr)
+		if tr.state == Train.State.GOTOWY and sim.comms.permission_status(tr.id) == "":
+			sim.comms.ask_permission(tr)
+	for ev in sim.events.active:
+		if not bool(ev["zgloszona"]):
+			sim.comms.report_fault(int(ev["id"]), sim.comms.sluzba_for_event(str(ev["typ"])))
+	t += delta
+	if t >= 1.2:
+		t = 0.0
+		i += 1
+		GameState.open_scene(EKRANY[i % EKRANY.size()])

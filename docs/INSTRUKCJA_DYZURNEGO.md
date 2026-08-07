@@ -1,65 +1,130 @@
 # Instrukcja dyżurnego ruchu
 
-## Pulpit
+## 1. Pulpit nastawczy
 
-- **Odcinki torowe**: szary — wolny; zielony — ustawiony przebieg pociągowy;
-  biały — przebieg manewrowy; czerwony — zajęty przez tabor; pomarańczowy,
-  przekreślony — zamknięty (przeszkoda).
-- **Semafory** (kółka): czerwone — „Stój"; zielone — sygnał zezwalający;
-  białe — jazda manewrowa; białe mrugające — sygnał zastępczy (Sz).
-  Przekreślenie — usterka. **Tarcze manewrowe** są kwadratowe (np. M10).
-- **Portale** (prostokąty ze strzałką) — kierunki, z których zgłaszają się
-  pociągi. Czerwony napis pod portalem = pociąg(i) oczekujące na wjazd.
-- **Rozjazdy** z mrugającą pomarańczową obwódką mają usterkę — przebiegi
-  przez nie są niemożliwe do czasu jej ustąpienia.
+Obraz świetlny wzorowany na komputerowych nastawnicach stosowanych na PKP.
 
-## Prowadzenie ruchu
+| Element | Wygląd |
+|---|---|
+| tor wolny | szara linia |
+| droga przebiegu w trakcie nastawiania | miga na niebiesko (przestawiane rozjazdy) |
+| droga przebiegu utwierdzona | biała linia |
+| zajętość toru | czerwona linia |
+| zamknięcie toru | pomarańczowa, przekreślona |
+| semafor | trójkąt zwrócony w kierunku jazdy: czerwony — „Stój”, zielony — sygnał zezwalający, biały — manewrowy, biały migający — sygnał zastępczy |
+| tarcza manewrowa | kwadrat (Tm1, Tm2, Tm3) |
+| rozjazd | numer + położenie: **+** zasadnicze, **−** zwrotne |
+| przycisk szlaku | prostokąt ze strzałką na krańcu pulpitu (it1P, it2R, itG …) |
+| pociąg oczekujący | czerwony prostokąt z numerem przy przycisku szlaku |
+| usterka | pomarańczowe przekreślenie / migająca obwódka |
+| tabliczka ostrzegawcza | pomarańczowa ramka wokół elementu |
 
-1. **Przyjęcie pociągu**: kliknij semafor wjazdowy przy portalu (np. `Ad`),
-   następnie semafor na końcu wybranego toru (np. `H5` = wjazd na tor 5
-   od zachodu). System sam wyznaczy i zablokuje drogę przebiegu.
-2. **Wyprawienie pociągu**: gdy pociąg zgłosi gotowość (mrugające „GOTÓW"),
-   kliknij semafor wyjazdowy przy jego torze (np. `H5` na wschód, `K5` na
-   zachód), a następnie **portal** kierunku jazdy.
-3. **Przelot** (np. towarowy): ustaw przebieg od semafora wjazdowego
-   bezpośrednio do portalu wyjazdowego — droga poprowadzi przez wolny tor.
-4. **Manewry**: włącz **Tryb manewrowy (M)**. Podstawienie z Grochowa:
-   tarcza `M10` → semafor `K…` na początku toru docelowego. Odstawienie:
-   semafor `H…` przy torze → portal `Grochów`. Zlecenia manewrowe widać
-   w zakładce „Ruch".
-5. **Usterka semafora**: ustaw przebieg normalnie, wybierz semafor i użyj
-   przycisku **„Sygnał zastępczy (Sz)"** — pociąg pojedzie z prędkością
-   ograniczoną. Użycie Sz jest odnotowywane w dzienniku.
-6. **Zwolnienie przebiegu**: wybierz semafor → „Zwolnij przebieg" (możliwe
-   tylko, gdy pociąg nie wjechał w drogę przebiegu; odnotowywane jako
-   zwolnienie doraźne).
+Widok: **prawy przycisk myszy** — przesuwanie, **rolka** — powiększenie,
+**Dopasuj widok** — wyśrodkowanie schematu.
 
-## Rozkład jazdy i opóźnienia
+## 2. Nastawianie przebiegu (dwuprzyciskowe)
 
-Zakładka „Rozkład jazdy" pokazuje plan z opóźnieniami (żółte wiersze) oraz
-statusami. Przycisk „Aktualizuj online" pobiera świeże opóźnienia i
-uzupełnienia rozkładu z sieci. W trybie losowym tabela wypełnia się
-pociągami wygenerowanymi.
+Tak jak na kolei — urządzenia same wybierają drogę przebiegu:
 
-## Dziennik ruchu
+1. Wybierz rodzaj polecenia na górnej belce: **PRZEBIEG POCIĄGOWY** albo
+   **PRZEBIEG MANEWROWY**.
+2. Naciśnij **przycisk początku** drogi przebiegu — sygnalizator, spod
+   którego ma odbyć się jazda (podświetla się na niebiesko).
+3. Naciśnij **przycisk końca** drogi przebiegu — sygnalizator na końcu
+   wybranego toru albo przycisk szlaku.
 
-Zakładka „Dziennik" dokumentuje: przebiegi, jazdy pociągów, zdarzenia,
-użycia Sz i wpisy własne dyżurnego. „Zapisz do pliku" tworzy plik
-`dziennik_RRRRMMDD_<stacja>.txt` w katalogu użytkownika; przy wyjściu z
-symulacji dziennik zapisuje się automatycznie (opcja w Ustawieniach).
+Urządzenia sprawdzają warunki (zajętość, przebiegi wrogie, zamknięcia,
+usterki rozjazdów), przestawiają rozjazdy (**nastawianie** — miganie),
+utwierdzają przebieg (**biel**) i dopiero wtedy podają sygnał zezwalający.
 
-## Zdarzenia losowe
+Przykłady:
+- wjazd od strony W-wy Centralnej na tor 5: **C → N5**,
+- wyjazd z toru 5 na Rembertów: **N5 → it1R**,
+- przelot z W-wy Centralnej na Rembertów: **C → it1R**,
+- podstawienie składu z Grochowa na tor 8 (przebieg manewrowy): **Tm1 → K8**,
+- odstawienie z toru 6 do Grochowa (przebieg manewrowy): **N6 → itG**.
 
-Zakładka „Zdarzenia": suwak częstotliwości (0 = wyłączone), lista aktywnych
-zdarzeń z przyciskiem „Potwierdź przyjęcie". Typy: usterka rozjazdu,
-usterka semafora, osoba postronna na torach, zwierzęta na torach, awaria
-taboru.
+## 3. Pozostałe polecenia pulpitu
 
-## Wskazówki
+| Polecenie | Znaczenie |
+|---|---|
+| **ZD** | zwolnienie drogi przebiegu pociągowego (gdy pociąg nie wjechał w przebieg) |
+| **ZDM** | zwolnienie drogi przebiegu manewrowego |
+| **ZW** | indywidualne przestawienie rozjazdu (+ / −) |
+| **ZWP** | zwolnienie awaryjne przebiegu — z kontrolą czasu **180 s** |
+| **OPS** | opis wskazanego elementu (stan, usterki, tabliczki) |
 
-- Pociągi podmiejskie przyjmuj zasadniczo na tory 1–2 (jazda na wschód)
-  i 3–4 (na zachód); dalekobieżne odpowiednio 5–6 i 7–8.
-- Pociąg oznaczony „kończy bieg" po przyjeździe trzeba odstawić manewrowo
-  do Grochowa; pociąg „zaczynający bieg" wymaga wcześniejszego podstawienia
-  składu — pilnuj zleceń w zakładce „Ruch".
-- Odjazd przed czasem rozkładowym jest odnotowywany jako nieprawidłowość.
+Rozjazdu zamkniętego w przebiegu, zajętego taborem lub z założoną tabliczką
+nie da się przestawić.
+
+## 4. Menu sygnalizatora (prawy przycisk myszy)
+
+| Polecenie | Znaczenie |
+|---|---|
+| **STOP** | nakaz podania sygnału „Stój” |
+| **OSTOP** | odwołanie nakazu „Stój” |
+| **SZ** | sygnał zastępczy jednorazowy (przy usterce semafora) |
+| **SZP** | sygnał zastępczy powtarzalny (przy usterce trwałej) |
+| **NSZ / NSZP** | skasowanie sygnału zastępczego |
+| **WTAB / KTAB** | założenie i skasowanie tabliczki ostrzegawczej |
+
+Sygnał zastępczy można podać dopiero po **utwierdzeniu** przebiegu. Jazda na
+Sz odbywa się z prędkością ograniczoną i jest odnotowywana w EDR.
+
+## 5. Zapowiadanie pociągów (ekran ŁĄCZNOŚĆ, F5)
+
+Kolejność telefonicznego zapowiadania:
+
+1. **Żądanie pozwolenia** — sąsiad pyta: „Czy droga wolna dla pociągu nr …?”
+   Odpowiadasz *Droga wolna* (pociąg zgłasza się przed semaforem wjazdowym)
+   albo *Nie mogę przyjąć* (pociąg zgłosi się ponownie za ok. 3 minuty).
+2. **Danie pozwolenia** — przed wyprawieniem pociągu na szlak sam żądasz
+   pozwolenia u sąsiada („Żądaj pozwolenia”). **Bez pozwolenia urządzenia
+   nie pozwolą nastawić przebiegu wyjazdowego.**
+3. **Oznajmienie odjazdu** — po odjeździe: „Pociąg nr … odjechał o godz. …”.
+4. **Potwierdzenie przyjazdu** — po przyjeździe: „Pociąg nr … przybył
+   o godz. … w całości”. Brak potwierdzenia w ciągu 7 minut kończy się
+   monitem sąsiada.
+
+Zapowiadanie można wyłączyć w Ustawieniach (opcja dla początkujących).
+
+## 6. Zdarzenia losowe i usterki (ekran ZDARZENIA, F4)
+
+**Usterki nie ustępują samoczynnie.** Trzeba je zgłosić właściwej służbie
+— dopiero wtedy rozpoczyna się ich usuwanie i biegnie czas naprawy:
+
+| Zdarzenie | Właściwa służba |
+|---|---|
+| brak kontroli położenia rozjazdu, usterka semafora | **Automatyk SRK** |
+| osoba postronna w torach, zwierzęta w skrajni | **Straż Ochrony Kolei** |
+| awaria taboru | **Dyspozytor przewoźnika** |
+
+Zgłoszenie do niewłaściwej służby zostanie odesłane ze wskazaniem
+właściwej. Częstotliwość zdarzeń ustawiasz w **Ustawieniach**.
+
+## 7. EDR — Elektroniczny Dziennik Ruchu (F3)
+
+Rejestruje wszystkie czynności: zapowiedzi, nastawianie i zwalnianie
+przebiegów, jazdy pociągów, manewry, usterki i wpisy własne dyżurnego.
+Zapisy można filtrować po rodzaju i numerze pociągu, dodać wpis własny
+oraz zapisać dziennik do pliku (`user://EDR_RRRRMMDD_stacja.txt`).
+
+## 8. Rozkład jazdy (F2)
+
+Pełny wykaz pociągów posterunku: godziny planowe i rzeczywiste, opóźnienia,
+tor, kierunki, stacja początkowa i końcowa oraz status. Przycisk
+**Aktualizuj online** pobiera świeże opóźnienia i uzupełnienia rozkładu.
+Na pulpicie widoczne jest zwijane okno z **czterema najbliższymi pociągami**.
+
+## 9. Wskazówki
+
+- Pociągi podmiejskie przyjmuj na tory 1 i 3 (kierunek wschodni) oraz
+  2 i 4 (zachodni); dalekobieżne odpowiednio 5, 7 i 6, 8.
+- Pociąg oznaczony **kończy bieg** po przyjeździe odstaw manewrowo do
+  Grochowa; pociąg **rozpoczynający bieg** wymaga wcześniejszego
+  podstawienia składu z Grochowa.
+- Odjazd przed rozkładową godziną jest odnotowywany w EDR jako
+  nieprawidłowość.
+- Przy usterce rozjazdu prowadź ruch drogą okrężną — układ torowy
+  Warszawy Wschodniej ma połączenia między grupą podmiejską a dalekobieżną
+  (rozjazdy 7, 15 na zachodzie i 18, 23 na wschodzie).
