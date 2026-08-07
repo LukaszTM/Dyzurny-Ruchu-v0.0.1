@@ -35,7 +35,7 @@ func _ready() -> void:
 		sim.events.freq_min = 1.0
 		sim.events.schedule_next(sim.sim_time)
 	_pokaz(0)
-	print("SONDA TRYBU: ", mode)
+	print("SONDA TRYBU: ", mode, " | rozkład: ", sim.tt.entries.size(), " pozycji")
 
 
 func _pokaz(idx: int) -> void:

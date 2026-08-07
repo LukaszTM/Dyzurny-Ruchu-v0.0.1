@@ -165,3 +165,9 @@ func _apply() -> void:
 	if sim != null and is_instance_valid(sim) and not sim.real_mode:
 		sim.events.freq_min = Settings.event_freq_min
 		sim.events.schedule_next(sim.sim_time)
+		if sim.mode == GameState.MODE_RANDOM:
+			# zmiana natężenia: przebuduj przyszłe pozycje fikcyjnego rozkładu
+			var n: int = sim.gen.rebuild_future(sim.tt, sim.sim_time, Settings.traffic_intensity)
+			sim.edr.add(sim.sim_time, "Służba",
+				"Przebudowano fikcyjny rozkład jazdy — natężenie %d poc./h (%d nowych pozycji)." % [
+					int(Settings.traffic_intensity), n])

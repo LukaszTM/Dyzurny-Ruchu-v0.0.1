@@ -109,8 +109,15 @@ func setup(p_mode: String, location_id: String) -> void:
 			time_scale = 1.0
 			events.freq_min = REAL_EVENT_FREQ
 		GameState.MODE_RANDOM:
+			# RUCH LOSOWY: fikcyjny, wygenerowany rozkład jazdy na całą dobę
 			sim_time = SimUtil.parse_hhmm(str(location.get("start_time_random", "12:00")))
 			gen.enabled = true
+			var n := gen.generate_day(tt, Settings.traffic_intensity)
+			tt.start_time = sim_time
+			tt.skip_past(sim_time)
+			tt.online_status = "rozkład fikcyjny (tryb losowy)"
+			edr.add(sim_time, "Służba", "Wygenerowano fikcyjny rozkład jazdy: %d pociągów, natężenie %d poc./h." % [
+				n, int(Settings.traffic_intensity)])
 		GameState.MODE_TUTORIAL:
 			sim_time = 8.0 * 3600.0
 			events.freq_min = 0.0
