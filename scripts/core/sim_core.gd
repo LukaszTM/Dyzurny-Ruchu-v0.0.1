@@ -575,12 +575,17 @@ func exec_signal_cmd(sig_id: String, cmd: String) -> void:
 # ----------------------------------------------------------------- online --
 
 func request_online_update(manual: bool) -> void:
+	# realny rozkład jazdy i opóźnienia online dotyczą wyłącznie trybu
+	# REALNY ROZKŁAD JAZDY
+	if mode != GameState.MODE_TIMETABLE:
+		if manual:
+			show_message("Aktualizacja rozkładu online dostępna tylko w trybie REALNY ROZKŁAD JAZDY.", 1)
+		return
 	if not Settings.online_enabled and not manual:
 		return
 	if Settings.url_delays != "" and _http_delays.get_http_client_status() == HTTPClient.STATUS_DISCONNECTED:
 		_http_delays.request(Settings.url_delays)
-	if Settings.url_timetable != "" and mode == GameState.MODE_TIMETABLE \
-			and _http_tt.get_http_client_status() == HTTPClient.STATUS_DISCONNECTED:
+	if Settings.url_timetable != "" and _http_tt.get_http_client_status() == HTTPClient.STATUS_DISCONNECTED:
 		_http_tt.request(Settings.url_timetable)
 	if manual:
 		show_message("Wysłano zapytanie o aktualizację rozkładu jazdy i opóźnień…")
