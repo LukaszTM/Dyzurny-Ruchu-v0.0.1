@@ -10,7 +10,8 @@ extends Node2D
 
 const COL_BG := Color("000000")
 const COL_TOR := Color("8a8a8a")
-const COL_UTW := Color("f2f2f2")
+const COL_UTW_P := Color("18c832")   # przebieg pociągowy utwierdzony — ZIELONY (jak w LCS)
+const COL_UTW_M := Color("f2f2f2")   # przebieg manewrowy — biały
 const COL_NAST := Color("00c8d7")
 const COL_ZAJETY := Color("d01020")
 const COL_ZAMK := Color("d08000")
@@ -41,7 +42,9 @@ func setup(p_sim: SimCore) -> void:
 	sim = p_sim
 	layout = sim.layout
 	inter = sim.inter
-	_font = ThemeDB.fallback_font
+	var mono := SystemFont.new()
+	mono.font_names = PackedStringArray(["DejaVu Sans Mono", "Liberation Mono", "Consolas", "Courier New"])
+	_font = mono
 	cam = Camera2D.new()
 	cam.position = layout.bounds.get_center()
 	add_child(cam)
@@ -152,11 +155,12 @@ func _draw() -> void:
 	_draw_line_ends(blink)
 	_draw_tarcze()
 	_draw_signals(blink)
-	_draw_trains(blink)
 	_draw_decor_over()
 	for lb in layout.labels:
 		draw_string(_font, Vector2(float(lb["x"]), float(lb["y"])), str(lb["text"]),
 			HORIZONTAL_ALIGNMENT_LEFT, -1, int(lb.get("size", 12)), COL_OPIS.darkened(0.45))
+	# kasetki pociągów rysowane NA KOŃCU — nic nie może zasłaniać numeru
+	_draw_trains(blink)
 
 
 ## Różowa linia przejazdu — rysowana pod torami.
@@ -190,6 +194,24 @@ func _draw_decor_over() -> void:
 				draw_circle(p + Vector2(11, 21), 3.0, COL_NR)
 				draw_string(_font, p + Vector2(2, 44), "\"%s\"" % str(d.get("label", "")),
 					HORIZONTAL_ALIGNMENT_LEFT, -1, 12, COL_NR)
+			"stub":
+				var x1 := float(d["x1"])
+				var x2 := float(d["x2"])
+				var y := float(d["y"])
+				var xk := x1 if str(d.get("koz", "l")) == "l" else x2
+				var seg_d := (x2 - x1)
+				var xx := x1
+				while xx < x1 + seg_d:
+					var xe: float = minf(xx + 10.0, x1 + seg_d)
+					draw_line(Vector2(xx, y), Vector2(xe, y), COL_TOR.darkened(0.2), 3.0)
+					xx = xe + 6.0
+				draw_line(Vector2(xk, y - 7), Vector2(xk, y + 7), COL_NR, 2.5)
+				draw_string(_font, Vector2((x1 + x2) / 2.0 - 12, y + 17), str(d.get("label", "")),
+					HORIZONTAL_ALIGNMENT_LEFT, -1, 10, COL_CYJAN)
+			"box":
+				var rb := Rect2(float(d["x"]), float(d["y"]), float(d["w"]), float(d["h"]))
+				draw_rect(rb, Color("b0b0b0"))
+				draw_rect(rb, Color("d8d8d8"), false, 1.0)
 			"km":
 				var q := Vector2(float(d["x"]), float(d["y"]))
 				draw_line(q + Vector2(0, 10), q + Vector2(0, -2), COL_ROZOWY, 1.6)
@@ -218,7 +240,7 @@ func _seg_color(sid: String, blink: bool) -> Color:
 		var r := inter.seg_route(sid)
 		if not r.is_empty() and str(r["state"]) == Interlocking.ST_NASTAWIANIE:
 			return COL_NAST if blink else COL_NAST.darkened(0.5)
-		return COL_UTW
+		return COL_UTW_M if str(r.get("kind", "P")) == "M" else COL_UTW_P
 	if inter.tab.has(sid):
 		return COL_ZAMK.darkened(0.3)
 	return COL_TOR
@@ -234,6 +256,10 @@ func _draw_segments(blink: bool) -> void:
 			_draw_szlak(sid, a, b, col)
 		else:
 			draw_line(a, b, col, 4.0)
+			if str(sdef["kind"]) == "tor":
+				for fr in [0.333, 0.667]:
+					var g := a.lerp(b, fr)
+					draw_line(g + Vector2(0, -3), g + Vector2(0, 3), COL_BG, 3.0)
 		if inter.closed_segs.has(sid):
 			var m := (a + b) / 2.0
 			draw_line(m + Vector2(-7, -7), m + Vector2(7, 7), COL_ZAMK, 2.0)
@@ -281,13 +307,13 @@ func _draw_switches(blink: bool) -> void:
 		var w: Dictionary = layout.switches[wid]
 		var p := layout.pos(str(w["point"]))
 		var pos_txt := str(inter.sw_pos.get(wid, "+"))
-		var col := COL_NR
+		var col := COL_CYJAN
 		if inter.sw_failed.has(wid):
 			col = COL_ZAMK if blink else COL_ZAMK.darkened(0.5)
 		elif inter.sw_moving.has(wid):
 			col = COL_NAST if blink else COL_NAST.darkened(0.5)
 		elif inter.sw_locked.has(wid):
-			col = COL_UTW
+			col = COL_UTW_P
 		draw_string(_font, p + Vector2(-15, -7), wid, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, col)
 		draw_string(_font, p + Vector2(5, -10), pos_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 10,
 			COL_NR if not inter.sw_failed.has(wid) else COL_ZAMK)
@@ -321,8 +347,9 @@ func _draw_line_ends(blink: bool) -> void:
 		if str(le["tor"]) != "":
 			draw_string(_font, r.position + Vector2(r.size.x - 16.0, 20), str(le["tor"]),
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 11, COL_ZOLTY)
+		# nazwa kierunku NAD kasetką szlaku (nie koliduje z kasetką pociągu)
 		var nazwa := "%s %s" % [str(le["name"]), str(le["lk"])]
-		draw_string(_font, p + Vector2(out * 44.0 - 34.0, 30.0), nazwa,
+		draw_string(_font, r.position + Vector2(-4, -8), nazwa,
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 10, COL_OPIS)
 		# czerwona kasetka z numerem oczekującego pociągu (jak w SimRail)
 		var q: Array = sim.queues.get(lid, [])
@@ -331,10 +358,10 @@ func _draw_line_ends(blink: bool) -> void:
 			var nr_txt := t.nr if t != null else "?"
 			if q.size() > 1:
 				nr_txt += " +%d" % (q.size() - 1)
-			var box := Rect2(p + Vector2(out * 48.0 - 44.0, 40.0), Vector2(88, 34))
+			var box := Rect2(p + Vector2(out * 48.0 - 44.0, 46.0), Vector2(96, 30))
 			draw_rect(box, COL_KASETA if blink else COL_KASETA.darkened(0.25))
 			draw_rect(box, Color("d8d8d8"), false, 1.0)
-			draw_string(_font, box.position + Vector2(8, 22), nr_txt,
+			draw_string(_font, box.position + Vector2(8, 21), nr_txt,
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("ffffff"))
 		if str(sim.selected.get("kind", "")) == "line_end" and str(sim.selected.get("id", "")) == lid:
 			draw_rect(r.grow(4.0), COL_SEL, false, 2.0)
@@ -347,7 +374,6 @@ func _draw_tarcze() -> void:
 		_chevron(p + Vector2(-4 * d, 0), d, COL_TOR, 6.0, 1.6)
 		_chevron(p + Vector2(5 * d, 0), d, COL_TOR, 6.0, 1.6)
 		draw_string(_font, p + Vector2(-14, 22), str(to["id"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, COL_ZOLTY)
-		draw_string(_font, p + Vector2(-14, -14), str(to.get("km", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, 9, COL_OPIS)
 
 
 func _draw_signals(blink: bool) -> void:
@@ -371,6 +397,7 @@ func _draw_signals(blink: bool) -> void:
 			draw_rect(Rect2(p - Vector2(9, 8), Vector2(18, 16)), col, false, 1.5)
 			_chevron(p + Vector2(-1 * d, 0), d, col, 5.0, 2.0)
 		else:
+			draw_line(p + Vector2(-13 * d, -7), p + Vector2(-13 * d, 7), col, 2.0)
 			_chevron(p + Vector2(-5 * d, 0), d, col, 7.0, 2.4)
 			_chevron(p + Vector2(5 * d, 0), d, col, 7.0, 2.4)
 		if inter.is_signal_failed(sid):

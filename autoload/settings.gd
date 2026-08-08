@@ -28,6 +28,7 @@ var event_freq_min: float = 12.0        # średni odstęp zdarzeń losowych [min
 var require_zapowiadanie: bool = true   # wymagaj telefonicznego zapowiadania pociągów
 
 # online
+var wykaz_ciemny: bool = false   # tryb ciemny wykazu pociągów
 var online_enabled: bool = true
 var url_delays: String = "https://raw.githubusercontent.com/LukaszTM/Dyzurny-Ruchu-v0.0.1/main/data/online/delays.json"
 var url_timetable: String = "https://raw.githubusercontent.com/LukaszTM/Dyzurny-Ruchu-v0.0.1/main/data/online/timetable_warszawa_wschodnia.json"
@@ -53,6 +54,7 @@ func load_cfg() -> void:
 	shunting_enabled = bool(cfg.get_value("sim", "shunting", shunting_enabled))
 	event_freq_min = float(cfg.get_value("sim", "event_freq", event_freq_min))
 	require_zapowiadanie = bool(cfg.get_value("sim", "zapowiadanie", require_zapowiadanie))
+	wykaz_ciemny = bool(cfg.get_value("display", "wykaz_ciemny", wykaz_ciemny))
 	online_enabled = bool(cfg.get_value("online", "enabled", online_enabled))
 	url_delays = str(cfg.get_value("online", "url_delays", url_delays))
 	url_timetable = str(cfg.get_value("online", "url_timetable", url_timetable))
@@ -69,6 +71,7 @@ func save_cfg() -> void:
 	cfg.set_value("sim", "shunting", shunting_enabled)
 	cfg.set_value("sim", "event_freq", event_freq_min)
 	cfg.set_value("sim", "zapowiadanie", require_zapowiadanie)
+	cfg.set_value("display", "wykaz_ciemny", wykaz_ciemny)
 	cfg.set_value("online", "enabled", online_enabled)
 	cfg.set_value("online", "url_delays", url_delays)
 	cfg.set_value("online", "url_timetable", url_timetable)

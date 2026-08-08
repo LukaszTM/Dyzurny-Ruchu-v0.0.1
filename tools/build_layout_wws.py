@@ -244,6 +244,11 @@ labels = [
 decor = [
     {"type": "crossing", "x": 1000, "y1": 250, "y2": 860, "label": "MIEJSCOWY", "km": "4.160"},
     {"type": "lb", "x": 985, "y": 878, "label": "Wsch"},
+    {"type": "stub", "x1": 500, "x2": 640, "y": 268, "label": "17k", "koz": "l"},
+    {"type": "stub", "x1": 1360, "x2": 1500, "y": 268, "label": "3k", "koz": "r"},
+    {"type": "stub", "x1": 1300, "x2": 1460, "y": 862, "label": "202k", "koz": "r"},
+    {"type": "box", "x": 236, "y": 168, "w": 66, "h": 52},
+    {"type": "box", "x": 1698, "y": 168, "w": 66, "h": 52},
     {"type": "km", "x": 205, "y": Y["t1"], "km": "2.156"},
     {"type": "km", "x": 205, "y": Y["t6"], "km": "2.210"},
     {"type": "km", "x": 1800, "y": Y["t1"], "km": "6.484"},

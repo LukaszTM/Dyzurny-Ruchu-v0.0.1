@@ -291,7 +291,7 @@ func step(now: float) -> void:
 		if t == null:
 			continue
 		var zajety := _line_busy(str(req["line_end"]), t.id)
-		if zajety and rng.randf() < 0.8:
+		if zajety:
 			perm[t.id] = {"status": "odmowa", "kto": req["kto"], "at": now}
 			_log("<-", str(req["kto"]), "Nie mogę przyjąć pociągu nr %s — szlak zajęty. Zgłoś ponownie." % t.nr)
 			sim.edr.add(now, "Zapowiedź", "Odmowa pozwolenia dla poc. %s (szlak zajęty)." % t.opis(), t.nr)
@@ -316,10 +316,12 @@ func step(now: float) -> void:
 				{"train_id": t.id})
 
 
+## Szlak zajęty tylko wtedy, gdy poprzednio wyprawiony pociąg faktycznie
+## jest jeszcze w drodze (odjechał, ale nie opuścił posterunku).
 func _line_busy(line_end_id: String, skip_train: int) -> bool:
 	for t: Train in sim.trains.values():
 		if t.id == skip_train:
 			continue
-		if t.wyjazd == line_end_id and str(permission_status(t.id)) == "udzielone" and t.actual_dep < 0.0:
+		if t.wyjazd == line_end_id and t.actual_dep >= 0.0 and t.state == Train.State.JEDZIE:
 			return true
 	return false

@@ -53,18 +53,29 @@ func _process(delta: float) -> void:
 				sim.set_cmd_mode(SimCore.CMD_PP)
 				sim.click_element("signal", "C")
 				sim.click_element("signal", "N5")
-				sim.time_scale = 1.0
+				sim.events.force_event(sim.sim_time, "przeszkoda", "")
+				sim.time_scale = 2.0
 				faza = 2
 				t = 0.0
 		2:
-			if t > 1.5:
+			# czekaj na utwierdzenie przebiegu (zielona droga jak w LCS)
+			var r: Dictionary = sim.inter.route_of_signal("C")
+			var utw: bool = not r.is_empty() and str(r["state"]) == Interlocking.ST_UTWIERDZONY
+			if (utw and t > 2.5) or t > 12.0:
 				_shot("panel")
 				_pokaz(GameState.SCENE_TIMETABLE)
 				faza = 3
 				t = 0.0
 		3:
 			if t > 1.0:
-				_shot("wykaz")
+				_shot("wykaz_jasny" if not Settings.wykaz_ciemny else "wykaz_ciemny")
+				Settings.wykaz_ciemny = not Settings.wykaz_ciemny
+				_pokaz(GameState.SCENE_TIMETABLE)
+				faza = 6
+				t = 0.0
+		6:
+			if t > 1.0:
+				_shot("wykaz_ciemny" if Settings.wykaz_ciemny else "wykaz_jasny")
 				_pokaz(GameState.SCENE_COMMS)
 				faza = 4
 				t = 0.0

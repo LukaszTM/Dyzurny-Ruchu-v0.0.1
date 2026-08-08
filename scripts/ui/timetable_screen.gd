@@ -1,18 +1,19 @@
 extends Control
 ## „Wykaz pociągów” — odwzorowanie ekranu rozkładu z SimRail:
-## jasny motyw, kolorowe nagłówki kolumn, osobne kolumny „Nr poc” dla obu
-## kierunków, fioletowe podświetlenie wybranego wiersza, zakładki
-## Wykaz pociągów / Opis pociągu / Trasa pociągu, filtry potwierdzeń
-## i rodzajów pociągów, duży zegar.
+## kolorowe nagłówki kolumn, osobne kolumny „Nr poc” dla obu kierunków,
+## wyraźne (fioletowe) podświetlenie wybranego wiersza, tryb jasny/ciemny
+## (przycisk ☾/☀), widok otwiera się na najbliższym pociągu (przycisk TERAZ),
+## kolumny: przyjazd/odjazd plan. i rzecz., postój handlowy (ph) / przelot,
+## peron (P T) i numer toru; zakładki Wykaz / Opis pociągu / Trasa pociągu.
 
 const KOLUMNY := [
 	["K", 30], ["NK", 30],
-	["Przyj. pl.", 68], ["+/-", 38], ["Przyj. rz.", 68],
-	["Rodz.", 50], ["Nr poc", 64], ["Z kierunku post.", 128],
-	["Nr poc", 64], ["W kierunku post.", 128],
-	["L", 26], ["Nr t.", 44], ["Postój", 52], ["Typ p.", 48], ["P T", 46],
-	["Odj. pl.", 68], ["+/-", 38], ["Odj. rz.", 68],
-	["Stacja początkowa", 128], ["Stacja końcowa", 128],
+	["Przyj. pl.", 70], ["+/-", 38], ["Przyj. rz.", 70],
+	["Rodz.", 52], ["Nr poc", 66], ["Z kierunku post.", 128],
+	["Nr poc", 66], ["W kierunku post.", 128],
+	["L", 26], ["Nr t.", 44], ["Postój", 54], ["Typ p.", 52], ["P T", 48],
+	["Odj. pl.", 70], ["+/-", 38], ["Odj. rz.", 70],
+	["Stacja początkowa", 126], ["Stacja końcowa", 126],
 ]
 
 const HDR_KOLORY := {
@@ -40,6 +41,7 @@ const PERON_RZYM := {"Peron 1": "I", "Peron 2": "II", "Peron 3": "III", "Peron 4
 var sim: SimCore
 var tree: Tree
 var hdr_tree: Tree
+var bg_rect: ColorRect
 var clock: Label
 var filtr_nr: LineEdit
 var potw_grp := ButtonGroup.new()
@@ -48,12 +50,32 @@ var dod_info: Label
 var status_lbl: Label
 var zakladka := 0
 var pelna_data: CheckBox
+var motyw_btn: Button
 var tab_btns: Array = []
 var wykaz_box: VBoxContainer
 var opis_box: VBoxContainer
 var trasa_box: VBoxContainer
 var wybrany_nr := ""
+var _scrolled := false
 var _acc := 0.0
+
+
+func _pal() -> Dictionary:
+	if Settings.wykaz_ciemny:
+		return {
+			"bg": Color("17191d"), "row": Color("23262c"), "row_old": Color("1b1d21"),
+			"text": Color("d5dae2"), "text_dim": Color("8a919c"),
+			"guide": Color("34383f"), "nieb": Color("263b52"), "roz": Color("46332c"),
+			"pom": Color("6e5314"), "ph": Color("253744"), "ph_txt": Color("7ab4e0"),
+			"tab_on": Color("2e323a"), "tab_off": Color("1d2025"),
+		}
+	return {
+		"bg": UICommon.WYK_TLO, "row": UICommon.WYK_WIERSZ, "row_old": Color("e8e6d4"),
+		"text": Color("2a2a2a"), "text_dim": Color("6a6a5a"),
+		"guide": Color("c8c4a8"), "nieb": UICommon.WYK_KOM_NIEB, "roz": UICommon.WYK_KOM_ROZ,
+		"pom": UICommon.WYK_KOM_POM, "ph": UICommon.WYK_KOM_PH, "ph_txt": Color("2060a0"),
+		"tab_on": Color("ffffff"), "tab_off": Color("d8d5c0"),
+	}
 
 
 func _ready() -> void:
@@ -61,8 +83,12 @@ func _ready() -> void:
 	if sim == null:
 		GameState.back_to_menu()
 		return
-	UICommon.make_background(self, UICommon.WYK_TLO)
+	bg_rect = ColorRect.new()
+	bg_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg_rect)
 	_build()
+	_apply_theme()
 	_refresh()
 
 
@@ -90,11 +116,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 # ------------------------------------------------------------------ budowa --
 
-func _ciemny(t: String, size := 13) -> Label:
+func _txt(t: String, size := 13) -> Label:
 	var l := Label.new()
 	l.text = t
 	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", Color("2a2a2a"))
+	l.add_to_group("wykaz_txt")
 	return l
 
 
@@ -104,9 +130,7 @@ func _radio(text: String, grp: ButtonGroup, wybrane: bool) -> CheckBox:
 	c.button_group = grp
 	c.button_pressed = wybrane
 	c.add_theme_font_size_override("font_size", 12)
-	c.add_theme_color_override("font_color", Color("2a2a2a"))
-	c.add_theme_color_override("font_pressed_color", Color("2a2a2a"))
-	c.add_theme_color_override("font_hover_color", Color("000000"))
+	c.add_to_group("wykaz_txt")
 	c.pressed.connect(_refresh)
 	return c
 
@@ -121,11 +145,11 @@ func _build() -> void:
 	root.add_theme_constant_override("separation", 4)
 	add_child(root)
 
-	# --- górny wiersz: zakładki + język + zegar ---
+	# --- górny wiersz: zakładki + motyw + zegar ---
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 2)
+	var nazwy := ["Wykaz pociągów", "Opis pociągu", "Trasa pociągu"]
 	for i in range(3):
-		var nazwy := ["Wykaz pociągów", "Opis pociągu", "Trasa pociągu"]
 		var tb := Button.new()
 		tb.text = nazwy[i]
 		tb.focus_mode = Control.FOCUS_NONE
@@ -144,6 +168,15 @@ func _build() -> void:
 	jez.add_item("Polski")
 	jez.disabled = true
 	top.add_child(jez)
+	motyw_btn = Button.new()
+	motyw_btn.focus_mode = Control.FOCUS_NONE
+	motyw_btn.tooltip_text = "Przełącz tryb jasny / ciemny"
+	motyw_btn.pressed.connect(func():
+		Settings.wykaz_ciemny = not Settings.wykaz_ciemny
+		Settings.save_cfg()
+		_apply_theme()
+		_refresh())
+	top.add_child(motyw_btn)
 	clock = Label.new()
 	clock.add_theme_font_size_override("font_size", 30)
 	clock.add_theme_color_override("font_color", Color("ffffff"))
@@ -164,7 +197,7 @@ func _build() -> void:
 	st_opt.add_item(sim.layout.station_name)
 	st_opt.disabled = true
 	st_row.add_child(st_opt)
-	st_row.add_child(_ciemny("Pełna data:"))
+	st_row.add_child(_txt("Pełna data:"))
 	pelna_data = CheckBox.new()
 	st_row.add_child(pelna_data)
 	root.add_child(st_row)
@@ -173,21 +206,21 @@ func _build() -> void:
 	var f := HBoxContainer.new()
 	f.add_theme_constant_override("separation", 16)
 	var f1 := VBoxContainer.new()
-	f1.add_child(_ciemny("Nr pociągu:", 12))
+	f1.add_child(_txt("Nr pociągu:", 12))
 	filtr_nr = LineEdit.new()
-	filtr_nr.custom_minimum_size = Vector2(130, 0)
+	filtr_nr.custom_minimum_size = Vector2(120, 0)
 	filtr_nr.text_changed.connect(func(_t): _refresh())
 	f1.add_child(filtr_nr)
 	f.add_child(f1)
 	var f2 := VBoxContainer.new()
-	f2.add_child(_ciemny("Potwierdzenie:", 12))
+	f2.add_child(_txt("Potwierdzenie:", 12))
 	var f2h := HBoxContainer.new()
 	for para in [["wszystkie", true], ["potwierdzone", false], ["niepotwierdzone", false]]:
 		f2h.add_child(_radio(str(para[0]), potw_grp, bool(para[1])))
 	f2.add_child(f2h)
 	f.add_child(f2)
 	var f3 := VBoxContainer.new()
-	f3.add_child(_ciemny("Pociągi:", 12))
+	f3.add_child(_txt("Pociągi:", 12))
 	var f3h := HBoxContainer.new()
 	for para2 in [["wszystkie", true], ["kończące", false], ["uruchamiane", false],
 			["uruch. + koń.", false], ["kursujące", false]]:
@@ -197,16 +230,9 @@ func _build() -> void:
 	var fsp := Control.new()
 	fsp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	f.add_child(fsp)
-	var f4 := VBoxContainer.new()
-	f4.add_child(_ciemny("Uwagi eksploatacyjne", 12))
-	var uw := LineEdit.new()
-	uw.custom_minimum_size = Vector2(150, 0)
-	uw.editable = false
-	f4.add_child(uw)
-	f.add_child(f4)
 	var f5 := VBoxContainer.new()
-	f5.add_child(_ciemny("Dodatkowe informacje", 12))
-	dod_info = _ciemny("Z  —\nDo  —", 12)
+	f5.add_child(_txt("Dodatkowe informacje", 12))
+	dod_info = _txt("Z  —\nDo  —", 12)
 	f5.add_child(dod_info)
 	f.add_child(f5)
 	root.add_child(f)
@@ -217,13 +243,6 @@ func _build() -> void:
 	wykaz_box.add_theme_constant_override("separation", 0)
 	hdr_tree = _make_tree()
 	hdr_tree.custom_minimum_size = Vector2(0, 34)
-	var hroot := hdr_tree.create_item()
-	var hit := hdr_tree.create_item(hroot)
-	for i in range(KOLUMNY.size()):
-		hit.set_text(i, str(KOLUMNY[i][0]))
-		hit.set_custom_bg_color(i, HDR_KOLORY.get(i, UICommon.WYK_HDR_SZARY))
-		hit.set_custom_color(i, Color("ffffff"))
-		hit.set_selectable(i, false)
 	wykaz_box.add_child(hdr_tree)
 	tree = _make_tree()
 	tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -231,7 +250,6 @@ func _build() -> void:
 	wykaz_box.add_child(tree)
 	root.add_child(wykaz_box)
 
-	# --- zakładki: opis / trasa ---
 	opis_box = VBoxContainer.new()
 	opis_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	opis_box.visible = false
@@ -247,13 +265,20 @@ func _build() -> void:
 	wg.text = "Wprowadzanie godzin"
 	wg.disabled = true
 	bot.add_child(wg)
+	var teraz := Button.new()
+	teraz.text = "TERAZ ▶"
+	teraz.tooltip_text = "Przewiń do najbliższego pociągu"
+	teraz.pressed.connect(func():
+		_scrolled = false
+		_refresh())
+	bot.add_child(teraz)
 	var upd := Button.new()
 	upd.text = "Aktualizuj online"
 	upd.pressed.connect(func():
 		sim.request_online_update(true)
 		_refresh())
 	bot.add_child(upd)
-	status_lbl = _ciemny("", 11)
+	status_lbl = _txt("", 11)
 	status_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bot.add_child(status_lbl)
 	var v_dol := Button.new()
@@ -279,18 +304,51 @@ func _make_tree() -> Tree:
 	for i in range(KOLUMNY.size()):
 		t.set_column_custom_minimum_width(i, int(KOLUMNY[i][1]))
 		t.set_column_expand(i, i in [7, 9, 18, 19])
-	var bg := StyleBoxFlat.new()
-	bg.bg_color = UICommon.WYK_TLO
-	t.add_theme_stylebox_override("panel", bg)
-	var sel := StyleBoxFlat.new()
-	sel.bg_color = UICommon.WYK_ZAZN
-	t.add_theme_stylebox_override("selected", sel)
-	t.add_theme_stylebox_override("selected_focus", sel)
-	t.add_theme_color_override("font_selected_color", Color("ffffff"))
-	t.add_theme_color_override("font_color", Color("2a2a2a"))
+	t.add_theme_font_size_override("font_size", 13)
 	t.add_theme_constant_override("draw_guides", 1)
-	t.add_theme_color_override("guide_color", Color("c8c4a8"))
 	return t
+
+
+func _apply_theme() -> void:
+	var pal := _pal()
+	bg_rect.color = pal["bg"]
+	motyw_btn.text = "☀" if Settings.wykaz_ciemny else "☾"
+	for t in [hdr_tree, tree]:
+		var bg := StyleBoxFlat.new()
+		bg.bg_color = pal["bg"]
+		t.add_theme_stylebox_override("panel", bg)
+		var sel := StyleBoxFlat.new()
+		sel.bg_color = UICommon.WYK_ZAZN
+		t.add_theme_stylebox_override("selected", sel)
+		t.add_theme_stylebox_override("selected_focus", sel)
+		t.add_theme_color_override("font_selected_color", Color("ffffff"))
+		t.add_theme_color_override("font_color", pal["text"])
+		t.add_theme_color_override("guide_color", pal["guide"])
+	for n in get_tree().get_nodes_in_group("wykaz_txt"):
+		var c := n as Control
+		if c != null:
+			c.add_theme_color_override("font_color", pal["text"])
+			c.add_theme_color_override("font_pressed_color", pal["text"])
+			c.add_theme_color_override("font_hover_color", pal["text"])
+	for j in range(tab_btns.size()):
+		_tab_style(j)
+
+
+func _tab_style(j: int) -> void:
+	var pal := _pal()
+	var b := tab_btns[j] as Button
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = pal["tab_on"] if j == zakladka else pal["tab_off"]
+	sb.border_color = pal["guide"]
+	sb.set_border_width_all(1)
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	b.add_theme_stylebox_override("normal", sb)
+	b.add_theme_stylebox_override("hover", sb)
+	b.add_theme_color_override("font_color", pal["text"])
+	b.add_theme_color_override("font_hover_color", pal["text"])
 
 
 func _set_tab(i: int) -> void:
@@ -299,17 +357,7 @@ func _set_tab(i: int) -> void:
 	opis_box.visible = i == 1
 	trasa_box.visible = i == 2
 	for j in range(tab_btns.size()):
-		var b := tab_btns[j] as Button
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color("ffffff") if j == i else Color("d8d5c0")
-		sb.border_color = Color("a8a488")
-		sb.set_border_width_all(1)
-		sb.content_margin_left = 10
-		sb.content_margin_right = 10
-		sb.content_margin_top = 4
-		sb.content_margin_bottom = 4
-		b.add_theme_stylebox_override("normal", sb)
-		b.add_theme_color_override("font_color", Color("1a1a1a"))
+		_tab_style(j)
 	if i == 0:
 		_refresh()
 	else:
@@ -386,13 +434,22 @@ func _peron_tor(e: Dictionary) -> String:
 	return "%s %s" % [rzym, str(e["tor"])]
 
 
+func _ref_time(e: Dictionary) -> float:
+	if float(e["arr"]) >= 0.0:
+		return float(e["arr"]) + float(e["delay"]) * 60.0
+	return float(e["dep"])
+
+
 func _refresh() -> void:
 	if tree == null:
 		return
+	var pal := _pal()
 	status_lbl.text = "   pozycji: %d   •   online: %s" % [sim.tt.entries.size(), sim.tt.online_status]
+	_rebuild_header()
 	tree.clear()
 	var root := tree.create_item()
 	var do_zaznaczenia: TreeItem = null
+	var pierwszy_przyszly: TreeItem = null
 	for e in sim.tt.entries:
 		if not _pasuje(e):
 			continue
@@ -410,6 +467,11 @@ func _refresh() -> void:
 		elif float(e["dep"]) >= 0.0:
 			dep_op = op
 		var postoj_min := float(e["postoj"]) / 60.0
+		var typ_p := ""
+		if bool(e["przelot"]):
+			typ_p = "przel."
+		elif postoj_min > 0.0 or bool(e["start"]) or bool(e["koniec"]):
+			typ_p = "ph"
 		var wart := [
 			"☑" if _potwierdzony(e) else "",
 			"",
@@ -423,52 +485,80 @@ func _refresh() -> void:
 			_kierunek(str(e["wy"])),
 			"",
 			str(e["tor"]),
-			"%.1f" % postoj_min,
-			"ph" if postoj_min > 0.0 and not bool(e["przelot"]) else "",
+			"%.1f" % postoj_min if not bool(e["przelot"]) else "",
+			typ_p,
 			_peron_tor(e),
-			SimUtil.fmt_hm(e["dep"]) if not bool(e["przelot"]) else "przel.",
+			SimUtil.fmt_hm(e["dep"]) if not bool(e["przelot"]) else "—",
 			SimUtil.fmt_signed(dep_op) if float(e["dep"]) >= 0.0 else "",
 			SimUtil.fmt_hm(dep_rz),
 			str(e["z"]),
 			str(e["do"]),
 		]
-		var wiersz_bg := UICommon.WYK_WIERSZ
+		var wybrany: bool = str(e["nr"]) == wybrany_nr
+		var wiersz_bg: Color = pal["row"]
 		if dep_rz >= 0.0 or str(e["status"]) == "przed objęciem dyżuru":
-			wiersz_bg = Color("e8e6d4")
+			wiersz_bg = pal["row_old"]
 		for i in range(KOLUMNY.size()):
 			it.set_text(i, str(wart[i]))
-			it.set_custom_color(i, Color("2a2a2a"))
-			var bg := wiersz_bg
+			if wybrany:
+				# WYRAŹNE zaznaczenie wybranego pociągu — cały wiersz fioletowy
+				it.set_custom_bg_color(i, UICommon.WYK_ZAZN)
+				it.set_custom_color(i, Color("ffffff"))
+				continue
+			it.set_custom_color(i, pal["text"])
+			var bg: Color = wiersz_bg
 			match i:
 				5:
 					bg = RODZ_KOLORY.get(str(e["kat"]), Color("8a1a1a"))
 					it.set_custom_color(i, Color("ffffff"))
 				6, 7:
-					bg = UICommon.WYK_KOM_NIEB
+					bg = pal["nieb"]
 				8, 9:
-					bg = UICommon.WYK_KOM_ROZ
+					bg = pal["roz"]
 				12:
-					bg = UICommon.WYK_KOM_POM if postoj_min > 0.0 else wiersz_bg
+					bg = pal["pom"] if postoj_min > 0.0 else wiersz_bg
 				13:
-					bg = UICommon.WYK_KOM_PH if str(wart[13]) != "" else wiersz_bg
-					it.set_custom_color(i, Color("2060a0"))
+					bg = pal["ph"] if typ_p != "" else wiersz_bg
+					it.set_custom_color(i, pal["ph_txt"])
 				14:
-					bg = UICommon.WYK_KOM_NIEB if str(wart[14]) != "" else wiersz_bg
+					bg = pal["nieb"] if str(wart[14]) != "" else wiersz_bg
 			if (i == 3 and arr_op >= 15) or (i == 16 and dep_op >= 15):
-				it.set_custom_color(i, Color("c01010"))
+				it.set_custom_color(i, Color("e04040"))
 			it.set_custom_bg_color(i, bg)
 		it.set_metadata(0, str(e["nr"]))
-		if str(e["nr"]) == wybrany_nr:
+		if wybrany:
 			do_zaznaczenia = it
+		if pierwszy_przyszly == null and dep_rz < 0.0 \
+				and str(e["status"]) != "przed objęciem dyżuru" \
+				and _ref_time(e) >= sim.sim_time - 300.0:
+			pierwszy_przyszly = it
 	if do_zaznaczenia != null:
 		do_zaznaczenia.select(0)
 		_update_dod_info()
+	# widok zaczyna się od najbliższego pociągu
+	if not _scrolled and pierwszy_przyszly != null:
+		tree.scroll_to_item(pierwszy_przyszly)
+		_scrolled = true
+
+
+func _rebuild_header() -> void:
+	hdr_tree.clear()
+	var hroot := hdr_tree.create_item()
+	var hit := hdr_tree.create_item(hroot)
+	for i in range(KOLUMNY.size()):
+		hit.set_text(i, str(KOLUMNY[i][0]))
+		hit.set_custom_bg_color(i, HDR_KOLORY.get(i, UICommon.WYK_HDR_SZARY))
+		hit.set_custom_color(i, Color("ffffff"))
+		hit.set_selectable(i, false)
 
 
 func _on_selected() -> void:
 	var it := tree.get_selected()
 	if it != null:
-		wybrany_nr = str(it.get_metadata(0))
+		var nowy := str(it.get_metadata(0))
+		if nowy != wybrany_nr:
+			wybrany_nr = nowy
+			_refresh()
 	_update_dod_info()
 
 
@@ -495,26 +585,27 @@ func _refresh_detale() -> void:
 		c.queue_free()
 	var e := _wybrany_wiersz()
 	if e.is_empty():
-		box.add_child(_ciemny("Wybierz pociąg w zakładce „Wykaz pociągów”.", 14))
+		box.add_child(_txt("Wybierz pociąg w zakładce „Wykaz pociągów”.", 14))
+		_apply_theme()
 		return
 	if zakladka == 1:
 		_build_opis(box, e)
 	else:
 		_build_trasa(box, e)
+	_apply_theme()
 
 
 func _wiersz_opisu(box: VBoxContainer, klucz: String, wartosc: String) -> void:
 	var hb := HBoxContainer.new()
-	var k := _ciemny(klucz, 13)
+	var k := _txt(klucz, 13)
 	k.custom_minimum_size = Vector2(240, 0)
-	k.add_theme_color_override("font_color", Color("6a6a5a"))
 	hb.add_child(k)
-	hb.add_child(_ciemny(wartosc, 13))
+	hb.add_child(_txt(wartosc, 13))
 	box.add_child(hb)
 
 
 func _build_opis(box: VBoxContainer, e: Dictionary) -> void:
-	var naglowek := _ciemny("%s %s %s" % [str(e["kat"]), str(e["nr"]),
+	var naglowek := _txt("%s %s %s" % [str(e["kat"]), str(e["nr"]),
 		("„%s”" % str(e["nazwa"])) if str(e["nazwa"]) != "" else ""], 20)
 	box.add_child(naglowek)
 	box.add_child(HSeparator.new())
@@ -529,15 +620,16 @@ func _build_opis(box: VBoxContainer, e: Dictionary) -> void:
 	_wiersz_opisu(box, "Odjazd plan. / rzecz.:", "%s / %s" % [
 		SimUtil.fmt_hm(e["dep"]), SimUtil.fmt_hm(e["actual_dep"])])
 	_wiersz_opisu(box, "Opóźnienie:", "%+d min" % int(e["delay"]))
-	_wiersz_opisu(box, "Postój:", "%.1f min" % (float(e["postoj"]) / 60.0))
+	_wiersz_opisu(box, "Postój:", ("%.1f min" % (float(e["postoj"]) / 60.0))
+		if not bool(e["przelot"]) else "przelot bez zatrzymania")
 	var cechy: Array = []
 	if bool(e["przelot"]):
-		cechy.append("przelot bez zatrzymania")
+		cechy.append("przelot")
 	if bool(e["start"]):
 		cechy.append("rozpoczyna bieg (podstawienie z zaplecza)")
 	if bool(e["koniec"]):
 		cechy.append("kończy bieg (odstawienie na zaplecze)")
-	_wiersz_opisu(box, "Cechy:", ", ".join(cechy) if not cechy.is_empty() else "—")
+	_wiersz_opisu(box, "Cechy:", ", ".join(cechy) if not cechy.is_empty() else "postój handlowy")
 	_wiersz_opisu(box, "Stan:", str(e["status"]) if str(e["status"]) != "" else "—")
 	var tid := int(e["train_id"])
 	var t: Train = sim.trains.get(tid) if tid != 0 else null
@@ -549,7 +641,7 @@ func _build_opis(box: VBoxContainer, e: Dictionary) -> void:
 
 
 func _build_trasa(box: VBoxContainer, e: Dictionary) -> void:
-	box.add_child(_ciemny("Trasa pociągu %s %s w obrębie posterunku %s" % [
+	box.add_child(_txt("Trasa pociągu %s %s w obrębie posterunku %s" % [
 		str(e["kat"]), str(e["nr"]), sim.layout.station_name], 16))
 	box.add_child(HSeparator.new())
 	var kroki: Array = []
@@ -567,13 +659,12 @@ func _build_trasa(box: VBoxContainer, e: Dictionary) -> void:
 		kroki.append(["", _kierunek(str(e["wy"])), "szlak wyjazdowy"])
 	for k in kroki:
 		var hb := HBoxContainer.new()
-		var g := _ciemny(str(k[0]), 14)
+		var g := _txt(str(k[0]), 14)
 		g.custom_minimum_size = Vector2(80, 0)
 		hb.add_child(g)
-		var m := _ciemny("● " + str(k[1]), 14)
+		var m := _txt("● " + str(k[1]), 14)
 		m.custom_minimum_size = Vector2(420, 0)
 		hb.add_child(m)
-		var u := _ciemny(str(k[2]), 12)
-		u.add_theme_color_override("font_color", Color("6a6a5a"))
+		var u := _txt(str(k[2]), 12)
 		hb.add_child(u)
 		box.add_child(hb)

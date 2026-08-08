@@ -35,7 +35,20 @@ var tut_next: Button
 var help_dialog: AcceptDialog
 var settings_dialog: SettingsDialog
 var exit_dialog: ConfirmationDialog
+var nav_box: HBoxContainer
+var zegar_box: VBoxContainer
+var bot_box: VBoxContainer
+var dock: PanelContainer
+var dock_body: HBoxContainer
+var dock_toggle: Button
+var dock_alarm_lbl: Label
+var dock_collapsed := false
+var tree_zd: Tree
+var tree_al: Tree
 var _acc := 0.0
+
+const DOCK_H := 158.0
+const DOCK_HDR := 24.0
 
 
 func _ready() -> void:
@@ -76,6 +89,7 @@ func _process(delta: float) -> void:
 		_refresh_mini()
 		_refresh_badges()
 		_refresh_stan()
+		_refresh_dock()
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -139,7 +153,7 @@ func _build_ui() -> void:
 		row.add_child(b)
 	top.add_child(row)
 	var dyz := Label.new()
-	dyz.text = "Dyżurny ruchu: %s" % Settings.dyzurny_name
+	dyz.text = "Zalogowany: %s" % Settings.dyzurny_name
 	dyz.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dyz.add_theme_font_size_override("font_size", 11)
 	dyz.add_theme_color_override("font_color", Color("8a8a8a"))
@@ -148,7 +162,7 @@ func _build_ui() -> void:
 	st_name.text = sim.layout.station_name.to_upper()
 	st_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	st_name.add_theme_font_size_override("font_size", 22)
-	st_name.add_theme_color_override("font_color", Color("8a8a8a"))
+	st_name.add_theme_color_override("font_color", Color("e8e000"))
 	top.add_child(st_name)
 	ui.add_child(top)
 
@@ -196,6 +210,7 @@ func _build_ui() -> void:
 
 	# --- nawigacja: prawy dolny róg (nie zasłania paska poleceń) ---
 	var nav := HBoxContainer.new()
+	nav_box = nav
 	nav.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	nav.offset_left = -664.0
 	nav.offset_top = -34.0
@@ -281,8 +296,9 @@ func _build_ui() -> void:
 
 	_build_mini()
 
-	# --- zegar (z datą) w lewym dolnym rogu (jak w SimRail) ---
+	# --- zegar (z datą) w lewym dolnym rogu — zielony jak w oryginalnym LCS ---
 	var zegar_vb := VBoxContainer.new()
+	zegar_box = zegar_vb
 	zegar_vb.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	zegar_vb.offset_left = 14.0
 	zegar_vb.offset_top = -66.0
@@ -290,16 +306,17 @@ func _build_ui() -> void:
 	zegar_vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	date_lbl = Label.new()
 	date_lbl.add_theme_font_size_override("font_size", 12)
-	date_lbl.add_theme_color_override("font_color", Color("6a6a6a"))
+	date_lbl.add_theme_color_override("font_color", Color("18a028"))
 	zegar_vb.add_child(date_lbl)
 	clock_lbl = Label.new()
 	clock_lbl.add_theme_font_size_override("font_size", 28)
-	clock_lbl.add_theme_color_override("font_color", Color("9a9a9a"))
+	clock_lbl.add_theme_color_override("font_color", Color("18c832"))
 	zegar_vb.add_child(clock_lbl)
 	ui.add_child(zegar_vb)
 
 	# --- dolny środek: stan pulpitu + komunikat ---
 	var bot := VBoxContainer.new()
+	bot_box = bot
 	bot.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	bot.offset_top = -84.0
 	bot.offset_bottom = -34.0
@@ -318,7 +335,9 @@ func _build_ui() -> void:
 	bot.add_child(msg_lbl)
 	ui.add_child(bot)
 
+	_build_dock()
 	_build_tutorial()
+	_apply_dock_layout()
 
 	settings_dialog = SettingsDialog.new()
 	ui.add_child(settings_dialog)
@@ -409,6 +428,159 @@ func _toggle_mini() -> void:
 	mini_collapsed = not mini_collapsed
 	mini_body.visible = not mini_collapsed
 	mini_toggle.text = "▼" if mini_collapsed else "▲"
+
+
+## Dolny pas jak w oryginalnym LCS: jasnoszare tabele ZDARZENIA i ALARMY
+## zadokowane na całą szerokość ekranu, ze zwijaniem.
+func _build_dock() -> void:
+	dock = PanelContainer.new()
+	dock.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("b4b4b0")
+	sb.border_color = Color("707070")
+	sb.set_border_width_all(1)
+	sb.content_margin_left = 4
+	sb.content_margin_right = 4
+	sb.content_margin_top = 1
+	sb.content_margin_bottom = 3
+	dock.add_theme_stylebox_override("panel", sb)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 1)
+	vb.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 12)
+	var t1 := Label.new()
+	t1.text = "ZDARZENIA"
+	t1.add_theme_font_size_override("font_size", 12)
+	t1.add_theme_color_override("font_color", Color("202020"))
+	t1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	t1.size_flags_stretch_ratio = 3.0
+	head.add_child(t1)
+	dock_alarm_lbl = Label.new()
+	dock_alarm_lbl.text = "ALARMY"
+	dock_alarm_lbl.add_theme_font_size_override("font_size", 12)
+	dock_alarm_lbl.add_theme_color_override("font_color", Color("202020"))
+	dock_alarm_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dock_alarm_lbl.size_flags_stretch_ratio = 2.0
+	head.add_child(dock_alarm_lbl)
+	dock_toggle = Button.new()
+	dock_toggle.text = "▼"
+	dock_toggle.focus_mode = Control.FOCUS_NONE
+	dock_toggle.tooltip_text = "Zwiń / rozwiń tabele zdarzeń i alarmów"
+	dock_toggle.pressed.connect(_toggle_dock)
+	UICommon.style_nav_button(dock_toggle)
+	head.add_child(dock_toggle)
+	vb.add_child(head)
+
+	dock_body = HBoxContainer.new()
+	dock_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	dock_body.add_theme_constant_override("separation", 6)
+	tree_zd = _make_dock_tree(
+		["Godzina", "Rodzaj", "Nr poc.", "Tor", "Treść zapisu"], [70, 84, 64, 40, 0])
+	tree_zd.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tree_zd.size_flags_stretch_ratio = 3.0
+	dock_body.add_child(tree_zd)
+	tree_al = _make_dock_tree(["Godzina", "Alarm", "Stan"], [70, 0, 116])
+	tree_al.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tree_al.size_flags_stretch_ratio = 2.0
+	dock_body.add_child(tree_al)
+	vb.add_child(dock_body)
+	dock.add_child(vb)
+	ui.add_child(dock)
+
+
+func _make_dock_tree(cols: Array, widths: Array) -> Tree:
+	var t := Tree.new()
+	t.columns = cols.size()
+	t.column_titles_visible = true
+	t.hide_root = true
+	t.select_mode = Tree.SELECT_ROW
+	t.focus_mode = Control.FOCUS_NONE
+	t.scroll_horizontal_enabled = false
+	t.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	for i in cols.size():
+		t.set_column_title(i, str(cols[i]))
+		t.set_column_title_alignment(i, HORIZONTAL_ALIGNMENT_LEFT)
+		if int(widths[i]) > 0:
+			t.set_column_expand(i, false)
+			t.set_column_custom_minimum_width(i, int(widths[i]))
+	var pan := StyleBoxFlat.new()
+	pan.bg_color = Color("d8d8d2")
+	pan.border_color = Color("8a8a86")
+	pan.set_border_width_all(1)
+	t.add_theme_stylebox_override("panel", pan)
+	var tb := StyleBoxFlat.new()
+	tb.bg_color = Color("c6c6c0")
+	tb.border_color = Color("8a8a86")
+	tb.set_border_width_all(1)
+	for st in ["title_button_normal", "title_button_hover", "title_button_pressed"]:
+		t.add_theme_stylebox_override(st, tb)
+	t.add_theme_color_override("title_button_color", Color("202020"))
+	t.add_theme_color_override("font_color", Color("101010"))
+	t.add_theme_color_override("font_selected_color", Color("101010"))
+	var sel := StyleBoxFlat.new()
+	sel.bg_color = Color("c0c8d8")
+	t.add_theme_stylebox_override("selected", sel)
+	t.add_theme_stylebox_override("selected_focus", sel)
+	t.add_theme_font_size_override("font_size", 11)
+	t.add_theme_font_size_override("title_button_font_size", 11)
+	return t
+
+
+func _toggle_dock() -> void:
+	dock_collapsed = not dock_collapsed
+	_apply_dock_layout()
+
+
+## Przesuwa zegar, nawigację i pasek komunikatów ponad zadokowane tabele.
+func _apply_dock_layout() -> void:
+	var h := DOCK_HDR if dock_collapsed else DOCK_H
+	dock.offset_top = -h
+	dock_body.visible = not dock_collapsed
+	dock_toggle.text = "▲" if dock_collapsed else "▼"
+	nav_box.offset_top = -34.0 - h
+	nav_box.offset_bottom = -8.0 - h
+	zegar_box.offset_top = -66.0 - h
+	zegar_box.offset_bottom = -6.0 - h
+	bot_box.offset_top = -84.0 - h
+	bot_box.offset_bottom = -34.0 - h
+	if tut_panel != null:
+		tut_panel.offset_top = -252.0 - h
+		tut_panel.offset_bottom = -58.0 - h
+	if not dock_collapsed:
+		_refresh_dock()
+
+
+func _refresh_dock() -> void:
+	if tree_zd == null or dock_collapsed:
+		return
+	tree_zd.clear()
+	var root := tree_zd.create_item()
+	var lista: Array = sim.edr.last(40)
+	for i in range(lista.size() - 1, -1, -1):
+		var e: Dictionary = lista[i]
+		var it := tree_zd.create_item(root)
+		it.set_text(0, SimUtil.fmt_time(float(e["t"])))
+		it.set_text(1, str(e["kat"]))
+		it.set_text(2, str(e["nr"]))
+		it.set_text(3, str(e["tor"]))
+		it.set_text(4, str(e["tresc"]))
+		for c in 5:
+			it.set_custom_color(c, Color("101010"))
+	tree_al.clear()
+	var root2 := tree_al.create_item()
+	for ev in sim.events.active:
+		var it2 := tree_al.create_item(root2)
+		var zgl := bool(ev["zgloszona"])
+		it2.set_text(0, SimUtil.fmt_time(float(ev["czas"])))
+		it2.set_text(1, str(ev["tytul"]))
+		it2.set_text(2, "USUWANIE" if zgl else "NIEZGŁOSZONY")
+		for c2 in 3:
+			it2.set_custom_color(c2, Color("7a5a10") if zgl else Color("8b1010"))
+			it2.set_custom_bg_color(c2, Color("efe6c2") if zgl else Color("f0c8c8"))
+	var n := sim.events.active.size()
+	dock_alarm_lbl.text = "ALARMY" if n == 0 else "ALARMY (%d)" % n
 
 
 func _open_signal_menu(sig_id: String, _screen_pos: Vector2) -> void:

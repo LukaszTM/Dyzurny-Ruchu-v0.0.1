@@ -123,6 +123,7 @@ func setup(p_mode: String, location_id: String) -> void:
 			events.freq_min = 0.0
 
 	inter.sim_time = sim_time
+	EventBus.route_released.connect(_on_route_released)
 	_http_delays = HTTPRequest.new()
 	add_child(_http_delays)
 	_http_delays.request_completed.connect(_on_delays_response)
@@ -322,6 +323,38 @@ func _check_ready() -> void:
 			EventBus.train_ready.emit(t)
 
 
+## Po zwolnieniu przebiegu (ZD/ZDM/ZWP) pociąg, który miał przydzielony
+## przebieg, ale jeszcze nie ruszył, wraca do poprzedniego stanu —
+## inaczej zostałby na zawsze bez przebiegu i bez możliwości jazdy.
+func _on_route_released(route: Dictionary, _tryb: String) -> void:
+	var tid := int(route.get("train_id", 0))
+	if tid == 0:
+		return
+	var t: Train = trains.get(tid)
+	if t == null or t.state != Train.State.JEDZIE:
+		return
+	if not t.route.is_empty() and int(t.route.get("id", -1)) != int(route.get("id", -2)):
+		return
+	if t.s > t.start_s + 1.0:
+		return  # pociąg już w drodze przebiegu — nie dotyczy
+	t.route = {}
+	t.path_pts.clear()
+	t.covered.clear()
+	if t.tor == "":
+		t.state = Train.State.OCZEKUJE
+		if queues.has(t.wjazd):
+			queues[t.wjazd].push_front(t.id)
+		if t.tt_index >= 0:
+			tt.set_status(t.tt_index, "oczekuje przed semaforem")
+		edr.add(sim_time, "Ruch", "Przebieg zwolniono — poc. %s pozostaje przed semaforem wjazdowym." % t.nr, t.nr)
+	else:
+		t.state = Train.State.GOTOWY
+		t.actual_dep = -1.0
+		if t.tt_index >= 0:
+			tt.set_status(t.tt_index, "na torze %s" % t.tor)
+		edr.add(sim_time, "Ruch", "Przebieg zwolniono — poc. %s pozostaje na torze %s." % [t.nr, t.tor], t.nr, t.tor)
+
+
 func _on_arrival(t: Train) -> void:
 	t.actual_arr = sim_time
 	t.tor = layout.track_with_end(str(t.route["dest_pt"]))
@@ -341,6 +374,10 @@ func _on_arrival(t: Train) -> void:
 
 
 func _on_departed_station(t: Train) -> void:
+	# rozwiąż przebieg wyjazdowy — bez tego martwy przebieg blokowałby na
+	# zawsze semafor początkowy i koniec szlaku (wrogość dla kolejnych jazd)
+	if not t.route.is_empty() and inter.routes.has(int(t.route.get("id", -1))):
+		inter.finish_route(t.route)
 	trains.erase(t.id)
 	stats["obsluzone"] += 1
 	if t.manewrowy or t.wyjazd == "itG":
