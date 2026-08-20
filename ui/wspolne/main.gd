@@ -46,6 +46,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _on_sim_tick(dt: float) -> void:
 	_world.tick(dt)
 	_refresh_clock()
+	# Licznik ticków w pasku stanu ma żyć razem z zegarem.
+	_refresh_controls()
 
 
 func _on_multiplier_changed(_multiplier: int) -> void:
