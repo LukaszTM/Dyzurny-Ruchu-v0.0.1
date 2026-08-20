@@ -1,6 +1,9 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://ui/wspolne/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://ui/wspolne/analog_clock.gd" id="2_clock"]
+[ext_resource type="Script" path="res://ui/pulpit_kostkowy/pulpit_view.gd" id="3_pulpit"]
+[ext_resource type="Script" path="res://ui/wspolne/debug_panel.gd" id="4_debug"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -20,63 +23,102 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.09, 0.1, 0.12, 1)
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
+[node name="Layout" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 12
 
-[node name="VBox" type="VBoxContainer" parent="CenterContainer"]
+[node name="TopBar" type="PanelContainer" parent="Layout"]
 layout_mode = 2
-theme_override_constants/separation = 24
 
-[node name="TitleLabel" type="Label" parent="CenterContainer/VBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 28
-text = "Symulator Dyżurnego Ruchu — Faza 0"
-horizontal_alignment = 1
-
-[node name="ClockLabel" type="Label" parent="CenterContainer/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 120
-text = "00:00:00"
-horizontal_alignment = 1
-
-[node name="StatusLabel" type="Label" parent="CenterContainer/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "Czas symulacji: ×1   |   Ticki: 0"
-horizontal_alignment = 1
-
-[node name="Buttons" type="HBoxContainer" parent="CenterContainer/VBox"]
+[node name="TopRow" type="HBoxContainer" parent="Layout/TopBar"]
 layout_mode = 2
 theme_override_constants/separation = 16
-alignment = 1
 
-[node name="PauseButton" type="Button" parent="CenterContainer/VBox/Buttons"]
+[node name="PlaqueLabel" type="Label" parent="Layout/TopBar/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
-text = "⏸ Pauza (Spacja)"
+text = "—"
 
-[node name="Speed1Button" type="Button" parent="CenterContainer/VBox/Buttons"]
+[node name="AnalogClock" type="Control" parent="Layout/TopBar/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("2_clock")
+
+[node name="ClockLabel" type="Label" parent="Layout/TopBar/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
+text = "00:00:00"
+
+[node name="StatusLabel" type="Label" parent="Layout/TopBar/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "×1 | ticki: 0"
+
+[node name="Spacer" type="Control" parent="Layout/TopBar/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MessageLabel" type="Label" parent="Layout/TopBar/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.62, 0.36, 1)
+theme_override_font_sizes/font_size = 15
+text = ""
+
+[node name="PauseButton" type="Button" parent="Layout/TopBar/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "⏸ Pauza"
+
+[node name="Speed1Button" type="Button" parent="Layout/TopBar/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
 text = "×1"
 
-[node name="Speed2Button" type="Button" parent="CenterContainer/VBox/Buttons"]
+[node name="Speed2Button" type="Button" parent="Layout/TopBar/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
 text = "×2"
 
-[node name="Speed5Button" type="Button" parent="CenterContainer/VBox/Buttons"]
+[node name="Speed5Button" type="Button" parent="Layout/TopBar/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
 text = "×5"
+
+[node name="DebugToggle" type="CheckButton" parent="Layout/TopBar/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Debug (F12)"
+
+[node name="Body" type="HBoxContainer" parent="Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="PulpitCenter" type="CenterContainer" parent="Layout/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Pulpit" type="Control" parent="Layout/Body/PulpitCenter"]
+unique_name_in_owner = true
+layout_mode = 2
+script = ExtResource("3_pulpit")
+
+[node name="DebugPanel" type="PanelContainer" parent="Layout/Body"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+script = ExtResource("4_debug")

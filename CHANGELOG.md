@@ -1,5 +1,45 @@
 # CHANGELOG
 
+## Faza 2 — Pulpit kostkowy (widok, bez zależności) (2026-08-20)
+
+### Dodano
+
+- `ui/pulpit_kostkowy/pulpit_tile.gd` — rysowanie kostek wg assets-spec/20:
+  tory (proste, łuki, ukosy, przerwy izolacyjne), okienka lampek odcinków
+  (czerwona zajętość z poświatą / biała utwierdzenie / ciemna), zwrotnice
+  z lampkami kontroli położenia (miganie przy przestawianiu, czerwone przy
+  braku kontroli/rozpruciu), symbole semaforów z powtarzaczami, przyciski
+  (zwrotnicowe szare, sygnałowe zielone, specjalne czerwone pod plombą
+  z licznikami), pola blokad, tabliczki, etykiety.
+- `ui/pulpit_kostkowy/pulpit_view.gd` — budowa pulpitu z sekcji `panel`
+  JSON, tło kostek z fugami, rama, miganie 1 Hz.
+- `ui/wspolne/debug_panel.gd` — tryb debug (F12): stan sekcji (z ręcznym
+  zajmowaniem/zwalnianiem), zwrotnic (z przestawianiem) i sygnalizatorów.
+- `ui/wspolne/analog_clock.gd` — zegar wskazówkowy w pasie górnym.
+- Nowa scena Main: tabliczka posterunku, zegary, sterowanie czasem,
+  komunikaty odmów (tryb szkolenia), pulpit + panel debug.
+- `EventBus.command` — kanał poleceń UI → rdzeń; scena Main jako
+  właściciel SimWorld wykonuje polecenia i publikuje wyniki.
+- `data/stations/borki.json` — sekcja `panel` poprawiona do spójnej
+  geometrii (ciągłe linie torów, poprawione pozycje ukosów/łuków);
+  id przycisków i akcje bez zmian.
+- `WERYFIKACJA.md` — 5 pozycji [DO WERYFIKACJI] z F2 (lampki położenia,
+  kolory przycisków i powtarzaczy, brak kontroli, naciśnij/pociągnij).
+
+### Jak przetestować ręcznie
+
+1. Uruchom projekt — pulpit Borek na środku, pas górny z tabliczką
+   „BORKI", zegarem wskazówkowym i cyfrowym.
+2. Klik szarego przycisku przy zwrotnicy 1/2 — lampki położenia migają
+   ~5 s (przestawianie), potem świeci strona docelowa; stan widać też
+   w panelu debug (F12).
+3. W panelu debug „Zajmij" sekcję it1 — okienka toru 1 czerwienieją
+   z poświatą; przestawienie zwrotnicy w zajętej sekcji zwrotnicowej
+   (izw1/izw2) jest odrzucane z komunikatem w pasku górnym.
+4. Klik zielonego przycisku sygnałowego — komunikat „funkcja dostępna
+   od Fazy 3 (interlocking)".
+5. ×1/×2/×5/pauza działają jak w F0; miganie lampek nie zamiera w pauzie.
+
 ## Faza 1 — Graf torowy i loader (2026-08-20)
 
 ### Dodano
