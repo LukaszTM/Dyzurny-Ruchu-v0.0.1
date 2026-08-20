@@ -1,5 +1,42 @@
 # CHANGELOG
 
+## Faza 1 — Graf torowy i loader (2026-08-20)
+
+### Dodano
+
+- `core/const.gd` — enumy domenowe (`TurnoutPos`, `TurnoutState`, `SectionType`,
+  `SignalKind`) i mapowania łańcuchów JSON.
+- `core/command_result.gd` — wynik polecenia `{ok, reason}` (command pattern
+  z docs/02).
+- `core/section.gd` — odcinek izolowany: zajętość, flaga utwierdzenia,
+  snapshot stanu.
+- `core/turnout.gd` — zwrotnica: stany PLUS/MINUS/MOVING/NO_CONTROL/TRAILED,
+  przestawianie z czasem `throw_time_s`, rozprucie, zamknięcie indywidualne,
+  utwierdzenie; odliczanie czasu odporne na dryf float.
+- `core/signal_device.gd` — sygnalizator: konstrukcja (komory, paski, Ms2, Sz)
+  i przechowywanie obrazu; obrazy zasadnicze S1/Ms1/Os1/Sp1 wg systemy/11.
+- `core/track_graph.gd` — graf torowy: węzły, krawędzie, sekcje, zwrotnice,
+  sygnalizatory; indeksy odwrotne; `throw_turnout()` z warunkami z docs/04 §2
+  (sekcja wolna i nieutwierdzona); ręczna zajętość sekcji; tick zwrotnic.
+- `core/station_data.gd` + `core/station_loader.gd` — wczytywanie stacji
+  z JSON i pełna walidacja (docs/03 §7): spójność grafu, kompletność sekcji,
+  istnienie elementów przebiegów, symetria konfliktów, odwołania pulpitu;
+  komunikaty błędów po polsku z id elementu.
+- `data/stations/borki.json` — mijanka Borki (przeniesiona
+  z `data/stacja-przyklad.json`).
+- `SimWorld.load_station_file()` + krok „zwrotnice" w ticku.
+- Testy GUT: 32 nowe (loader/walidacja, zwrotnica, graf torowy) — razem 48.
+
+### Jak przetestować ręcznie
+
+1. `godot --headless -s addons/gut/gut_cmdln.gd` → 48/48 passed.
+2. W edytorze: uruchom projekt — zachowanie F0 bez zmian (zegar, mnożniki);
+   graf torowy nie ma jeszcze widoku (pulpit → Faza 2).
+3. Walidację można sprawdzić psując `data/stations/borki.json` (np. zmień
+   `"to": "nB"` na `"to": "nX"`) i wywołując w konsoli edytora:
+   `StationLoader.load_from_file("res://data/stations/borki.json")` —
+   wynik zawiera czytelny komunikat błędu z id elementu.
+
 ## Faza 0 — Szkielet projektu (2026-08-20)
 
 **Uwaga:** repozytorium wystartowało od nowa — poprzedni prototyp „Symulator LCS
