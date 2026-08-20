@@ -1,35 +1,22 @@
 extends Node
-## Globalna szyna zdarzeń symulatora.
+## Globalna szyna zdarzeń: polecenia UI → rdzeń oraz zdarzenia rdzenia → UI.
+## Architektura wg docs/02-architektura.md — UI nigdy nie zmienia stanu rdzenia
+## bezpośrednio; rdzeń nie zna węzłów sceny.
 
-# komunikaty pulpitu
-signal message(text: String, level: int)   # 0 info, 1 ostrzeżenie, 2 błąd
-signal panel_state_changed
+## Zdarzenie rdzenia (SimEvent {type, payload}), np. &"section_occupied",
+## &"signal_aspect_changed", &"phone_ring", &"dsat_alarm".
+signal sim_event(type: StringName, payload: Dictionary)
 
-# urządzenia srk
-signal element_selected(kind: String, id: String)
-signal route_requested(route: Dictionary)
-signal route_locked(route: Dictionary)
-signal route_released(route: Dictionary, tryb: String)
-signal signal_command(sig_id: String, cmd: String)
-signal switch_moved(sw_id: String, pos: String)
+## Wynik wykonania polecenia gracza. Odrzucenie z powodem to normalna sytuacja
+## (np. "zwrotnica utwierdzona w przebiegu").
+signal command_result(command: StringName, ok: bool, reason: String)
 
-# ruch
-signal train_spawned(train)
-signal train_arrived(train)
-signal train_ready(train)
-signal train_departed(train)
-signal train_removed(train)
 
-# rozkład / EDR / zdarzenia / łączność
-signal timetable_updated(source: String)
-signal edr_added(entry: Dictionary)
-signal random_event_started(ev: Dictionary)
-signal random_event_ended(ev: Dictionary)
-signal random_event_reported(ev: Dictionary)
-signal comms_call_added(call_: Dictionary)
-signal comms_call_handled(call_: Dictionary)
-signal comms_changed
+## Publikuje zdarzenie rdzenia do wszystkich zainteresowanych widoków.
+func emit_sim_event(type: StringName, payload: Dictionary = {}) -> void:
+	sim_event.emit(type, payload)
 
-# samouczek
-signal tutorial_step(idx: int)
-signal tutorial_finished
+
+## Publikuje wynik polecenia gracza (CommandResult {ok, reason}).
+func emit_command_result(command: StringName, ok: bool, reason: String = "") -> void:
+	command_result.emit(command, ok, reason)

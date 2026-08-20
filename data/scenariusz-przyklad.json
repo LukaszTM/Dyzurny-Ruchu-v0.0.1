@@ -1,0 +1,43 @@
+{
+  "meta": {
+    "id": "borki-poranek",
+    "name": "Poranek na Borkach",
+    "station": "borki",
+    "description": "Pierwsza zmiana: krzyzowanie dwoch osobowych i przepuszczenie towarowego. W tle usterka zwrotnicy.",
+    "difficulty": {"auto_docs": true, "hints": true, "time_multiplier_allowed": [1, 2, 5]}
+  },
+
+  "start_time": "05:40",
+  "duration_min": 120,
+
+  "timetable": [
+    {"nr": "45201", "kind": "osobowy", "from": "Lipno", "to": "Suchowola",
+     "arr": "06:02", "dep": "06:04", "track": "t1", "stop": true,
+     "len_m": 120, "vmax_kmh": 100, "mass_t": 180, "power_class": "EZT",
+     "_uwaga": "krzyzowanie z 45302 na Borkach"},
+
+    {"nr": "45302", "kind": "osobowy", "from": "Suchowola", "to": "Lipno",
+     "arr": "06:03", "dep": "06:06", "track": "t2", "stop": true,
+     "len_m": 120, "vmax_kmh": 100, "mass_t": 180, "power_class": "EZT"},
+
+    {"nr": "631042", "kind": "towarowy", "from": "Lipno", "to": "Suchowola",
+     "arr": "06:41", "dep": "06:41", "track": "t1", "stop": false,
+     "len_m": 550, "vmax_kmh": 70, "mass_t": 1900, "power_class": "lok_el"},
+
+    {"nr": "45203", "kind": "osobowy", "from": "Lipno", "to": "Suchowola",
+     "arr": "07:02", "dep": "07:03", "track": "t1", "stop": true,
+     "len_m": 120, "vmax_kmh": 100, "mass_t": 180, "power_class": "EZT"}
+  ],
+
+  "events": [
+    {"at": "06:20", "type": "turnout_no_control", "target": "z2",
+     "repair_min": 25,
+     "_uwaga": "usterka przed towarowym - gracz decyduje: czekac czy jazda na Sz/rozkaz"},
+
+    {"at": "random", "window": ["06:50", "07:30"], "p": 0.4,
+     "type": "block_failure", "target": "blk_e",
+     "_uwaga": "przejscie na telefoniczne zapowiadanie z Suchowola"}
+  ],
+
+  "scoring": {"target_delay_min": 6, "required_docs": true}
+}

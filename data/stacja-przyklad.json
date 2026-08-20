@@ -1,0 +1,182 @@
+{
+  "meta": {
+    "id": "borki",
+    "name": "Borki",
+    "type": "mijanka",
+    "devices": "przekaznikowe",
+    "neighbours": {"W": "Lipno", "E": "Suchowola"},
+    "_comment": "Mijanka na linii jednotorowej. Tor 1 glowny zasadniczy (100 km/h), tor 2 glowny dodatkowy (40 km/h). Blokada polsamoczynna w obu kierunkach. Format wg docs/03-model-danych.md"
+  },
+
+  "nodes": [
+    {"id": "nW"}, {"id": "nA"}, {"id": "nB"}, {"id": "nE"}
+  ],
+
+  "edges": [
+    {"id": "e_szlak_w", "from": "nW", "to": "nA", "len_m": 700, "vmax_kmh": 100},
+    {"id": "e_t1",      "from": "nA", "to": "nB", "len_m": 450, "vmax_kmh": 100},
+    {"id": "e_t2",      "from": "nA", "to": "nB", "len_m": 430, "vmax_kmh": 40},
+    {"id": "e_szlak_e", "from": "nB", "to": "nE", "len_m": 700, "vmax_kmh": 100}
+  ],
+
+  "turnouts": [
+    {"id": "z1", "node": "nA", "edge_root": "e_szlak_w", "edge_plus": "e_t1",
+     "edge_minus": "e_t2", "throw_time_s": 5, "v_minus_kmh": 40},
+    {"id": "z2", "node": "nB", "edge_root": "e_szlak_e", "edge_plus": "e_t1",
+     "edge_minus": "e_t2", "throw_time_s": 5, "v_minus_kmh": 40}
+  ],
+
+  "sections": [
+    {"id": "iza",  "type": "approach", "edges": ["e_szlak_w"]},
+    {"id": "izw1", "type": "turnout",  "edges": [], "turnout": "z1", "len_m": 40},
+    {"id": "it1",  "type": "track",    "edges": ["e_t1"]},
+    {"id": "it2",  "type": "track",    "edges": ["e_t2"]},
+    {"id": "izw2", "type": "turnout",  "edges": [], "turnout": "z2", "len_m": 40},
+    {"id": "ize",  "type": "approach", "edges": ["e_szlak_e"]}
+  ],
+
+  "signals": [
+    {"id": "A",  "kind": "semafor", "at_node": "nA", "dir": "N", "heads": 5,
+     "bar_green": false, "bar_orange": false, "can_ms2": true, "can_sz": true,
+     "tarcza_ostrzegawcza": "ToA"},
+    {"id": "B",  "kind": "semafor", "at_node": "nB", "dir": "P", "heads": 5,
+     "bar_green": false, "bar_orange": false, "can_ms2": true, "can_sz": true,
+     "tarcza_ostrzegawcza": "ToB"},
+    {"id": "C1", "kind": "semafor", "at_node": "nB", "dir": "N", "heads": 3,
+     "can_ms2": true, "can_sz": true},
+    {"id": "C2", "kind": "semafor", "at_node": "nB", "dir": "N", "heads": 3,
+     "can_ms2": true, "can_sz": false},
+    {"id": "D1", "kind": "semafor", "at_node": "nA", "dir": "P", "heads": 3,
+     "can_ms2": true, "can_sz": true},
+    {"id": "D2", "kind": "semafor", "at_node": "nA", "dir": "P", "heads": 3,
+     "can_ms2": true, "can_sz": false},
+    {"id": "ToA", "kind": "tarcza_ostrzegawcza", "on_edge": "e_szlak_w", "offset_m": 0, "dir": "N", "for_signal": "A"},
+    {"id": "ToB", "kind": "tarcza_ostrzegawcza", "on_edge": "e_szlak_e", "offset_m": 700, "dir": "P", "for_signal": "B"}
+  ],
+
+  "routes": [
+    {"id": "A_t1", "class": "train", "entry_signal": "A", "target": "t1",
+     "exit_signal": "C1", "sections": ["izw1", "it1"],
+     "turnouts": {"z1": "PLUS"}, "flank": {},
+     "overlap": {"sections": ["izw2"], "turnouts": {"z2": "PLUS"}, "release_s": 90},
+     "v_route_kmh": 100,
+     "conflicts": ["A_t2", "B_t1", "C1_out", "C2_out", "D1_out", "D2_out"]},
+
+    {"id": "A_t2", "class": "train", "entry_signal": "A", "target": "t2",
+     "exit_signal": "C2", "sections": ["izw1", "it2"],
+     "turnouts": {"z1": "MINUS"}, "flank": {},
+     "overlap": {"sections": ["izw2"], "turnouts": {"z2": "MINUS"}, "release_s": 90},
+     "v_route_kmh": 40,
+     "conflicts": ["A_t1", "B_t2", "C1_out", "C2_out", "D1_out", "D2_out"]},
+
+    {"id": "B_t1", "class": "train", "entry_signal": "B", "target": "t1",
+     "exit_signal": "D1", "sections": ["izw2", "it1"],
+     "turnouts": {"z2": "PLUS"}, "flank": {},
+     "overlap": {"sections": ["izw1"], "turnouts": {"z1": "PLUS"}, "release_s": 90},
+     "v_route_kmh": 100,
+     "conflicts": ["B_t2", "A_t1", "C1_out", "C2_out", "D1_out", "D2_out"]},
+
+    {"id": "B_t2", "class": "train", "entry_signal": "B", "target": "t2",
+     "exit_signal": "D2", "sections": ["izw2", "it2"],
+     "turnouts": {"z2": "MINUS"}, "flank": {},
+     "overlap": {"sections": ["izw1"], "turnouts": {"z1": "MINUS"}, "release_s": 90},
+     "v_route_kmh": 40,
+     "conflicts": ["B_t1", "A_t2", "C1_out", "C2_out", "D1_out", "D2_out"]},
+
+    {"id": "C1_out", "class": "train", "entry_signal": "C1", "target": "szlak_E",
+     "sections": ["izw2", "ize"], "turnouts": {"z2": "PLUS"}, "flank": {},
+     "overlap": null, "block": "blk_e", "v_route_kmh": 100,
+     "conflicts": ["C2_out", "A_t1", "A_t2", "B_t1", "B_t2"]},
+
+    {"id": "C2_out", "class": "train", "entry_signal": "C2", "target": "szlak_E",
+     "sections": ["izw2", "ize"], "turnouts": {"z2": "MINUS"}, "flank": {},
+     "overlap": null, "block": "blk_e", "v_route_kmh": 40,
+     "conflicts": ["C1_out", "A_t1", "A_t2", "B_t1", "B_t2"]},
+
+    {"id": "D1_out", "class": "train", "entry_signal": "D1", "target": "szlak_W",
+     "sections": ["izw1", "iza"], "turnouts": {"z1": "PLUS"}, "flank": {},
+     "overlap": null, "block": "blk_w", "v_route_kmh": 100,
+     "conflicts": ["D2_out", "A_t1", "A_t2", "B_t1", "B_t2"]},
+
+    {"id": "D2_out", "class": "train", "entry_signal": "D2", "target": "szlak_W",
+     "sections": ["izw1", "iza"], "turnouts": {"z1": "MINUS"}, "flank": {},
+     "overlap": null, "block": "blk_w", "v_route_kmh": 40,
+     "conflicts": ["D1_out", "A_t1", "A_t2", "B_t1", "B_t2"]}
+  ],
+
+  "blocks": [
+    {"id": "blk_w", "type": "polsamoczynna", "neighbour": "Lipno",
+     "track": "szlak_W", "entry_signal": "A", "exit_signals": ["D1", "D2"]},
+    {"id": "blk_e", "type": "polsamoczynna", "neighbour": "Suchowola",
+     "track": "szlak_E", "entry_signal": "B", "exit_signals": ["C1", "C2"]}
+  ],
+
+  "crossings": [],
+  "dsat": [],
+
+  "panel": {
+    "type": "kostkowy",
+    "grid": [26, 10],
+    "route_setting": "indywidualne",
+    "tiles": [
+      {"xy": [0, 4], "tile": "label", "text": "LIPNO ->"},
+      {"xy": [1, 4], "tile": "track_h", "section": "iza"},
+      {"xy": [2, 4], "tile": "signal_e", "signal": "A",
+       "button": {"id": "przyc_A", "actions": {"press": "route_start:A", "pull": "signal_cancel:A"}}},
+      {"xy": [3, 4], "tile": "track_h", "section": "iza"},
+      {"xy": [4, 4], "tile": "insulation_gap"},
+      {"xy": [5, 4], "tile": "turnout_ne", "turnout": "z1", "label": "1", "section": "izw1",
+       "button": {"id": "przyc_z1", "actions": {"press": "turnout_throw:z1"}}},
+      {"xy": [6, 4], "tile": "signal_w", "signal": "D1",
+       "button": {"id": "przyc_D1", "actions": {"press": "route_start:D1", "pull": "signal_cancel:D1"}}},
+      {"xy": [7, 4], "tile": "track_h", "section": "it1"},
+      {"xy": [9, 4], "tile": "track_h", "section": "it1"},
+      {"xy": [11, 4], "tile": "track_h", "section": "it1", "label": "tor 1"},
+      {"xy": [13, 4], "tile": "track_h", "section": "it1"},
+      {"xy": [15, 4], "tile": "track_h", "section": "it1"},
+      {"xy": [17, 4], "tile": "track_h", "section": "it1"},
+      {"xy": [18, 4], "tile": "signal_e", "signal": "C1",
+       "button": {"id": "przyc_C1", "actions": {"press": "route_start:C1", "pull": "signal_cancel:C1"}}},
+      {"xy": [19, 4], "tile": "turnout_nw", "turnout": "z2", "label": "2", "section": "izw2",
+       "button": {"id": "przyc_z2", "actions": {"press": "turnout_throw:z2"}}},
+      {"xy": [20, 4], "tile": "insulation_gap"},
+      {"xy": [21, 4], "tile": "track_h", "section": "ize"},
+      {"xy": [22, 4], "tile": "signal_w", "signal": "B",
+       "button": {"id": "przyc_B", "actions": {"press": "route_start:B", "pull": "signal_cancel:B"}}},
+      {"xy": [23, 4], "tile": "track_h", "section": "ize"},
+      {"xy": [25, 4], "tile": "label", "text": "-> SUCHOWOLA"},
+
+      {"xy": [5, 3], "tile": "track_diag_ne", "section": "izw1"},
+      {"xy": [6, 2], "tile": "track_curve_se", "section": "it2"},
+      {"xy": [7, 2], "tile": "signal_w", "signal": "D2",
+       "button": {"id": "przyc_D2", "actions": {"press": "route_start:D2", "pull": "signal_cancel:D2"}}},
+      {"xy": [8, 2], "tile": "track_h", "section": "it2"},
+      {"xy": [10, 2], "tile": "track_h", "section": "it2"},
+      {"xy": [12, 2], "tile": "track_h", "section": "it2", "label": "tor 2"},
+      {"xy": [14, 2], "tile": "track_h", "section": "it2"},
+      {"xy": [16, 2], "tile": "track_h", "section": "it2"},
+      {"xy": [17, 2], "tile": "signal_e", "signal": "C2",
+       "button": {"id": "przyc_C2", "actions": {"press": "route_start:C2", "pull": "signal_cancel:C2"}}},
+      {"xy": [18, 2], "tile": "track_curve_sw", "section": "it2"},
+      {"xy": [19, 3], "tile": "track_diag_nw", "section": "izw2"},
+
+      {"xy": [0, 7], "tile": "block_field", "block": "blk_w", "label": "BLOKADA LIPNO",
+       "fields": ["Po", "Ko", "Poz"]},
+      {"xy": [23, 7], "tile": "block_field", "block": "blk_e", "label": "BLOKADA SUCHOWOLA",
+       "fields": ["Po", "Ko", "Poz"]},
+
+      {"xy": [6, 8], "tile": "counter_button", "label": "dSz A", "counter": true, "sealed": true,
+       "actions": {"press": "sub_signal:A"}},
+      {"xy": [8, 8], "tile": "counter_button", "label": "dSz B", "counter": true, "sealed": true,
+       "actions": {"press": "sub_signal:B"}},
+      {"xy": [10, 8], "tile": "counter_button", "label": "dSz C1", "counter": true, "sealed": true,
+       "actions": {"press": "sub_signal:C1"}},
+      {"xy": [12, 8], "tile": "counter_button", "label": "dSz D1", "counter": true, "sealed": true,
+       "actions": {"press": "sub_signal:D1"}},
+      {"xy": [14, 8], "tile": "counter_button", "label": "dZw", "counter": true, "sealed": true,
+       "actions": {"press": "route_emergency_release"}},
+      {"xy": [16, 8], "tile": "counter_button", "label": "zamkn. zwr.", "counter": false, "sealed": false,
+       "actions": {"press": "turnout_lock_toggle"}}
+    ]
+  }
+}
