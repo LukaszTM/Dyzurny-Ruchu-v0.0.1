@@ -1,5 +1,51 @@
 # CHANGELOG
 
+## Faza 3 — Interlocking + sygnalizacja (2026-08-20)
+
+### Dodano
+
+- `data/signals/aspekty.json` — tabela obrazów sygnałowych wygenerowana
+  z docs/systemy/11-sygnalizacja.md (S1–S13a, Sz, Ms1/Ms2, Os1–4, Sp1–4)
+  z lampami, pasami, wymaganiami konstrukcyjnymi, tabelą wyboru §6
+  i łańcuchem degradacji §6.1.
+- `core/aspect_table.gd` — wybór obrazu f(grupa prędkości, następny
+  semafor) z degradacją konstrukcyjną; mapowania tarcz Os/Sp.
+- `core/route.gd` — przebieg: maszyna stanów IDLE→LOCKED→TRAIN_ON→
+  RELEASING→IDLE + CANCELLED (docs/04 §2), zwalnianie sekcyjne.
+- `core/interlocking.gd` — silnik zależności: checklista utwierdzenia
+  (docs/04 §3, konflikty najpierw), nastawianie indywidualne (przycisk
+  sygnałowy dobiera przebieg do położenia zwrotnic), kasowanie (wolne
+  zbliżanie = natychmiast; zajęte = dZw z czasem ewolucji 90 s
+  i licznikiem), sygnał zastępczy Sz z licznikiem i timerem, zamknięcia
+  indywidualne (dwustopniowo: przycisk „zamkn. zwr." + przycisk
+  zwrotnicy), przeliczanie obrazów semaforów/tarcz po każdym ticku,
+  utrata kontroli zwrotnicy gasi sygnał zezwalający.
+- `SimWorld.execute()` — pełny command pattern (docs/02); scena Main
+  tylko przekazuje polecenia.
+- UI: liczniki bębenkowe na przyciskach dSz/dZw pokazują stan z rdzenia,
+  pociągnięcie przycisku = PPM (kasowanie przebiegu), panel debug
+  pokazuje stany przebiegów.
+- Testy: 25 nowych (komplet z docs/04 §9 — utwierdzanie i odmowy,
+  zwrotnice w przebiegu, zwalnianie sekcyjne 3-sekcyjne, kasowanie
+  z timerem i licznikiem, Sz, rozprucie, zamknięcia, pełna tabela 16
+  obrazów + degradacje, propagacja obrazów, ochrona boczna). Razem 73.
+
+### Jak przetestować ręcznie
+
+1. Zwrotnice z1/z2 na wprost (PLUS) → klik zielonego przycisku przy
+   semaforze A: droga izw1→it1 podświetla się na biało, powtarzacz A
+   zielenieje (S5 w debugu), izw2 (droga ochronna) też biała.
+2. Próba przestawienia z1/z2 → odmowa „utwierdzona w przebiegu A_t1".
+3. Próba nastawienia od B → odmowa „przebieg sprzeczny A_t1".
+4. PPM na przycisku A (pociągnięcie) → kasowanie: droga gaśnie.
+5. F12 → zajmij iza, nastaw od A, PPM na A → odmowa „wymagane dZw";
+   klik dZw, potem przycisk A → przebieg CANCELLED z odliczaniem 90 s
+   (w debugu), licznik dZw pokazuje 001.
+6. Klik „dSz C1" → powtarzacz C1 miga na biało (Sz), licznik 001;
+   po 90 s czasu symulacji (×5 przyspiesza) wraca S1.
+7. Klik „zamkn. zwr.", potem przycisk z1 → zwrotnica zamknięta
+   (przestawienie odmawiane); ponowne zamknięcie/otwarcie tak samo.
+
 ## Faza 2 — Pulpit kostkowy (widok, bez zależności) (2026-08-20)
 
 ### Dodano

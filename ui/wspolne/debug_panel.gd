@@ -8,20 +8,24 @@ extends PanelContainer
 signal action_requested(action: String)
 
 var _graph: TrackGraph = null
+var _interlocking: Interlocking = null
 var _section_labels: Dictionary = {}
 var _section_buttons: Dictionary = {}
 var _turnout_labels: Dictionary = {}
 var _signal_labels: Dictionary = {}
+var _route_labels: Dictionary = {}
 
 
-func build(station: StationData) -> void:
+func build(station: StationData, interlocking: Interlocking = null) -> void:
 	_graph = station.graph
+	_interlocking = interlocking
 	for child: Node in get_children():
 		child.queue_free()
 	_section_labels.clear()
 	_section_buttons.clear()
 	_turnout_labels.clear()
 	_signal_labels.clear()
+	_route_labels.clear()
 
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(320.0, 0.0)
@@ -65,6 +69,13 @@ func build(station: StationData) -> void:
 		vbox.add_child(label)
 		_signal_labels[signal_id] = label
 
+	if _interlocking != null:
+		_add_header(vbox, "Przebiegi")
+		for route_id: StringName in _interlocking.routes:
+			var label := Label.new()
+			vbox.add_child(label)
+			_route_labels[route_id] = label
+
 	refresh()
 
 
@@ -87,6 +98,12 @@ func refresh() -> void:
 	for signal_id: StringName in _signal_labels:
 		var signal_device: SignalDevice = _graph.get_signal(signal_id)
 		(_signal_labels[signal_id] as Label).text = "%s — %s" % [signal_id, signal_device.aspect]
+	for route_id: StringName in _route_labels:
+		var route: Route = _interlocking.get_route(route_id)
+		var state_name: String = Const.RouteState.keys()[route.state]
+		if route.state == Const.RouteState.CANCELLED:
+			state_name += " (%.0f s)" % route.cancel_left_s
+		(_route_labels[route_id] as Label).text = "%s — %s" % [route_id, state_name]
 
 
 func _add_header(parent: Control, text: String) -> void:

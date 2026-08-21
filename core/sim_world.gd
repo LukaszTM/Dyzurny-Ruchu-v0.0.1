@@ -12,15 +12,36 @@ var sim_time: float = 0.0
 var tick_count: int = 0
 ## Wczytana stacja (null przed load_station_file).
 var station: StationData = null
+## Silnik zależności (tworzony przy wczytaniu stacji).
+var interlocking: Interlocking = null
 
 
-## Wczytuje stację z pliku JSON (walidacja: core/station_loader.gd).
-## Zwraca wynik loadera {ok, errors, station}.
+## Wczytuje stację z pliku JSON (walidacja: core/station_loader.gd)
+## i buduje silnik zależności. Zwraca wynik loadera {ok, errors, station}.
 func load_station_file(path: String) -> Dictionary:
 	var result := StationLoader.load_from_file(path)
 	if result["ok"]:
 		station = result["station"]
+		interlocking = Interlocking.new(
+			station.graph, station.routes, AspectTable.load_default()
+		)
 	return result
+
+
+## Wykonanie polecenia gracza (command pattern, docs/02-architektura.md).
+## Rdzeń waliduje; odrzucenie z powodem to normalna sytuacja.
+func execute(name: StringName, args: Dictionary) -> CommandResult:
+	if station == null:
+		return CommandResult.failure("stacja nie jest wczytana")
+	if name == &"debug_section_occupied":
+		# Ręczne zadawanie zajętości (tryb debug F2; od F4 robią to pociągi).
+		var result := station.graph.set_section_occupied(
+			StringName(String(args.get("id", ""))), String(args.get("value", "0")) == "1"
+		)
+		if result.ok:
+			interlocking.tick(0.0)
+		return result
+	return interlocking.execute(name, args)
 
 
 ## Jeden krok symulacji o dt sekund czasu symulacji (wołany przez SimClock).
@@ -32,6 +53,7 @@ func tick(dt: float) -> void:
 	tick_count += 1
 	if station != null:
 		station.graph.tick(dt)
+		interlocking.tick(dt)
 
 
 ## Snapshot stanu rdzenia do zapisu gry.
@@ -42,6 +64,7 @@ func to_dict() -> Dictionary:
 	}
 	if station != null:
 		data["graph"] = station.graph.to_dict()
+		data["interlocking"] = interlocking.to_dict()
 	return data
 
 
@@ -51,3 +74,5 @@ func from_dict(data: Dictionary) -> void:
 	tick_count = int(data.get("tick_count", 0))
 	if station != null and data.has("graph"):
 		station.graph.from_dict(data["graph"])
+	if station != null and data.has("interlocking"):
+		interlocking.from_dict(data["interlocking"])

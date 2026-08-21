@@ -14,6 +14,11 @@ enum TurnoutState { PLUS, MINUS, MOVING, NO_CONTROL, TRAILED }
 ## Typ odcinka izolowanego (docs/03 §1): torowy, zwrotnicowy, zbliżania.
 enum SectionType { TRACK, TURNOUT, APPROACH }
 
+## Stan przebiegu wg docs/04 §2. SELECTED/SETTING używane przy nastawianiu
+## przebiegowym (stacje poziomu 4+); w nastawianiu indywidualnym przebieg
+## przechodzi z IDLE wprost do LOCKED.
+enum RouteState { IDLE, SELECTED, SETTING, LOCKED, TRAIN_ON, RELEASING, CANCELLED }
+
 ## Rodzaj sygnalizatora (docs/03 §2).
 enum SignalKind {
 	SEMAFOR,

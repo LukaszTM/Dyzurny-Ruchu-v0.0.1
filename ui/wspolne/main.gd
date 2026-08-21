@@ -34,8 +34,8 @@ func _ready() -> void:
 		_show_message("BŁĄD STACJI: %s" % [result["errors"]])
 		return
 	_plaque_label.text = _world.station.display_name().to_upper()
-	_pulpit.build(_world.station)
-	_debug_panel.build(_world.station)
+	_pulpit.build(_world.station, _world.interlocking)
+	_debug_panel.build(_world.station, _world.interlocking)
 
 	SimClock.tick.connect(_on_sim_tick)
 	SimClock.multiplier_changed.connect(func(_m: int) -> void: _refresh_controls())
@@ -94,20 +94,7 @@ func _on_ui_action(action: String) -> void:
 func _on_command(name: StringName, args: Dictionary) -> void:
 	if _world.station == null:
 		return
-	var graph := _world.station.graph
-	var id := StringName(String(args.get("id", "")))
-	var result: CommandResult
-	match name:
-		&"turnout_throw":
-			result = graph.throw_turnout(id)
-		&"debug_section_occupied":
-			result = graph.set_section_occupied(id, String(args.get("value", "0")) == "1")
-		&"route_start", &"signal_cancel", &"sub_signal", \
-		&"route_emergency_release", &"turnout_lock_toggle":
-			# Nastawianie przebiegów i przyciski specjalne — Faza 3.
-			result = CommandResult.failure("funkcja dostępna od Fazy 3 (interlocking)")
-		_:
-			result = CommandResult.failure("nieznane polecenie: %s" % name)
+	var result := _world.execute(name, args)
 	EventBus.emit_command_result(name, result.ok, result.reason)
 	if not result.ok:
 		# Urządzenie „nie reaguje"; w trybie szkolenia pokazujemy przyczynę

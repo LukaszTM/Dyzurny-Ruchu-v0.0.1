@@ -26,6 +26,24 @@ czego dotyczy wątpliwość, źródło w docs.
    konfigurowalne w JSON `panel.tiles[].actions`; w F2 obsługiwane tylko
    naciśnięcie (pociągnięcie — F3, kasowanie przebiegu).
 
+6. **Czas ewolucji doraźnego zwolnienia** — `core/interlocking.gd`
+   (`EVOLUTION_TIME_S`). Wg docs/04 §2 wartość zależna od typu urządzeń;
+   przyjęto 90 s.
+7. **Gaszenie sygnału zastępczego** — `core/interlocking.gd` (`SZ_TIME_S`).
+   Wg docs/04 §5: Sz świeci przez ustalony czas (np. 90 s) lub do zajęcia
+   pierwszej sekcji, zachowanie zależne od typu urządzeń; w F3 sam timer
+   90 s (gaszenie zajęciem sekcji dojdzie z pociągami w F4).
+8. **Przyciski współpracujące (dZw, zamknięcie zwrotnicy)** —
+   `core/interlocking.gd` (`ARM_TIME_S`). Na pulpicie typu E naciskane
+   równocześnie z przyciskiem celu; w grze obsługa sekwencyjna z oknem
+   10 s (uzbrojenie → wskazanie celu).
+9. **Grupa prędkości drogi przebiegu** — `core/interlocking.gd`
+   (`_compute_v_group`). docs/04 §6 wskazuje pole `v_route_kmh`, ale
+   semafory Borek nie mają pasów świetlnych, a jazda na wprost przy
+   100 km/h musi dawać grupę MAX — przyjęto wyliczanie z geometrii
+   (min. v_minus_kmh zwrotnic drogi jazdy w położeniu zwrotnym; wszystkie
+   na wprost → MAX), pole `v_route_kmh` informacyjne.
+
 ## Zweryfikowane / zamknięte
 
 _(brak)_

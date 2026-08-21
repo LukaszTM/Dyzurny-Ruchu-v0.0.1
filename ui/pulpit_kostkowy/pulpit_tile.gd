@@ -34,6 +34,7 @@ const BUTTON_RADIUS: float = 9.0
 
 var tile_def: Dictionary = {}
 var graph: TrackGraph = null
+var interlocking: Interlocking = null
 ## Faza migania 1 Hz (50% duty) — ustawia PulpitView.
 var blink_on: bool = true
 
@@ -42,24 +43,27 @@ var _section_id: StringName = &""
 var _turnout_id: StringName = &""
 var _signal_id: StringName = &""
 var _press_action: String = ""
+var _pull_action: String = ""
 
 
-func setup(def: Dictionary, p_graph: TrackGraph) -> void:
+func setup(def: Dictionary, p_graph: TrackGraph, p_interlocking: Interlocking = null) -> void:
 	tile_def = def
 	graph = p_graph
+	interlocking = p_interlocking
 	_tile_type = String(def.get("tile", ""))
 	_section_id = StringName(String(def.get("section", "")))
 	_turnout_id = StringName(String(def.get("turnout", "")))
 	_signal_id = StringName(String(def.get("signal", "")))
 	# Mapowanie przycisk→akcja per stacja w JSON (docs/systemy/13 §6).
-	# TODO(weryfikacja): pociągnięcie (działanie odwrotne) dojdzie w F3 —
-	# mapowanie naciśnij/pociągnij per typ przycisku do weryfikacji.
+	# Naciśnięcie = LPM, pociągnięcie = PPM (docs/systemy/13 §6: klik prawym).
+	# TODO(weryfikacja): mapowanie naciśnij/pociągnij per typ przycisku.
 	var actions: Dictionary = {}
 	if def.has("button"):
 		actions = (def["button"] as Dictionary).get("actions", {})
 	elif def.has("actions"):
 		actions = def["actions"]
 	_press_action = String(actions.get("press", ""))
+	_pull_action = String(actions.get("pull", ""))
 	var cells := _cells()
 	custom_minimum_size = Vector2(TILE * cells.x, TILE * cells.y)
 	size = custom_minimum_size
@@ -79,15 +83,20 @@ func _cells() -> Vector2i:
 
 func _gui_input(event: InputEvent) -> void:
 	var click := event as InputEventMouseButton
-	if click == null or not click.pressed or click.button_index != MOUSE_BUTTON_LEFT:
+	if click == null or not click.pressed:
 		return
-	if _press_action.is_empty():
+	var action := ""
+	if click.button_index == MOUSE_BUTTON_LEFT:
+		action = _press_action
+	elif click.button_index == MOUSE_BUTTON_RIGHT:
+		action = _pull_action
+	if action.is_empty():
 		return
 	if _button_center() != Vector2.INF \
 			and click.position.distance_to(_button_center()) > BUTTON_RADIUS + 4.0:
 		return
 	accept_event()
-	button_activated.emit(_press_action)
+	button_activated.emit(action)
 
 
 ## Środek przycisku na kafelku (Vector2.INF = kafelek bez przycisku).
@@ -346,7 +355,18 @@ func _draw_counter_button() -> void:
 	_draw_button(Vector2(24.0, 34.0), _button_color(), sealed)
 	if bool(tile_def.get("counter", false)):
 		draw_rect(Rect2(10.0, 58.0, 28.0, 14.0), COL_COUNTER_BG)
-		_draw_text_color(Vector2(10.0, 69.0), 28.0, "000", 10, COL_COUNTER_DIGITS)
+		_draw_text_color(Vector2(10.0, 69.0), 28.0, "%03d" % _counter_value(), 10, COL_COUNTER_DIGITS)
+
+
+## Stan licznika bębenkowego przycisku (docs/systemy/13 §4) z rdzenia.
+func _counter_value() -> int:
+	if interlocking == null:
+		return 0
+	if _press_action.begins_with("sub_signal:"):
+		return int(interlocking.counters.get("dSz:%s" % _press_action.get_slice(":", 1), 0))
+	if _press_action.begins_with("route_emergency_release"):
+		return int(interlocking.counters.get("dZw", 0))
+	return 0
 
 
 func _draw_tile_label(center_top: Vector2) -> void:
