@@ -4,7 +4,7 @@ extends Control
 ## EventBus; właścicielem rdzenia (SimWorld) jest ta scena i tylko ona
 ## wykonuje polecenia na rdzeniu (docs/02-architektura.md).
 
-const STATION_PATH := "res://data/stations/borki.json"
+const SCENARIO_PATH := "res://data/scenarios/borki-poranek.json"
 ## Jak długo pokazujemy komunikat odmowy (s czasu rzeczywistego).
 const MESSAGE_TIME_S: float = 4.0
 
@@ -27,15 +27,15 @@ var _message_left_s: float = 0.0
 
 
 func _ready() -> void:
-	GameState.new_game("", 0)
-	var result := _world.load_station_file(STATION_PATH)
+	var result := _world.load_scenario_file(SCENARIO_PATH)
 	if not result["ok"]:
-		push_error("Błąd wczytywania stacji: %s" % [result["errors"]])
-		_show_message("BŁĄD STACJI: %s" % [result["errors"]])
+		push_error("Błąd wczytywania scenariusza: %s" % [result["errors"]])
+		_show_message("BŁĄD SCENARIUSZA: %s" % [result["errors"]])
 		return
+	GameState.new_game("borki-poranek", 0, _world.start_of_day_s)
 	_plaque_label.text = _world.station.display_name().to_upper()
 	_pulpit.build(_world.station, _world.interlocking)
-	_debug_panel.build(_world.station, _world.interlocking)
+	_debug_panel.build(_world.station, _world.interlocking, _world)
 
 	SimClock.tick.connect(_on_sim_tick)
 	SimClock.multiplier_changed.connect(func(_m: int) -> void: _refresh_controls())

@@ -9,6 +9,8 @@ signal action_requested(action: String)
 
 var _graph: TrackGraph = null
 var _interlocking: Interlocking = null
+var _world: SimWorld = null
+var _trains_label: Label = null
 var _section_labels: Dictionary = {}
 var _section_buttons: Dictionary = {}
 var _turnout_labels: Dictionary = {}
@@ -16,9 +18,11 @@ var _signal_labels: Dictionary = {}
 var _route_labels: Dictionary = {}
 
 
-func build(station: StationData, interlocking: Interlocking = null) -> void:
+func build(station: StationData, interlocking: Interlocking = null,
+		world: SimWorld = null) -> void:
 	_graph = station.graph
 	_interlocking = interlocking
+	_world = world
 	for child: Node in get_children():
 		child.queue_free()
 	_section_labels.clear()
@@ -76,6 +80,11 @@ func build(station: StationData, interlocking: Interlocking = null) -> void:
 			vbox.add_child(label)
 			_route_labels[route_id] = label
 
+	if _world != null:
+		_add_header(vbox, "Pociągi")
+		_trains_label = Label.new()
+		vbox.add_child(_trains_label)
+
 	refresh()
 
 
@@ -104,6 +113,14 @@ func refresh() -> void:
 		if route.state == Const.RouteState.CANCELLED:
 			state_name += " (%.0f s)" % route.cancel_left_s
 		(_route_labels[route_id] as Label).text = "%s — %s" % [route_id, state_name]
+	if _trains_label != null:
+		var lines: Array[String] = []
+		for train: Train in _world.trains:
+			var phase_name: String = Train.Phase.keys()[train.phase]
+			lines.append("%s %s — %s, %.0f km/h, %.0f m" % [
+				train.kind, train.nr, phase_name, train.v_ms * 3.6, train.front_m,
+			])
+		_trains_label.text = "\n".join(lines) if not lines.is_empty() else "(brak)"
 
 
 func _add_header(parent: Control, text: String) -> void:

@@ -1,5 +1,46 @@
 # CHANGELOG
 
+## Faza 4 — Pociągi (2026-08-20)
+
+### Dodano
+
+- `core/train.gd` — pociąg: punkt z długością, fizyka wg docs/05 §1
+  (przyspieszenie malejące z prędkością per typ trakcji, hamowanie
+  służbowe/nagłe), ścieżka budowana przyrostowo z grafu (z wirtualnymi
+  odcinkami zwrotnicowymi), zajmowanie sekcji czołem i zwalnianie końcem
+  składu. AI maszynisty: krzywa hamowania do zatrzymania ~50 m przed
+  semaforem „stój", jazda na Sz z podjazdem ≤40 km/h, postój handlowy
+  min. 30 s (W4 = środek toru — uproszczenie), hamowanie nagłe przy
+  nagłym „stój" przed pociągiem, rozprucie przy najechaniu z boku na źle
+  ułożoną zwrotnicę (iglice wymuszane, jazda kontynuowana).
+- `core/timetable.gd` — rozkład jazdy scenariusza, spawn 90 s przed
+  planowym przyjazdem (uproszczenie F4 — od F5 wejście sprzężone
+  z zapowiedzią), despawn za stacją.
+- `SimWorld`: wczytywanie scenariusza (`load_scenario_file`), spawn od
+  strony właściwego sąsiada (blokada → semafor wjazdowy → szlak),
+  zajętości od pociągów (diff, ręczne debugowe nadal działają),
+  kolejność ticku: pociągi → zwrotnice → interlocking.
+- Scena Main startuje ze scenariusza `borki-poranek` (start 05:40,
+  4 pociągi); panel debug pokazuje pociągi (faza, prędkość, pozycja).
+- `data/scenariusz-przyklad.json` → `data/scenarios/borki-poranek.json`.
+- 7 testów integracyjnych pociągów (zatrzymanie przed „stój", przejazd
+  ze zwalnianiem sekcyjnym i powrotem semaforów na „stój", postój 30 s,
+  rozprucie, limit 40 za Sz, hamowanie nagłe po dZw, spawn wg rozkładu).
+  Razem 80.
+
+### Jak przetestować ręcznie
+
+1. Uruchom projekt, ustaw ×5. Ok. 06:00:30 na szlaku od Lipna pojawia
+   się osobowy 45201 (iza czerwienieje) i staje przed semaforem A.
+2. Nastaw wjazd na tor 1 (przycisk A) — pociąg rusza, sekcje
+   czerwienieją kolejno, A wraca na „stój" po minięciu czoła, droga
+   zwalnia się sekcyjnie za składem.
+3. Pociąg staje w połowie toru 1 (postój), po ~30 s jest gotów;
+   nastaw wyjazd (C1) — odjeżdża i znika za stacją, wszystko gaśnie.
+4. O 06:01:30 od Suchowoli nadjeżdża 45302 → wjazd na tor 2 (z1/z2
+   w MINUS, przycisk B), krzyżowanie jak w prawdziwej mijance.
+5. Bez nastawionej drogi pociąg zawsze staje ~50 m przed semaforem.
+
 ## Faza 3 — Interlocking + sygnalizacja (2026-08-20)
 
 ### Dodano

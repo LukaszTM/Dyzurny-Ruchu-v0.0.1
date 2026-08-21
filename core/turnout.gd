@@ -30,6 +30,19 @@ var closed_individually: bool = false
 var locked_by: StringName = &""
 
 
+## Fizyczne położenie iglic — także bez kontroli (MOVING/NO_CONTROL/TRAILED
+## urządzenia „nie wiedzą", ale geometria istnieje; target_pos śledzi iglice).
+func physical_pos() -> Const.TurnoutPos:
+	return target_pos
+
+
+## Rozprucie z wymuszeniem iglic przez tabor (najechanie z boku przy złym
+## położeniu — docs/04 §2): iglice przestawiają się na kierunek jazdy.
+func trail_forced(branch_pos: Const.TurnoutPos) -> void:
+	trail()
+	target_pos = branch_pos
+
+
 ## Czy urządzenia mają kontrolę położenia (lampka świeci ciągle).
 func has_control() -> bool:
 	return state == Const.TurnoutState.PLUS or state == Const.TurnoutState.MINUS

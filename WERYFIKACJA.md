@@ -44,6 +44,15 @@ czego dotyczy wątpliwość, źródło w docs.
    (min. v_minus_kmh zwrotnic drogi jazdy w położeniu zwrotnym; wszystkie
    na wprost → MAX), pole `v_route_kmh` informacyjne.
 
+10. **Reżim prędkości przy jeździe na Sz** — `core/train.gd` (`SZ_LIMIT_MS`,
+    `_sz_approach_limit`). Wg docs/05 §2 i systemy/11 §3 przyjęto: maszynista
+    zwalnia tak, by minąć semafor z Sz z prędkością ≤40 km/h, i utrzymuje
+    limit 40 do minięcia następnego semafora. Dokładny reżim wg Ir-1 §61
+    do weryfikacji.
+11. **Miejsce zatrzymania planowego (W4)** — `core/train.gd`
+    (`dwell_point_m`). Uproszczenie F4: środek pierwszej sekcji torowej;
+    właściwe wskaźniki W4 przy peronach dojdą z danymi stacji.
+
 ## Zweryfikowane / zamknięte
 
 _(brak)_
