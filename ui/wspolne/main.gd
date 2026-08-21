@@ -19,6 +19,10 @@ var _message_left_s: float = 0.0
 @onready var _debug_toggle: CheckButton = %DebugToggle
 @onready var _pulpit: PulpitView = %Pulpit
 @onready var _debug_panel: DebugPanel = %DebugPanel
+@onready var _phone_panel: PhonePanel = %PhonePanel
+@onready var _dziennik_panel: DziennikPanel = %DziennikPanel
+@onready var _phone_button: Button = %PhoneButton
+@onready var _dziennik_button: Button = %DziennikButton
 @onready var _speed_buttons: Dictionary = {
 	1: %Speed1Button,
 	2: %Speed2Button,
@@ -34,8 +38,10 @@ func _ready() -> void:
 		return
 	GameState.new_game("borki-poranek", 0, _world.start_of_day_s)
 	_plaque_label.text = _world.station.display_name().to_upper()
-	_pulpit.build(_world.station, _world.interlocking)
+	_pulpit.build(_world.station, _world.interlocking, _world.block_lines)
 	_debug_panel.build(_world.station, _world.interlocking, _world)
+	_phone_panel.build(_world)
+	_dziennik_panel.build(_world)
 
 	SimClock.tick.connect(_on_sim_tick)
 	SimClock.multiplier_changed.connect(func(_m: int) -> void: _refresh_controls())
@@ -45,6 +51,10 @@ func _ready() -> void:
 		var button: Button = _speed_buttons[m]
 		button.pressed.connect(SimClock.set_multiplier.bind(m))
 	_debug_toggle.toggled.connect(func(on: bool) -> void: _debug_panel.visible = on)
+	_phone_button.pressed.connect(_toggle_phone)
+	_dziennik_button.pressed.connect(
+		func() -> void: _dziennik_panel.visible = not _dziennik_panel.visible
+	)
 
 	_pulpit.action_requested.connect(_on_ui_action)
 	_debug_panel.action_requested.connect(_on_ui_action)
@@ -76,6 +86,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			SimClock.set_multiplier(5)
 		KEY_F12:
 			_debug_toggle.button_pressed = not _debug_toggle.button_pressed
+		KEY_T:
+			_toggle_phone()
+		KEY_D:
+			_dziennik_panel.visible = not _dziennik_panel.visible
 
 
 ## Akcja z przycisku pulpitu/panelu debug ("polecenie:arg[:arg2]") →
@@ -105,15 +119,74 @@ func _on_command(name: StringName, args: Dictionary) -> void:
 
 func _on_sim_tick(dt: float) -> void:
 	_world.tick(dt)
+	_dispatch_world_events()
 	_refresh_clock()
 	_refresh_controls()
 	_refresh_views()
+
+
+## Rozprowadza zdarzenia rdzenia: scoring do GameState, dzwonek telefonu,
+## koniec zmiany (podsumowanie) — i publikuje je na szynie zdarzeń.
+func _dispatch_world_events() -> void:
+	for event: Dictionary in _world.drain_events():
+		var type: StringName = event["type"]
+		EventBus.emit_sim_event(type, event)
+		match type:
+			&"penalty":
+				GameState.add_penalty(int(event["points"]), String(event["reason"]))
+				_show_message("KARA −%d: %s" % [int(event["points"]), String(event["reason"])])
+			&"shift_end":
+				_show_shift_summary()
+			_:
+				pass
+
+
+func _toggle_phone() -> void:
+	_phone_panel.visible = not _phone_panel.visible
+	if _phone_panel.visible:
+		EventBus.send_command(&"phone_open", {})
+
+
+## Podsumowanie zmiany (scoring v1, docs/05 §7) — nakładka na koniec służby.
+func _show_shift_summary() -> void:
+	SimClock.paused = true
+	var dim := ColorRect.new()
+	dim.color = Color(0.0, 0.0, 0.0, 0.72)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.add_child(center)
+	var vbox := VBoxContainer.new()
+	center.add_child(vbox)
+	var title := Label.new()
+	title.text = "KONIEC SŁUŻBY — wynik: %d/100" % GameState.score
+	title.add_theme_font_size_override("font_size", 34)
+	vbox.add_child(title)
+	if GameState.penalties.is_empty():
+		var clean := Label.new()
+		clean.text = "Zmiana bez uwag. Wzorowa służba!"
+		clean.add_theme_font_size_override("font_size", 18)
+		vbox.add_child(clean)
+	for penalty: Dictionary in GameState.penalties:
+		var row := Label.new()
+		row.text = "−%d  %s" % [int(penalty["points"]), String(penalty["reason"])]
+		row.add_theme_font_size_override("font_size", 16)
+		vbox.add_child(row)
 
 
 func _refresh_views() -> void:
 	_pulpit.refresh()
 	if _debug_panel.visible:
 		_debug_panel.refresh()
+	if _phone_panel.visible:
+		_phone_panel.refresh()
+	if _dziennik_panel.visible:
+		_dziennik_panel.refresh()
+	var unread := _world.comms.unread
+	_phone_button.text = "☎ Telefon (T)" if unread == 0 else "☎ TELEFON (%d)" % unread
+	_phone_button.modulate = Color(1, 1, 1) if unread == 0 \
+		else (Color(1, 0.55, 0.4) if (Time.get_ticks_msec() / 500) % 2 == 0 else Color(1, 1, 1))
 
 
 func _refresh_clock() -> void:

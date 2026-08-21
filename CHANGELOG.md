@@ -1,5 +1,50 @@
 # CHANGELOG
 
+## Faza 5 — Blokada półsamoczynna, telefonogramy, dziennik ruchu (2026-08-20)
+
+### Dodano
+
+- `core/block_line.gd` — blokada półsamoczynna per szlak (systemy/15 §1/§4):
+  pozwolenie Poz na szlaku jednotorowym, pola Po/Ko z warunkami, odmowy
+  z powodem; warunek 6 checklisty utwierdzenia w interlockingu (wyjazd
+  tylko przy pozwoleniu u gracza i wolnym odstępie).
+- `core/neighbour_ai.gd` — AI sąsiada (docs/05 §4): żąda pozwolenia wg
+  rozkładu (z ponagleniami), oznajmia odjazd i wprowadza pociąg do świata
+  (wjazd sprzężony z zapowiedzią — docs/05 §3), odpowiada na telefonogramy
+  gracza z opóźnieniem, po przyjeździe u siebie zwalnia odstęp (jego Ko),
+  honoruje „Stój — zatrzymajcie pociąg".
+- `core/comms.gd` — telefonogramy: 5 formuł wg systemy/18 §2 (parafrazy
+  Ir-1), rejestr rozmów z nieodebranymi.
+- `core/train_log.gd` — dziennik ruchu (R-142) w trybie auto: pozwolenie,
+  oznajmienie, odjazd, przyjazd, potwierdzenie, uwagi.
+- Scoring v1 (docs/05 §7): start 100 pkt; −1/min opóźnienia przyjazdu,
+  −10 brak potwierdzenia przyjazdu (Ko + telefonogram) lub oznajmienia
+  odjazdu w 5 min; podsumowanie „Koniec służby" po czasie scenariusza.
+- UI: okno łączności (T) — składanie formuły z klocków (typ, nr, sąsiad),
+  transkrypt, dzwonek z licznikiem nieodebranych; dziennik ruchu (D);
+  pola blokad na pulpicie żywe (lampki odstępu/Po/pozwolenia + klikalne
+  przyciski Po/Ko/Poz).
+- Testy: 7 nowych (blokada — warunki pól i wyprawienia, pełna pętla
+  zapowiadawcza z dziennikiem bez kar, kara za brak potwierdzenia,
+  koniec zmiany, spawn po zapowiedzi). Razem 87.
+- Scenariusz `borki-poranek` bez zmian danych (120 min — wartość z pliku
+  źródłowego; roadmapowe „60 min" potraktowano orientacyjnie).
+
+### Jak przetestować ręcznie
+
+1. Start, ×5. Ok. 05:58 dzwoni Lipno: „Czy droga dla pociągu nr 45201
+   wolna?" (przycisk ☎ miga). Otwórz telefon (T), odpowiedz formułą
+   „Danie pozwolenia" i naciśnij Poz na polu BLOKADA LIPNO.
+2. Ok. 06:00 Lipno oznajmia odjazd — pociąg pojawia się na szlaku,
+   lampka „odstęp" czerwona. Nastaw wjazd (A).
+3. Po przyjeździe całego pociągu naciśnij Ko (lampka gaśnie) i nadaj
+   „Potwierdzenie przyjazdu". Dziennik (D) uzupełnia się sam.
+4. Wyjazd na Suchowolę: bez pozwolenia (po oddaniu Poz) semafor C1
+   odmawia; zażądaj drogi telefonicznie — sąsiad odda pozwolenie.
+5. Po wyprawieniu nadaj „Oznajmienie odjazdu"; po ~2 min sąsiad
+   potwierdzi przyjazd i odstęp się zwolni. Brak telefonogramów w 5 min
+   = kara widoczna w pasku i w podsumowaniu po końcu zmiany.
+
 ## Faza 4 — Pociągi (2026-08-20)
 
 ### Dodano

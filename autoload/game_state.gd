@@ -18,8 +18,10 @@ var rng_seed: int = 0
 var scenario_id: String = ""
 ## Sekundy doby, o której zaczyna się scenariusz.
 var start_of_day_s: int = DEFAULT_START_OF_DAY_S
-## Punktacja (scoring v1 dojdzie w F5).
-var score: int = 0
+## Punktacja: start 100, kary odejmowane (scoring v1, docs/05 §7).
+var score: int = 100
+## Rejestr kar {points, reason} — do podsumowania zmiany.
+var penalties: Array[Dictionary] = []
 
 
 ## Rozpoczyna nowy scenariusz. seed_value = 0 → wylosuj seed i zapamiętaj.
@@ -27,7 +29,8 @@ func new_game(p_scenario_id: String = "", seed_value: int = 0,
 		p_start_of_day_s: int = DEFAULT_START_OF_DAY_S) -> void:
 	scenario_id = p_scenario_id
 	start_of_day_s = p_start_of_day_s
-	score = 0
+	score = 100
+	penalties.clear()
 	if seed_value == 0:
 		rng.randomize()
 		rng_seed = int(rng.seed)
@@ -43,6 +46,12 @@ func time_of_day_s() -> float:
 	return float(start_of_day_s) + SimClock.sim_time
 
 
+## Kara scoringu (docs/05 §7) — rejestrowana z powodem do podsumowania.
+func add_penalty(points: int, reason: String) -> void:
+	score = maxi(0, score - points)
+	penalties.append({"points": points, "reason": reason})
+
+
 ## Snapshot stanu do zapisu gry (rozbudowywany w kolejnych fazach).
 func to_dict() -> Dictionary:
 	return {
@@ -51,6 +60,7 @@ func to_dict() -> Dictionary:
 		"rng_state": rng.state,
 		"start_of_day_s": start_of_day_s,
 		"score": score,
+		"penalties": penalties.duplicate(true),
 		"sim_time": SimClock.sim_time,
 		"tick_count": SimClock.tick_count,
 	}
@@ -63,6 +73,7 @@ func from_dict(data: Dictionary) -> void:
 	rng.seed = rng_seed
 	rng.state = int(data.get("rng_state", rng.state))
 	start_of_day_s = int(data.get("start_of_day_s", DEFAULT_START_OF_DAY_S))
-	score = int(data.get("score", 0))
+	score = int(data.get("score", 100))
+	penalties.assign(data.get("penalties", []))
 	SimClock.sim_time = float(data.get("sim_time", 0.0))
 	SimClock.tick_count = int(data.get("tick_count", 0))

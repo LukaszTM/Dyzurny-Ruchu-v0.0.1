@@ -35,6 +35,8 @@ const BUTTON_RADIUS: float = 9.0
 var tile_def: Dictionary = {}
 var graph: TrackGraph = null
 var interlocking: Interlocking = null
+## Blokady liniowe (StringName -> BlockLine) — dla pól block_field.
+var blocks: Dictionary = {}
 ## Faza migania 1 Hz (50% duty) — ustawia PulpitView.
 var blink_on: bool = true
 
@@ -46,10 +48,12 @@ var _press_action: String = ""
 var _pull_action: String = ""
 
 
-func setup(def: Dictionary, p_graph: TrackGraph, p_interlocking: Interlocking = null) -> void:
+func setup(def: Dictionary, p_graph: TrackGraph, p_interlocking: Interlocking = null,
+		p_blocks: Dictionary = {}) -> void:
 	tile_def = def
 	graph = p_graph
 	interlocking = p_interlocking
+	blocks = p_blocks
 	_tile_type = String(def.get("tile", ""))
 	_section_id = StringName(String(def.get("section", "")))
 	_turnout_id = StringName(String(def.get("turnout", "")))
@@ -67,7 +71,7 @@ func setup(def: Dictionary, p_graph: TrackGraph, p_interlocking: Interlocking = 
 	var cells := _cells()
 	custom_minimum_size = Vector2(TILE * cells.x, TILE * cells.y)
 	size = custom_minimum_size
-	if not _press_action.is_empty():
+	if not _press_action.is_empty() or _tile_type == "block_field":
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
 
@@ -84,6 +88,18 @@ func _cells() -> Vector2i:
 func _gui_input(event: InputEvent) -> void:
 	var click := event as InputEventMouseButton
 	if click == null or not click.pressed:
+		return
+	if _tile_type == "block_field":
+		if click.button_index != MOUSE_BUTTON_LEFT:
+			return
+		var centers := _block_button_centers()
+		for field: String in centers:
+			if click.position.distance_to(centers[field]) <= 12.0:
+				accept_event()
+				button_activated.emit(
+					"block_press:%s:%s" % [String(tile_def.get("block", "")), field]
+				)
+				return
 		return
 	var action := ""
 	if click.button_index == MOUSE_BUTTON_LEFT:
@@ -333,18 +349,41 @@ func _button_color() -> Color:
 	return COL_BUTTON_GRAY
 
 
-## Pole blokady liniowej (3×2 kostki): ramka, etykieta, lampki Po/Ko/Poz.
-## Stany blokady dojdą w F5 — lampki ciemne (assets-spec/20 §5).
+## Pole blokady liniowej (3×2 kostki, assets-spec/20 §5): ramka, etykieta,
+## lampki stanu (odstęp zajęty, pozwolenie u nas) i przyciski Po/Ko/Poz.
 func _draw_block_field() -> void:
 	draw_rect(Rect2(4.0, 4.0, 136.0, 88.0), COL_TEXT, false, 2.0)
-	_draw_text(Vector2(4.0, 20.0), 136.0, String(tile_def.get("label", "")), 10)
-	var fields: Array = tile_def.get("fields", [])
-	var count: int = fields.size()
-	for i: int in count:
-		var x := 72.0 + (float(i) - float(count - 1) / 2.0) * 36.0
-		draw_circle(Vector2(x, 52.0), 7.0, COL_LAMP_RING)
-		draw_circle(Vector2(x, 52.0), 5.5, COL_LAMP_OFF)
-		_draw_text(Vector2(x - 18.0, 76.0), 36.0, String(fields[i]), 9)
+	_draw_text(Vector2(4.0, 18.0), 136.0, String(tile_def.get("label", "")), 10)
+	var block: BlockLine = blocks.get(StringName(String(tile_def.get("block", ""))))
+	var occupied_color := COL_LAMP_OFF
+	var permission_color := COL_LAMP_OFF
+	var po_color := COL_LAMP_OFF
+	if block != null:
+		if block.occupied:
+			occupied_color = COL_OCCUPIED
+		if block.permission_at == BlockLine.BlockSide.PLAYER:
+			permission_color = COL_GREEN
+		if block.po_locked:
+			po_color = COL_LOCKED
+	var lamp_x: Array[float] = [30.0, 72.0, 114.0]
+	var lamp_colors: Array[Color] = [occupied_color, po_color, permission_color]
+	var lamp_labels: Array[String] = ["odstęp", "Po", "pozw."]
+	for i: int in 3:
+		draw_circle(Vector2(lamp_x[i], 36.0), 7.0, COL_LAMP_RING)
+		draw_circle(Vector2(lamp_x[i], 36.0), 5.5, lamp_colors[i])
+		_draw_text(Vector2(lamp_x[i] - 20.0, 52.0), 40.0, lamp_labels[i], 8)
+	var centers := _block_button_centers()
+	for field: String in centers:
+		_draw_button(centers[field], COL_BUTTON_GRAY)
+		_draw_text(Vector2(centers[field].x - 20.0, 89.0), 40.0, field, 8)
+
+
+func _block_button_centers() -> Dictionary:
+	return {
+		"Po": Vector2(30.0, 70.0),
+		"Ko": Vector2(72.0, 70.0),
+		"Poz": Vector2(114.0, 70.0),
+	}
 
 
 ## Przycisk specjalny z licznikiem i plombą (1×2 kostki, spec §2/§4,

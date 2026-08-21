@@ -24,6 +24,9 @@ const ARM_TIME_S: float = 10.0
 var graph: TrackGraph
 var aspect_table: AspectTable
 var routes: Dictionary = {}   # StringName -> Route
+## Blokady liniowe per szlak (StringName -> BlockLine) — wstrzykuje SimWorld;
+## warunek 6 checklisty utwierdzenia (docs/04 §3) dla przebiegów wyjazdowych.
+var block_lines: Dictionary = {}
 ## Liczniki przycisków specjalnych: "dSz:A", "dZw" (docs/systemy/13 §4).
 var counters: Dictionary = {}
 ## Aktywne sygnały zastępcze: id semafora -> pozostały czas.
@@ -183,8 +186,12 @@ func _check_lock_conditions(route: Route) -> CommandResult:
 	var overlap_check := _check_turnout_group(route.overlap_turnouts, "drogi ochronnej")
 	if not overlap_check.ok:
 		return overlap_check
-	# 6. Blokada liniowa dla wyjazdów — dojdzie w F5 (docs/systemy/15);
-	#    w F3 warunek uznajemy za spełniony.
+	# 6. Blokada liniowa pozwala wyprawić: pozwolenie u gracza, odstęp wolny
+	#    (docs/systemy/15 §1).
+	if route.block_id != &"" and block_lines.has(route.block_id):
+		var dispatch := (block_lines[route.block_id] as BlockLine).can_dispatch()
+		if not dispatch.ok:
+			return dispatch
 	# 7. Przejazdy w drodze przebiegu — Borki ich nie mają; obsługa w F8.
 	return CommandResult.success()
 

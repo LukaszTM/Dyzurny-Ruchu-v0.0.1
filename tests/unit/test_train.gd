@@ -131,16 +131,20 @@ func test_hamowanie_nagle_po_dorazny_zwolnieniu() -> void:
 	assert_lte(train.front_m, 699.0, "zatrzymanie przed semaforem A")
 
 
-func test_spawn_wg_rozkladu_scenariusza() -> void:
+func test_spawn_wg_rozkladu_po_zapowiedzi() -> void:
 	var world := SimWorld.new()
 	assert_true(world.load_scenario_file("res://data/scenarios/borki-poranek.json")["ok"],
 		"scenariusz borki-poranek wczytuje się")
 	assert_eq(world.timetable.entries.size(), 4, "4 pociągi w rozkładzie")
-	# 05:40 → 06:00:00 — jeszcze pusto (45201 wjeżdża 90 s przed 06:02).
-	for i: int in 12000:
+	# 05:58+ — Lipno żąda pozwolenia dla 45201; bez Poz pociąg nie wjeżdża.
+	for i: int in 11400:
 		world.tick(0.1)
-	assert_eq(world.trains.size(), 0, "przed 06:00:30 brak pociągów")
-	for i: int in 400:
+	assert_eq(world.trains.size(), 0, "bez pozwolenia brak pociągu (wjazd sprzężony)")
+	assert_gt(world.comms.log.size(), 0, "sąsiad żąda pozwolenia telefonicznie")
+	world.execute(&"block_press", {"id": "blk_w", "value": "Poz"})
+	# Do 06:00:30 sąsiad oznajmia odjazd i pociąg wjeżdża na szlak.
+	for i: int in 900:
 		world.tick(0.1)
 	assert_eq(world.trains.size(), 1, "45201 pojawił się na szlaku od Lipna")
 	assert_eq(world.trains[0].nr, "45201")
+	assert_true((world.block_lines[&"blk_w"] as BlockLine).occupied)

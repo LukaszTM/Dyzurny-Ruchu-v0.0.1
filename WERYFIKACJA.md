@@ -53,6 +53,16 @@ czego dotyczy wątpliwość, źródło w docs.
     (`dwell_point_m`). Uproszczenie F4: środek pierwszej sekcji torowej;
     właściwe wskaźniki W4 przy peronach dojdą z danymi stacji.
 
+12. **Brzmienie formuł telefonogramów** — `core/comms.gd` (`format_message`).
+    Parafrazy wg docs/systemy/18 §2; przed 1.0 porównać z Dodatkiem 2 Ir-1.
+13. **Układ kolumn dziennika ruchu (R-142)** — `core/train_log.gd`,
+    `ui/dokumentacja/dziennik_panel.gd`. Układ gry wg docs/systemy/18 §3,
+    dokładny układ druku do weryfikacji.
+14. **Obsługa pola Po** — `core/block_line.gd`. Wg docs/systemy/15 §1
+    u niektórych odmian Po blokuje się samoczynnie od oddziaływania pociągu
+    (konfigurowalne per stacja); przyjęto obsługę ręczną przez gracza,
+    w scoringu v1 bez kary za brak.
+
 ## Zweryfikowane / zamknięte
 
 _(brak)_
