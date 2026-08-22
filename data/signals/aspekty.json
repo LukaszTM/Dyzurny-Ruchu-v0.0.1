@@ -71,6 +71,17 @@
              "lampy": [{"kolor": "biale", "tryb": "migajace", "poz": "G"}],
              "pas": null, "wymaga": {"sz": true}},
 
+    "Sr1":  {"opis": "Stój (semafor kształtowy: ramię poziomo, noc: czerwone)", "info": "STOP",
+             "lampy": [{"kolor": "czerwone", "tryb": "ciagle", "poz": "G"}],
+             "pas": null, "wymaga": {"ksztaltowy": true}},
+    "Sr2":  {"opis": "Wolna droga (jedno ramię ukośnie, noc: zielone)", "info": "VMAX",
+             "lampy": [{"kolor": "zielone", "tryb": "ciagle", "poz": "G"}],
+             "pas": null, "wymaga": {"ksztaltowy": true}},
+    "Sr3":  {"opis": "Wolna droga ze zmniejszoną prędkością ≤40 km/h (dwa ramiona, noc: zielone i pomarańczowe)", "info": "V40_60",
+             "lampy": [{"kolor": "zielone", "tryb": "ciagle", "poz": "G"},
+                       {"kolor": "pomaranczowe", "tryb": "ciagle", "poz": "D"}],
+             "pas": null, "wymaga": {"ksztaltowy": true}},
+
     "Ms1":  {"opis": "Jazda manewrowa zabroniona", "info": null,
              "lampy": [{"kolor": "niebieskie", "tryb": "ciagle", "poz": "G"}],
              "pas": null, "wymaga": {}},

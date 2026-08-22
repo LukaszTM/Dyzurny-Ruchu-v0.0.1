@@ -438,6 +438,12 @@ func _semaphore_aspect(signal_device: SignalDevice) -> StringName:
 	if _sz_left.has(signal_device.id):
 		return &"Sz"
 	var route := _locked_route_from(signal_device.id)
+	# Semafor kształtowy: Sr2 na wprost, Sr3 w bok (docs/systemy/11 §7);
+	# brak obrazów pośrednich — informacja o następniku nie występuje.
+	if signal_device.kind == Const.SignalKind.SEMAFOR_KSZTALTOWY:
+		if route == null:
+			return &"Sr1"
+		return &"Sr2" if route.v_group == "MAX" else &"Sr3"
 	if route == null:
 		return &"S1"
 	var next_info := "STOP"

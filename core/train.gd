@@ -33,6 +33,8 @@ var wants_stop: bool = true
 var dep_time_s: float = 0.0
 
 var phase: Phase = Phase.RUNNING
+## Kierunek jazdy przez stację (N = na wschód w danych stacji) — do widoków.
+var eastbound: bool = true
 ## Pozycja czoła w metrach wzdłuż ścieżki.
 var front_m: float = 0.0
 var v_ms: float = 0.0
@@ -173,7 +175,10 @@ func _nearest_stop_point() -> float:
 		if bool(point["passed"]):
 			continue
 		var pos := float(point["pos"])
-		if pos < front_m - 0.5:
+		# Czoło minęło słupek → semafor minięty, niezależnie od obrazu
+		# (samoczynny powrót na „stój" po minięciu nie może zatrzymać
+		# pociągu ZA semaforem).
+		if pos <= front_m:
 			_pass_signal(point)
 			continue
 		var signal_device := _graph.get_signal(point["signal"])

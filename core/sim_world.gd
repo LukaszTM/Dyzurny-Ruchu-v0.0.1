@@ -34,6 +34,8 @@ var train_log: TrainLog = TrainLog.new()
 var pending_events: Array[Dictionary] = []
 ## Reżyser zdarzeń scenariusza (docs/05 §6).
 var director: EventDirector = null
+## Ława dźwigniowa (null poza nastawnią mechaniczną — docs/systemy/12).
+var lever_frame: LeverFrame = null
 ## Jedyne źródło losowości rdzenia — Main podpina RNG z GameState
 ## (determinizm, CLAUDE.md zasada 5).
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -73,6 +75,9 @@ func load_station_file(path: String) -> Dictionary:
 			var route: Route = interlocking.routes[route_id]
 			if route.approach_section != &"":
 				_signal_approach[route.entry_signal] = route.approach_section
+		lever_frame = null
+		if String(station.panel.get("type", "")) == "mechaniczny":
+			lever_frame = LeverFrame.new(station.panel, station.graph, interlocking)
 		block_lines.clear()
 		for block_def: Dictionary in station.blocks:
 			var entry_signal := station.graph.get_signal(
@@ -144,6 +149,14 @@ func execute(name: StringName, args: Dictionary) -> CommandResult:
 			return CommandResult.success()
 		&"order_dictate":
 			return _cmd_order_dictate(args)
+		&"lever_move":
+			if lever_frame == null:
+				return CommandResult.failure("ta nastawnia nie ma ławy dźwigniowej")
+			return lever_frame.move_lever(StringName(String(args.get("id", ""))))
+		&"station_block_press":
+			if lever_frame == null:
+				return CommandResult.failure("ta nastawnia nie ma aparatu blokowego")
+			return lever_frame.press_block(StringName(String(args.get("id", ""))))
 	return interlocking.execute(name, args)
 
 
@@ -488,6 +501,7 @@ func spawn_train(entry: Timetable.Entry) -> Train:
 	var boundary := edge.from_node \
 		if edge.to_node == signal_device.at_node else edge.to_node
 	var train := Train.from_entry(entry)
+	train.eastbound = edge.from_node == boundary
 	train.place_on_entry(station.graph, _signal_approach, entry_edge, boundary)
 	trains.append(train)
 	_train_meta[entry.nr] = {
@@ -589,6 +603,8 @@ func to_dict() -> Dictionary:
 		data["timetable"] = timetable.to_dict()
 	if director != null:
 		data["director"] = director.to_dict()
+	if lever_frame != null:
+		data["lever_frame"] = lever_frame.to_dict()
 	data["orders"] = orders.duplicate(true)
 	return data
 
@@ -610,4 +626,6 @@ func from_dict(data: Dictionary) -> void:
 			(block_lines[StringName(key)] as BlockLine).from_dict(blocks_state[key])
 	if director != null and data.has("director"):
 		director.from_dict(data["director"])
+	if lever_frame != null and data.has("lever_frame"):
+		lever_frame.from_dict(data["lever_frame"])
 	orders.assign(data.get("orders", []))

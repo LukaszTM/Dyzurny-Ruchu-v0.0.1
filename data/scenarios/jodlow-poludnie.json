@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "id": "jodlow-poludnie",
+    "name": "Południe w Jodłowie",
+    "station": "jodlow",
+    "description": "Zmiana na nastawni mechanicznej: krzyzowanie osobowych i przelot towarowego. W polowie zmiany peka pednia zwrotnicy 1.",
+    "difficulty": {"auto_docs": true, "hints": true, "time_multiplier_allowed": [1, 2, 5]}
+  },
+
+  "start_time": "12:00",
+  "duration_min": 60,
+
+  "timetable": [
+    {"nr": "52101", "kind": "osobowy", "from": "Cisów", "to": "Grabno",
+     "arr": "12:10", "dep": "12:12", "track": "t1", "stop": true,
+     "len_m": 110, "vmax_kmh": 80, "mass_t": 160, "power_class": "EZT"},
+
+    {"nr": "52302", "kind": "osobowy", "from": "Grabno", "to": "Cisów",
+     "arr": "12:11", "dep": "12:14", "track": "t2", "stop": true,
+     "len_m": 110, "vmax_kmh": 80, "mass_t": 160, "power_class": "EZT"},
+
+    {"nr": "641220", "kind": "towarowy", "from": "Cisów", "to": "Grabno",
+     "arr": "12:38", "dep": "12:38", "track": "t1", "stop": false,
+     "len_m": 480, "vmax_kmh": 60, "mass_t": 1600, "power_class": "lok_el"}
+  ],
+
+  "events": [
+    {"at": "12:25", "type": "turnout_no_control", "target": "z1",
+     "repair_min": 8,
+     "_uwaga": "pekniecie pedni przed towarowym (docs/systemy/12 par. 4)"}
+  ],
+
+  "scoring": {"target_delay_min": 5, "required_docs": true}
+}

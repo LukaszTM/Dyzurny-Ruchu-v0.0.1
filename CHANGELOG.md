@@ -1,5 +1,61 @@
 # CHANGELOG
 
+## Faza 7 — Nastawnia mechaniczna (2026-08-22)
+
+### Dodano
+
+- `core/lever_frame.gd` — ława dźwigniowa ze skrzynią zależności
+  (docs/systemy/12 §1–§3): dźwignie zwrotnicowe/ryglowe/sygnałowe,
+  wymuszona kolejność zwrotnice → rygiel → nakaz → sygnałowa (i odwrotna
+  przy cofaniu), bloki stacyjne „Nakaz wjazd/wyjazd" + „Zwol. przeb."
+  (nastawnia wykonawcza w tle), odmowy z przyczyną („dźwignia nie
+  puszcza"). Warunki bezpieczeństwa sprawdza ten sam Interlocking.
+- Semafory kształtowe Sr1/Sr2/Sr3 (systemy/11 §7) w aspekty.json
+  i rdzeniu: Sr2 na wprost, Sr3 w bok, stan zasadniczy Sr1;
+  `shows_stop` zna Sr1.
+- `data/stations/jodlow.json` — stacja poziomu 3 „Jodłów" (Cisów–Grabno):
+  semafory kształtowe, blokada elektromechaniczna (funkcjonalnie jak
+  półsamoczynna — systemy/15 §3), panel `mechaniczny` z 9 dźwigniami
+  i 3 blokami stacyjnymi; scenariusz `jodlow-poludnie` (60 min,
+  krzyżowanie + towarowy, pęknięcie pędni z1 o 12:25).
+- `ui/nastawnia_mech/mech_view.gd` — widok wg assets-spec/22: panorama
+  torów z okna (sylwetki pociągów z numerami, semafory kształtowe
+  z animowanymi ramionami — kontroli zajętości BRAK, wolność toru
+  sprawdza się wzrokiem), aparat blokowy (okienka biało-czerwone
+  w mosiężnych ramkach, klawisze z induktorem — 2 s kręcenia korbką
+  z paskiem postępu), ława dźwigni (kolory wg funkcji, tabliczki,
+  przełożenie ~40°, miganie przy braku kontroli).
+- Ekran wyboru służby na starcie (lista scenariuszy z data/scenarios —
+  dane, nie kod); scena Main tworzy widok wg typu panelu stacji.
+- Walidacja panelu mechanicznego w loaderze (dźwignie/bloki → istniejące
+  obiekty).
+- Testy: 10 nowych (pełna macierz kolejności dźwigni, blokada
+  elektromechaniczna, Sr2/Sr3, pełny przejazd przez stację mechaniczną).
+  Razem 108.
+
+### Naprawiono
+
+- Rdzeń pociągu: przy większym kroku ruchu czoło mogło przeskoczyć okno
+  zaliczenia minięcia semafora — semafor wracający samoczynnie na „stój"
+  zatrzymywał wtedy pociąg tuż ZA masztem na stałe. Minięcie liczy się
+  teraz od przekroczenia słupka, niezależnie od obrazu.
+
+### Jak przetestować ręcznie
+
+1. Start → ekran wyboru służby → „Południe w Jodłowie".
+2. Widok nastawni: panorama z oknem, aparat blokowy, ława 9 dźwigni.
+   Spróbuj od razu przełożyć dźwignię A — odmowa „najpierw przełóż
+   rygiel"; rygiel 3 przy przestawiającej się zwrotnicy też odmawia.
+3. Ok. 12:06 dzwoni Cisów: daj pozwolenie (formuła + klawisz Poz
+   z induktorem — 2 s kręcenia), przełóż rygiel 3, daj „Nakaz wjazd"
+   i przełóż dźwignię A — ramię semafora podnosi się (Sr2), pociąg
+   52101 wjeżdża na panoramie i staje przy peronie.
+4. Ko Cisów + telefonogram; cofnij dźwignię A, „Nakaz wyjazd",
+   dźwignia C1 — pociąg odjeżdża do Grabna. Krzyżowanie z 52302
+   (tor 2: przestaw dźwignie 1 i 2, rygiel, B → Sr3).
+5. O 12:25 pęka pędnia z1 (dźwignia miga czerwono) — naprawa po 8 min;
+   w międzyczasie towarowy 641220 czeka albo jedzie na Sz/rozkaz.
+
 ## Faza 6 — Zdarzenia i procedury awaryjne (2026-08-22)
 
 ### Dodano

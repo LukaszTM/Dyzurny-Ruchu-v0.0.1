@@ -1,15 +1,18 @@
 extends Control
-## Scena główna F2: pulpit kostkowy stacji Borki + pas górny (tabliczka,
-## zegary, sterowanie czasem) + panel debug. UI wysyła polecenia przez
-## EventBus; właścicielem rdzenia (SimWorld) jest ta scena i tylko ona
-## wykonuje polecenia na rdzeniu (docs/02-architektura.md).
+## Scena główna: wybór scenariusza, potem widok urządzeń wg typu panelu
+## stacji — pulpit kostkowy (przekaźnikowe) albo nastawnia mechaniczna
+## (dźwignie, docs/systemy/12). UI wysyła polecenia przez EventBus;
+## właścicielem rdzenia (SimWorld) jest ta scena (docs/02-architektura.md).
 
-const SCENARIO_PATH := "res://data/scenarios/borki-poranek.json"
+const SCENARIOS_DIR := "res://data/scenarios"
 ## Jak długo pokazujemy komunikat odmowy (s czasu rzeczywistego).
 const MESSAGE_TIME_S: float = 4.0
 
 var _world: SimWorld = SimWorld.new()
 var _message_left_s: float = 0.0
+var _started: bool = false
+## Bieżący widok urządzeń (PulpitView albo MechView).
+var _view: Control = null
 
 @onready var _plaque_label: Label = %PlaqueLabel
 @onready var _clock_label: Label = %ClockLabel
@@ -17,7 +20,7 @@ var _message_left_s: float = 0.0
 @onready var _message_label: Label = %MessageLabel
 @onready var _pause_button: Button = %PauseButton
 @onready var _debug_toggle: CheckButton = %DebugToggle
-@onready var _pulpit: PulpitView = %Pulpit
+@onready var _view_center: CenterContainer = %ViewCenter
 @onready var _debug_panel: DebugPanel = %DebugPanel
 @onready var _phone_panel: PhonePanel = %PhonePanel
 @onready var _dziennik_panel: DziennikPanel = %DziennikPanel
@@ -33,20 +36,95 @@ var _message_left_s: float = 0.0
 
 
 func _ready() -> void:
-	var result := _world.load_scenario_file(SCENARIO_PATH)
+	SimClock.paused = true
+	var scenarios := _list_scenarios()
+	if scenarios.size() == 1:
+		_start_scenario(String(scenarios[0]["path"]))
+	else:
+		_show_scenario_picker(scenarios)
+
+
+## Lista scenariuszy z data/scenarios (dane, nie kod — CLAUDE.md zasada 4).
+func _list_scenarios() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var dir := DirAccess.open(SCENARIOS_DIR)
+	if dir == null:
+		return result
+	for file_name: String in dir.get_files():
+		if not file_name.ends_with(".json"):
+			continue
+		var path := "%s/%s" % [SCENARIOS_DIR, file_name]
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+		if parsed is Dictionary:
+			var meta: Dictionary = (parsed as Dictionary).get("meta", {})
+			result.append({
+				"path": path,
+				"name": String(meta.get("name", file_name)),
+				"description": String(meta.get("description", "")),
+			})
+	return result
+
+
+func _show_scenario_picker(scenarios: Array[Dictionary]) -> void:
+	var dim := ColorRect.new()
+	dim.name = "ScenarioPicker"
+	dim.color = Color(0.05, 0.06, 0.08, 0.95)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.add_child(center)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 16)
+	center.add_child(vbox)
+	var title := Label.new()
+	title.text = "SYMULATOR DYŻURNEGO RUCHU — wybierz służbę"
+	title.add_theme_font_size_override("font_size", 30)
+	vbox.add_child(title)
+	for scenario: Dictionary in scenarios:
+		var button := Button.new()
+		button.text = String(scenario["name"])
+		button.tooltip_text = String(scenario["description"])
+		button.add_theme_font_size_override("font_size", 22)
+		var path := String(scenario["path"])
+		button.pressed.connect(func() -> void:
+			dim.queue_free()
+			_start_scenario(path)
+		)
+		vbox.add_child(button)
+
+
+func _start_scenario(path: String) -> void:
+	var result := _world.load_scenario_file(path)
 	if not result["ok"]:
 		push_error("Błąd wczytywania scenariusza: %s" % [result["errors"]])
 		_show_message("BŁĄD SCENARIUSZA: %s" % [result["errors"]])
 		return
-	GameState.new_game("borki-poranek", 0, _world.start_of_day_s)
+	var scenario_id := path.get_file().get_basename()
+	GameState.new_game(scenario_id, 0, _world.start_of_day_s)
+	_world.rng = GameState.rng
 	_plaque_label.text = _world.station.display_name().to_upper()
-	_pulpit.build(_world.station, _world.interlocking, _world.block_lines)
+
+	# Widok urządzeń wg typu panelu stacji (jedna logika, różne „skóry").
+	if _world.lever_frame != null:
+		var mech := MechView.new()
+		mech.build_view(_world)
+		mech.action_requested.connect(
+			func(command_name: StringName, args: Dictionary) -> void:
+				EventBus.send_command(command_name, args)
+		)
+		_view = mech
+	else:
+		var pulpit := PulpitView.new()
+		pulpit.build(_world.station, _world.interlocking, _world.block_lines)
+		pulpit.action_requested.connect(_on_ui_action)
+		_view = pulpit
+	_view_center.add_child(_view)
+
 	_debug_panel.build(_world.station, _world.interlocking, _world)
 	_phone_panel.build(_world)
 	_dziennik_panel.build(_world)
 	_orders_panel.build(_world)
-	# Determinizm: rdzeń losuje wyłącznie z RNG scenariusza (zasada 5).
-	_world.rng = GameState.rng
 
 	SimClock.tick.connect(_on_sim_tick)
 	SimClock.multiplier_changed.connect(func(_m: int) -> void: _refresh_controls())
@@ -64,10 +142,11 @@ func _ready() -> void:
 		func() -> void: _orders_panel.visible = not _orders_panel.visible
 	)
 
-	_pulpit.action_requested.connect(_on_ui_action)
 	_debug_panel.action_requested.connect(_on_ui_action)
 	EventBus.command.connect(_on_command)
 
+	_started = true
+	SimClock.paused = false
 	_refresh_clock()
 	_refresh_controls()
 
@@ -80,6 +159,8 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if not _started:
+		return
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:
 		return
@@ -122,7 +203,7 @@ func _on_command(name: StringName, args: Dictionary) -> void:
 	EventBus.emit_command_result(name, result.ok, result.reason)
 	if not result.ok:
 		# Urządzenie „nie reaguje"; w trybie szkolenia pokazujemy przyczynę
-		# (docs/systemy/13 §2).
+		# (docs/systemy/13 §2, assets-spec/22 §2).
 		_show_message(result.reason)
 	_refresh_views()
 
@@ -136,7 +217,7 @@ func _on_sim_tick(dt: float) -> void:
 
 
 ## Rozprowadza zdarzenia rdzenia: scoring do GameState, dzwonek telefonu,
-## koniec zmiany (podsumowanie) — i publikuje je na szynie zdarzeń.
+## alarmy, koniec zmiany (podsumowanie) — i publikuje je na szynie zdarzeń.
 func _dispatch_world_events() -> void:
 	for event: Dictionary in _world.drain_events():
 		var type: StringName = event["type"]
@@ -188,7 +269,8 @@ func _show_shift_summary() -> void:
 
 
 func _refresh_views() -> void:
-	_pulpit.refresh()
+	if _view != null:
+		_view.refresh()
 	if _debug_panel.visible:
 		_debug_panel.refresh()
 	if _phone_panel.visible:

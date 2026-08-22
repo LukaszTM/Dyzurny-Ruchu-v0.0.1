@@ -1,0 +1,134 @@
+{
+  "meta": {
+    "id": "jodlow",
+    "name": "Jodłów",
+    "type": "stacja",
+    "devices": "mechaniczne",
+    "neighbours": {"W": "Cisów", "E": "Grabno"},
+    "_comment": "Stacja poziomu 3: nastawnia mechaniczna scentralizowana, semafory ksztaltowe, blokada elektromechaniczna. Format wg docs/03-model-danych.md; panel mechaniczny wg docs/systemy/12."
+  },
+
+  "nodes": [
+    {"id": "nW"}, {"id": "nA"}, {"id": "nB"}, {"id": "nE"}
+  ],
+
+  "edges": [
+    {"id": "e_szlak_w", "from": "nW", "to": "nA", "len_m": 600, "vmax_kmh": 80},
+    {"id": "e_t1",      "from": "nA", "to": "nB", "len_m": 400, "vmax_kmh": 80},
+    {"id": "e_t2",      "from": "nA", "to": "nB", "len_m": 380, "vmax_kmh": 40},
+    {"id": "e_szlak_e", "from": "nB", "to": "nE", "len_m": 600, "vmax_kmh": 80}
+  ],
+
+  "turnouts": [
+    {"id": "z1", "node": "nA", "edge_root": "e_szlak_w", "edge_plus": "e_t1",
+     "edge_minus": "e_t2", "throw_time_s": 6, "v_minus_kmh": 40},
+    {"id": "z2", "node": "nB", "edge_root": "e_szlak_e", "edge_plus": "e_t1",
+     "edge_minus": "e_t2", "throw_time_s": 6, "v_minus_kmh": 40}
+  ],
+
+  "sections": [
+    {"id": "iza",  "type": "approach", "edges": ["e_szlak_w"]},
+    {"id": "izw1", "type": "turnout",  "edges": [], "turnout": "z1", "len_m": 40},
+    {"id": "it1",  "type": "track",    "edges": ["e_t1"]},
+    {"id": "it2",  "type": "track",    "edges": ["e_t2"]},
+    {"id": "izw2", "type": "turnout",  "edges": [], "turnout": "z2", "len_m": 40},
+    {"id": "ize",  "type": "approach", "edges": ["e_szlak_e"]}
+  ],
+
+  "signals": [
+    {"id": "A",  "kind": "semafor_ksztaltowy", "at_node": "nA", "dir": "N", "heads": 2,
+     "can_ms2": false, "can_sz": true},
+    {"id": "B",  "kind": "semafor_ksztaltowy", "at_node": "nB", "dir": "P", "heads": 2,
+     "can_ms2": false, "can_sz": true},
+    {"id": "C1", "kind": "semafor_ksztaltowy", "at_node": "nB", "dir": "N", "heads": 1,
+     "can_ms2": false, "can_sz": true},
+    {"id": "C2", "kind": "semafor_ksztaltowy", "at_node": "nB", "dir": "N", "heads": 2,
+     "can_ms2": false, "can_sz": false},
+    {"id": "D1", "kind": "semafor_ksztaltowy", "at_node": "nA", "dir": "P", "heads": 1,
+     "can_ms2": false, "can_sz": true},
+    {"id": "D2", "kind": "semafor_ksztaltowy", "at_node": "nA", "dir": "P", "heads": 2,
+     "can_ms2": false, "can_sz": false}
+  ],
+
+  "routes": [
+    {"id": "A_t1", "class": "train", "entry_signal": "A", "target": "t1",
+     "exit_signal": "C1", "sections": ["izw1", "it1"],
+     "turnouts": {"z1": "PLUS"}, "flank": {},
+     "overlap": {"sections": ["izw2"], "turnouts": {"z2": "PLUS"}, "release_s": 90},
+     "v_route_kmh": 80,
+     "conflicts": ["A_t2", "B_t1", "C1_out", "C2_out", "D1_out", "D2_out"]},
+
+    {"id": "A_t2", "class": "train", "entry_signal": "A", "target": "t2",
+     "exit_signal": "C2", "sections": ["izw1", "it2"],
+     "turnouts": {"z1": "MINUS"}, "flank": {},
+     "overlap": {"sections": ["izw2"], "turnouts": {"z2": "MINUS"}, "release_s": 90},
+     "v_route_kmh": 40,
+     "conflicts": ["A_t1", "B_t2", "C1_out", "C2_out", "D1_out", "D2_out"]},
+
+    {"id": "B_t1", "class": "train", "entry_signal": "B", "target": "t1",
+     "exit_signal": "D1", "sections": ["izw2", "it1"],
+     "turnouts": {"z2": "PLUS"}, "flank": {},
+     "overlap": {"sections": ["izw1"], "turnouts": {"z1": "PLUS"}, "release_s": 90},
+     "v_route_kmh": 80,
+     "conflicts": ["B_t2", "A_t1", "C1_out", "C2_out", "D1_out", "D2_out"]},
+
+    {"id": "B_t2", "class": "train", "entry_signal": "B", "target": "t2",
+     "exit_signal": "D2", "sections": ["izw2", "it2"],
+     "turnouts": {"z2": "MINUS"}, "flank": {},
+     "overlap": {"sections": ["izw1"], "turnouts": {"z1": "MINUS"}, "release_s": 90},
+     "v_route_kmh": 40,
+     "conflicts": ["B_t1", "A_t2", "C1_out", "C2_out", "D1_out", "D2_out"]},
+
+    {"id": "C1_out", "class": "train", "entry_signal": "C1", "target": "szlak_E",
+     "sections": ["izw2", "ize"], "turnouts": {"z2": "PLUS"}, "flank": {},
+     "overlap": null, "block": "blk_e", "v_route_kmh": 80,
+     "conflicts": ["C2_out", "A_t1", "A_t2", "B_t1", "B_t2"]},
+
+    {"id": "C2_out", "class": "train", "entry_signal": "C2", "target": "szlak_E",
+     "sections": ["izw2", "ize"], "turnouts": {"z2": "MINUS"}, "flank": {},
+     "overlap": null, "block": "blk_e", "v_route_kmh": 40,
+     "conflicts": ["C1_out", "A_t1", "A_t2", "B_t1", "B_t2"]},
+
+    {"id": "D1_out", "class": "train", "entry_signal": "D1", "target": "szlak_W",
+     "sections": ["izw1", "iza"], "turnouts": {"z1": "PLUS"}, "flank": {},
+     "overlap": null, "block": "blk_w", "v_route_kmh": 80,
+     "conflicts": ["D2_out", "A_t1", "A_t2", "B_t1", "B_t2"]},
+
+    {"id": "D2_out", "class": "train", "entry_signal": "D2", "target": "szlak_W",
+     "sections": ["izw1", "iza"], "turnouts": {"z1": "MINUS"}, "flank": {},
+     "overlap": null, "block": "blk_w", "v_route_kmh": 40,
+     "conflicts": ["D1_out", "A_t1", "A_t2", "B_t1", "B_t2"]}
+  ],
+
+  "blocks": [
+    {"id": "blk_w", "type": "elektromechaniczna", "neighbour": "Cisów",
+     "track": "szlak_W", "entry_signal": "A", "exit_signals": ["D1", "D2"]},
+    {"id": "blk_e", "type": "elektromechaniczna", "neighbour": "Grabno",
+     "track": "szlak_E", "entry_signal": "B", "exit_signals": ["C1", "C2"]}
+  ],
+
+  "crossings": [],
+  "dsat": [],
+
+  "panel": {
+    "type": "mechaniczny",
+    "levers": [
+      {"id": "dz1", "type": "zwrotnicowa", "turnout": "z1", "label": "1"},
+      {"id": "dz2", "type": "zwrotnicowa", "turnout": "z2", "label": "2"},
+      {"id": "r3",  "type": "ryglowa", "turnouts": ["z1", "z2"], "label": "3"},
+      {"id": "sA",  "type": "sygnalowa", "signal": "A",  "label": "A"},
+      {"id": "sB",  "type": "sygnalowa", "signal": "B",  "label": "B"},
+      {"id": "sC1", "type": "sygnalowa", "signal": "C1", "label": "C1"},
+      {"id": "sC2", "type": "sygnalowa", "signal": "C2", "label": "C2"},
+      {"id": "sD1", "type": "sygnalowa", "signal": "D1", "label": "D1"},
+      {"id": "sD2", "type": "sygnalowa", "signal": "D2", "label": "D2"}
+    ],
+    "station_blocks": [
+      {"id": "nakaz_wjazd", "kind": "nakaz", "label": "Nakaz wjazd",
+       "routes": ["A_t1", "A_t2", "B_t1", "B_t2"]},
+      {"id": "nakaz_wyjazd", "kind": "nakaz", "label": "Nakaz wyjazd",
+       "routes": ["C1_out", "C2_out", "D1_out", "D2_out"]},
+      {"id": "zwol_przeb", "kind": "zwolnienie", "label": "Zwol. przeb."}
+    ]
+  }
+}

@@ -67,7 +67,8 @@ static func _validate(data: Dictionary, errors: Array[String]) -> void:
 	_validate_crossings(data.get("crossings", []), section_ids, errors)
 	_validate_dsat(data.get("dsat", []), edge_ids, errors)
 	_validate_panel(
-		data.get("panel", {}), section_ids, turnout_ids, signal_ids, block_ids, errors
+		data.get("panel", {}), section_ids, turnout_ids, signal_ids, block_ids,
+		route_ids, errors
 	)
 
 
@@ -358,10 +359,43 @@ static func _validate_panel(
 	turnout_ids: Dictionary,
 	signal_ids: Dictionary,
 	block_ids: Dictionary,
+	route_ids: Dictionary,
 	errors: Array[String],
 ) -> void:
 	if panel.is_empty():
 		return
+	# Panel mechaniczny (docs/systemy/12): dźwignie i bloki stacyjne.
+	var lever_ids := {}
+	for lever_variant: Variant in (panel.get("levers", []) as Array):
+		var lever: Dictionary = lever_variant
+		var lever_id := String(lever.get("id", "?"))
+		if lever_ids.has(lever_id):
+			errors.append("dźwignia '%s': zduplikowane id" % lever_id)
+		lever_ids[lever_id] = true
+		var lever_type := String(lever.get("type", ""))
+		if not LeverFrame.TYPE_FROM_STRING.has(lever_type):
+			errors.append("dźwignia '%s': nieznany typ '%s'" % [lever_id, lever_type])
+			continue
+		match lever_type:
+			"zwrotnicowa":
+				if not turnout_ids.has(String(lever.get("turnout", ""))):
+					errors.append("dźwignia '%s': zwrotnica '%s' nie istnieje"
+						% [lever_id, lever.get("turnout", "")])
+			"ryglowa":
+				for turnout_variant: Variant in (lever.get("turnouts", []) as Array):
+					if not turnout_ids.has(String(turnout_variant)):
+						errors.append("dźwignia '%s': zwrotnica '%s' nie istnieje"
+							% [lever_id, turnout_variant])
+			"sygnalowa":
+				if not signal_ids.has(String(lever.get("signal", ""))):
+					errors.append("dźwignia '%s': sygnalizator '%s' nie istnieje"
+						% [lever_id, lever.get("signal", "")])
+	for block_variant: Variant in (panel.get("station_blocks", []) as Array):
+		var station_block: Dictionary = block_variant
+		var sb_id := String(station_block.get("id", "?"))
+		for route_variant: Variant in (station_block.get("routes", []) as Array):
+			if not route_ids.has(String(route_variant)):
+				errors.append("blok '%s': przebieg '%s' nie istnieje" % [sb_id, route_variant])
 	var tile_index: int = 0
 	for tile_variant: Variant in (panel.get("tiles", []) as Array):
 		var tile: Dictionary = tile_variant

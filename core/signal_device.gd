@@ -38,8 +38,10 @@ var failed: bool = false
 ## obraz zasadniczy doprecyzuje F3 (w F1 nieużywane — Borki ich nie mają).
 static func base_aspect(for_kind: Const.SignalKind) -> StringName:
 	match for_kind:
-		Const.SignalKind.SEMAFOR, Const.SignalKind.SEMAFOR_KSZTALTOWY:
+		Const.SignalKind.SEMAFOR:
 			return &"S1"
+		Const.SignalKind.SEMAFOR_KSZTALTOWY:
+			return &"Sr1"
 		Const.SignalKind.TARCZA_MANEWROWA:
 			return &"Ms1"
 		Const.SignalKind.TARCZA_OSTRZEGAWCZA:
@@ -49,9 +51,10 @@ static func base_aspect(for_kind: Const.SignalKind) -> StringName:
 	return &""
 
 
-## Czy sygnalizator nakazuje zatrzymanie (S1/Ms1 albo ciemny — docs/04 §8).
+## Czy sygnalizator nakazuje zatrzymanie (S1/Sr1/Ms1 albo ciemny/wątpliwy
+## — docs/04 §8, docs/systemy/11 §7).
 func shows_stop() -> bool:
-	return failed or aspect == &"S1" or aspect == &"Ms1"
+	return failed or aspect == &"S1" or aspect == &"Sr1" or aspect == &"Ms1"
 
 
 func set_aspect(new_aspect: StringName) -> void:

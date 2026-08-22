@@ -1,8 +1,7 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://ui/wspolne/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://ui/wspolne/analog_clock.gd" id="2_clock"]
-[ext_resource type="Script" path="res://ui/pulpit_kostkowy/pulpit_view.gd" id="3_pulpit"]
 [ext_resource type="Script" path="res://ui/wspolne/debug_panel.gd" id="4_debug"]
 [ext_resource type="Script" path="res://ui/telefon/phone_panel.gd" id="5_phone"]
 [ext_resource type="Script" path="res://ui/dokumentacja/dziennik_panel.gd" id="6_dziennik"]
@@ -125,15 +124,11 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 12
 
-[node name="PulpitCenter" type="CenterContainer" parent="Layout/Body"]
+[node name="ViewCenter" type="CenterContainer" parent="Layout/Body"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-
-[node name="Pulpit" type="Control" parent="Layout/Body/PulpitCenter"]
-unique_name_in_owner = true
-layout_mode = 2
-script = ExtResource("3_pulpit")
 
 [node name="DebugPanel" type="PanelContainer" parent="Layout/Body"]
 unique_name_in_owner = true

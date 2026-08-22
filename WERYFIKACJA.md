@@ -70,6 +70,22 @@ czego dotyczy wątpliwość, źródło w docs.
     (`order_speed_cap_ms`). Ograniczenie 20 km/h przyjęto do końca jazdy
     przez stację (realnie dotyczy wskazanego miejsca) — uproszczenie F6.
 
+17. **Kolory korpusów dźwigni** — `ui/nastawnia_mech/mech_view.gd`
+    (`COL_LEVER`). Robocze wg docs/systemy/12 §1: zwrotnicowe niebieskie,
+    ryglowe zielone, sygnałowe czerwone — potwierdzić ze zdjęciami
+    polskich nastawni.
+18. **Nazwy pól blokady stacyjnej** — `data/stations/jodlow.json`,
+    `core/lever_frame.gd`. Wg docs/systemy/12 §2 przyjęto robocze:
+    „Nakaz wjazd", „Nakaz wyjazd", „Zwol. przeb.".
+19. **Konwencja barw okienek blokowych** — `ui/nastawnia_mech/mech_view.gd`
+    (`_draw_block_apparatus`). Wg docs/systemy/15 §3 przyjęto: czerwone =
+    zablokowane / funkcja wykonana / nakaz dany, białe = odblokowane.
+20. **Zwalnianie przebiegu na nastawni mechanicznej** — `core/lever_frame.gd`.
+    docs/systemy/12 §5 mówi o ręcznym zwalnianiu po obserwacji końca
+    pociągu; uproszczenie F7: zwalnianie sekcyjne w rdzeniu pozostaje
+    automatyczne, ręcznie cofa się rygiel i zwalnia nakaz (klawisz
+    „Zwol. przeb." działa tylko po zakończonej jeździe).
+
 ## Zweryfikowane / zamknięte
 
 _(brak)_
