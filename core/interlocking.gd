@@ -27,6 +27,9 @@ var routes: Dictionary = {}   # StringName -> Route
 ## Blokady liniowe per szlak (StringName -> BlockLine) — wstrzykuje SimWorld;
 ## warunek 6 checklisty utwierdzenia (docs/04 §3) dla przebiegów wyjazdowych.
 var block_lines: Dictionary = {}
+## Przejazdy (StringName -> LevelCrossing) — wstrzykuje SimWorld;
+## warunek 7 checklisty (docs/04 §3.7).
+var crossings: Dictionary = {}
 ## Liczniki przycisków specjalnych: "dSz:A", "dZw" (docs/systemy/13 §4).
 var counters: Dictionary = {}
 ## Aktywne sygnały zastępcze: id semafora -> pozostały czas.
@@ -149,8 +152,17 @@ func _check_lock_conditions(route: Route) -> CommandResult:
 		var conflict := get_route(conflict_id)
 		if conflict != null and conflict.is_active():
 			return CommandResult.failure("przebieg sprzeczny %s jest nastawiony" % conflict_id)
-	# 1. Sekcje drogi jazdy wolne i nieutwierdzone.
+	# 1. Sekcje drogi jazdy wolne i nieutwierdzone. Odstępy blokady
+	#    samoczynnej ocenia warunek 6 (wyprawianie za pociągiem wymaga
+	#    tylko wolnego pierwszego odstępu — docs/systemy/15 §2).
+	var auto_odstepy: Array[StringName] = []
+	if route.block_id != &"" and block_lines.has(route.block_id):
+		var route_block: BlockLine = block_lines[route.block_id]
+		if route_block.automatic:
+			auto_odstepy = route_block.odstepy
 	for section_id: StringName in route.sections:
+		if auto_odstepy.has(section_id):
+			continue
 		var section := graph.get_section(section_id)
 		if section == null:
 			return CommandResult.failure("przebieg %s: sekcja %s nie istnieje" % [route.id, section_id])
@@ -192,7 +204,25 @@ func _check_lock_conditions(route: Route) -> CommandResult:
 		var dispatch := (block_lines[route.block_id] as BlockLine).can_dispatch()
 		if not dispatch.ok:
 			return dispatch
-	# 7. Przejazdy w drodze przebiegu — Borki ich nie mają; obsługa w F8.
+	# 7. Przejazdy kat. A w drodze przebiegu zamknięte, ssp sprawne
+	#    (docs/04 §3.7, docs/systemy/16 §2–§3).
+	for crossing_id: StringName in crossings:
+		var crossing: LevelCrossing = crossings[crossing_id]
+		var in_route := false
+		for section_id: StringName in crossing.on_sections:
+			if route.sections.has(section_id):
+				in_route = true
+				break
+		if not in_route:
+			continue
+		if not crossing.is_automatic() and not crossing.is_closed():
+			return CommandResult.failure(
+				"przejazd %s w drodze przebiegu nie jest zamknięty" % crossing_id
+			)
+		if crossing.state == LevelCrossing.State.FAILURE:
+			return CommandResult.failure(
+				"przejazd %s w awarii — jazda na Sz/rozkaz z ostrzeżeniem" % crossing_id
+			)
 	return CommandResult.success()
 
 
@@ -419,6 +449,9 @@ func update_signals() -> void:
 	for pass_index: int in 2:
 		for signal_id: StringName in graph.signals:
 			var signal_device := graph.get_signal(signal_id)
+			if signal_device.sbl:
+				# Semafory odstępowe sbl ustawia BlockLine (zajętość).
+				continue
 			if signal_device.kind == Const.SignalKind.SEMAFOR \
 					or signal_device.kind == Const.SignalKind.SEMAFOR_KSZTALTOWY:
 				signal_device.set_aspect(_semaphore_aspect(signal_device))
@@ -451,6 +484,17 @@ func _semaphore_aspect(signal_device: SignalDevice) -> StringName:
 		var next_signal := graph.get_signal(route.exit_signal)
 		if next_signal != null and not next_signal.failed:
 			next_info = aspect_table.info_class(next_signal.aspect)
+	elif route.block_id != &"" and block_lines.has(route.block_id):
+		# Semafor wyjazdowy na szlak z blokadą samoczynną: wg stanu
+		# pierwszego odstępu / wskazania semafora odstępowego (docs/04 §6).
+		var block: BlockLine = block_lines[route.block_id]
+		if block.automatic:
+			if block.occupied:
+				next_info = "STOP"
+			else:
+				var line_signal := graph.get_signal(block.first_line_signal())
+				if line_signal != null:
+					next_info = aspect_table.info_class(line_signal.aspect)
 	return aspect_table.pick(route.v_group, next_info, signal_device)
 
 

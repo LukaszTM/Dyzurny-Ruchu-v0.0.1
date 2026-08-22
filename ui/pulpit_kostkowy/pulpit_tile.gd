@@ -37,6 +37,8 @@ var graph: TrackGraph = null
 var interlocking: Interlocking = null
 ## Blokady liniowe (StringName -> BlockLine) — dla pól block_field.
 var blocks: Dictionary = {}
+## Świat symulacji — dla kafelków przejazdów i dSAT (tylko odczyt stanu).
+var world: SimWorld = null
 ## Faza migania 1 Hz (50% duty) — ustawia PulpitView.
 var blink_on: bool = true
 
@@ -49,11 +51,12 @@ var _pull_action: String = ""
 
 
 func setup(def: Dictionary, p_graph: TrackGraph, p_interlocking: Interlocking = null,
-		p_blocks: Dictionary = {}) -> void:
+		p_blocks: Dictionary = {}, p_world: SimWorld = null) -> void:
 	tile_def = def
 	graph = p_graph
 	interlocking = p_interlocking
 	blocks = p_blocks
+	world = p_world
 	_tile_type = String(def.get("tile", ""))
 	_section_id = StringName(String(def.get("section", "")))
 	_turnout_id = StringName(String(def.get("turnout", "")))
@@ -78,27 +81,46 @@ func setup(def: Dictionary, p_graph: TrackGraph, p_interlocking: Interlocking = 
 ## Rozmiar kafelka w kostkach (pola blokad i przyciski licznikowe są większe).
 func _cells() -> Vector2i:
 	match _tile_type:
-		"block_field":
+		"block_field", "crossing_ctrl", "ssp_ctrl", "dsat_ctrl":
 			return Vector2i(3, 2)
 		"counter_button":
 			return Vector2i(1, 2)
 	return Vector2i(1, 1)
 
 
+## Kafelki wieloprzyciskowe: mapa akcja → środek przycisku.
+func _multi_buttons() -> Dictionary:
+	match _tile_type:
+		"block_field":
+			var block_id := String(tile_def.get("block", ""))
+			return {
+				"block_press:%s:Po" % block_id: Vector2(30.0, 70.0),
+				"block_press:%s:Ko" % block_id: Vector2(72.0, 70.0),
+				"block_press:%s:Poz" % block_id: Vector2(114.0, 70.0),
+			}
+		"crossing_ctrl":
+			var crossing_id := String(tile_def.get("crossing", ""))
+			return {
+				"crossing_close:%s" % crossing_id: Vector2(48.0, 70.0),
+				"crossing_open:%s" % crossing_id: Vector2(96.0, 70.0),
+			}
+		"dsat_ctrl":
+			return {"dsat_ack": Vector2(72.0, 70.0)}
+	return {}
+
+
 func _gui_input(event: InputEvent) -> void:
 	var click := event as InputEventMouseButton
 	if click == null or not click.pressed:
 		return
-	if _tile_type == "block_field":
+	var multi := _multi_buttons()
+	if not multi.is_empty():
 		if click.button_index != MOUSE_BUTTON_LEFT:
 			return
-		var centers := _block_button_centers()
-		for field: String in centers:
-			if click.position.distance_to(centers[field]) <= 12.0:
+		for multi_action: String in multi:
+			if click.position.distance_to(multi[multi_action]) <= 12.0:
 				accept_event()
-				button_activated.emit(
-					"block_press:%s:%s" % [String(tile_def.get("block", "")), field]
-				)
+				button_activated.emit(multi_action)
 				return
 		return
 	var action := ""
@@ -163,6 +185,12 @@ func _draw() -> void:
 			_draw_text(Vector2(0.0, 24.0), TILE, String(tile_def.get("text", "")), 11)
 		"block_field":
 			_draw_block_field()
+		"crossing_ctrl":
+			_draw_crossing_ctrl()
+		"ssp_ctrl":
+			_draw_ssp_ctrl()
+		"dsat_ctrl":
+			_draw_dsat_ctrl()
 		"counter_button":
 			_draw_counter_button()
 		"button":
@@ -384,6 +412,78 @@ func _block_button_centers() -> Dictionary:
 		"Ko": Vector2(72.0, 70.0),
 		"Poz": Vector2(114.0, 70.0),
 	}
+
+
+## Pole przejazdu kat. A (docs/systemy/16 §2): lampki położenia drągów
+## + przyciski zamknij/otwórz.
+## TODO(weryfikacja): konwencja lampek położenia drągów — przyjęto:
+## biała = zamknięty (bezpieczny dla kolei), ciemna = otwarty,
+## miganie = ruch drągów / awaria (czerwone).
+func _draw_crossing_ctrl() -> void:
+	draw_rect(Rect2(4.0, 4.0, 136.0, 88.0), COL_TEXT, false, 2.0)
+	_draw_text(Vector2(4.0, 18.0), 136.0, String(tile_def.get("label", "")), 9)
+	var crossing: LevelCrossing = null
+	if world != null:
+		crossing = world.crossings.get(StringName(String(tile_def.get("crossing", ""))))
+	var lamp := COL_LAMP_OFF
+	if crossing != null:
+		match crossing.state:
+			LevelCrossing.State.CLOSED:
+				lamp = COL_LOCKED
+			LevelCrossing.State.CLOSING, LevelCrossing.State.OPENING:
+				lamp = COL_LOCKED if blink_on else COL_LAMP_OFF
+			LevelCrossing.State.FAILURE:
+				lamp = COL_OCCUPIED if blink_on else COL_LAMP_OFF
+			_:
+				lamp = COL_LAMP_OFF
+	draw_circle(Vector2(72.0, 38.0), 8.0, COL_LAMP_RING)
+	draw_circle(Vector2(72.0, 38.0), 6.5, lamp)
+	var state_name := "?" if crossing == null \
+		else LevelCrossing.STATE_NAMES[crossing.state]
+	_draw_text(Vector2(4.0, 54.0), 136.0, state_name, 8)
+	_draw_button(Vector2(48.0, 70.0), COL_BUTTON_GRAY)
+	_draw_text(Vector2(28.0, 89.0), 40.0, "Zamk", 8)
+	_draw_button(Vector2(96.0, 70.0), COL_BUTTON_GRAY)
+	_draw_text(Vector2(76.0, 89.0), 40.0, "Otw", 8)
+
+
+## Kontrola ssp na pulpicie (docs/systemy/16 §3): sprawna / załączona /
+## awaria.
+func _draw_ssp_ctrl() -> void:
+	draw_rect(Rect2(4.0, 4.0, 136.0, 88.0), COL_TEXT, false, 2.0)
+	_draw_text(Vector2(4.0, 18.0), 136.0, String(tile_def.get("label", "")), 9)
+	var crossing: LevelCrossing = null
+	if world != null:
+		crossing = world.crossings.get(StringName(String(tile_def.get("crossing", ""))))
+	var ok_lamp := COL_LAMP_OFF
+	var active_lamp := COL_LAMP_OFF
+	var fail_lamp := COL_LAMP_OFF
+	if crossing != null:
+		if crossing.state == LevelCrossing.State.FAILURE:
+			fail_lamp = COL_OCCUPIED if blink_on else COL_LAMP_OFF
+		else:
+			ok_lamp = COL_GREEN
+			if crossing.state != LevelCrossing.State.OPEN:
+				active_lamp = COL_LOCKED
+	var lamp_x: Array[float] = [30.0, 72.0, 114.0]
+	var lamp_colors: Array[Color] = [ok_lamp, active_lamp, fail_lamp]
+	var labels: Array[String] = ["sprawna", "załącz.", "awaria"]
+	for i: int in 3:
+		draw_circle(Vector2(lamp_x[i], 44.0), 7.0, COL_LAMP_RING)
+		draw_circle(Vector2(lamp_x[i], 44.0), 5.5, lamp_colors[i])
+		_draw_text(Vector2(lamp_x[i] - 22.0, 62.0), 44.0, labels[i], 8)
+
+
+## Terminal dSAT (docs/systemy/17 §2): lampka alarmu + kwitowanie.
+func _draw_dsat_ctrl() -> void:
+	draw_rect(Rect2(4.0, 4.0, 136.0, 88.0), COL_TEXT, false, 2.0)
+	_draw_text(Vector2(4.0, 18.0), 136.0, String(tile_def.get("label", "")), 9)
+	var alarm := world != null and world.dsat_unacked()
+	var lamp := (COL_OCCUPIED if blink_on else COL_LAMP_OFF) if alarm else COL_LAMP_OFF
+	draw_circle(Vector2(72.0, 40.0), 8.0, COL_LAMP_RING)
+	draw_circle(Vector2(72.0, 40.0), 6.5, lamp)
+	_draw_button(Vector2(72.0, 70.0), COL_BUTTON_RED)
+	_draw_text(Vector2(52.0, 89.0), 40.0, "KWIT", 8)
 
 
 ## Przycisk specjalny z licznikiem i plombą (1×2 kostki, spec §2/§4,

@@ -54,6 +54,16 @@ func tick(now_s: float) -> Array[Dictionary]:
 			continue
 		if now_s < float(entry.arr_s) - REQUEST_LEAD_S:
 			continue
+		if block.automatic:
+			# Blokada samoczynna (docs/systemy/15 §2): zapowiedzi ograniczone —
+			# samo oznajmienie; wjazd, gdy pierwszy odstęp od sąsiada wolny.
+			if _section_free_for_entry() and now_s >= float(entry.arr_s) - ANNOUNCE_LEAD_S:
+				_announced[entry.nr] = true
+				events.append({
+					"kind": "phone", "type": &"oznajmienie_odjazdu", "nr": entry.nr,
+				})
+				_pending.append({"at_s": now_s + 15.0, "kind": "spawn", "nr": entry.nr})
+			continue
 		if block.failed:
 			# Awaria blokady: pozwolenie wyłącznie telefonicznie (formuła
 			# „danie pozwolenia" od gracza), pola blokady nieczynne.
@@ -116,6 +126,13 @@ func on_player_phone(type: StringName, nr: String, now_s: float) -> void:
 ## sąsiad potwierdza przyjazd (jego Ko zwalnia odstęp) — docs/systemy/15 §1.
 func on_player_train_left(nr: String, now_s: float) -> void:
 	_pending.append({"at_s": now_s + NEIGHBOUR_RUN_S, "kind": "confirm_arrival", "nr": nr})
+
+
+## Pierwszy odstęp po stronie wjazdu do gracza wolny (sbl: pociąg
+## wchodzi na ostatni odstęp przed stacją... wejście od strony sąsiada
+## = początek listy odstępów bloku przyjazdowego).
+func _section_free_for_entry() -> bool:
+	return not block.occupied
 
 
 func _run_pending(now_s: float, events: Array[Dictionary]) -> void:

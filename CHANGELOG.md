@@ -1,5 +1,58 @@
 # CHANGELOG
 
+## Faza 8 — Linia dwutorowa, sbl, przejazdy, dSAT (2026-08-22)
+
+### Dodano
+
+- Blokada samoczynna (docs/systemy/15 §2): typy `samoczynna_3staw`
+  i `samoczynna_4staw` w `core/block_line.gd` — odstępy z sekcji,
+  semafory odstępowe sterowane wyłącznie zajętością (3-staw S1←S5←S2,
+  4-staw + S3), zajętość bloku = pierwszy odstęp, pola Po/Ko nieczynne
+  („blokada samoczynna"), wyprawianie za pociągiem (warunek: wolny
+  pierwszy odstęp), semafor wyjazdowy dobiera obraz wg pierwszego
+  odstępowego. Awaria sbl = odstępowe na „stój".
+- `core/level_crossing.gd` — przejazdy: kat. A obsługiwany poleceniami
+  `crossing_close`/`crossing_open` (czas ruchu rogatek), ssp samoczynne
+  od najazdu na odcinki oddziaływania; awaria (zdarzenie
+  `crossing_failure`) → jazda 20 km/h przez rejon przejazdu; przejazd
+  kat. A w drodze przebiegu musi być zamknięty (warunek 7 utwierdzenia,
+  docs/04 §3.7).
+- `core/dsat.gd` — dSAT (docs/systemy/17): raport przy przejeździe
+  („bez usterek" / alarm GM–GH–PM z osią), alarm uzbrajany zdarzeniem
+  scenariusza `dsat_alarm`. Procedura w rdzeniu: kwit (`dsat_ack`),
+  zatrzymanie pociągu ≤180 s (inaczej kara −50), oględziny 300 s,
+  wynik → rozkaz ograniczenia 40 km/h przy potwierdzeniu usterki.
+- RADIOSTOP: polecenia `radio_stop`/`radio_release` (hamowanie nagłe,
+  zwolnienie wznawia jazdę).
+- `data/stations/brzeziny.json` — stacja poziomu 4 „Brzeziny"
+  (Sosnów–Dęby, linia dwutorowa, sbl 3-stawna w obu kierunkach, tor 3
+  wyprzedzania, przejazd kat. A na torze 2, ssp na szlaku zachodnim,
+  dSAT na wjeździe); scenariusz `brzeziny-szczyt` (60 min, 5 pociągów,
+  alarm dSAT 07:14, awaria ssp 07:28).
+- Kafelki pulpitu: `crossing_ctrl` (lampka stanu + Zamk/Otw),
+  `ssp_ctrl` (sprawna/załączona/awaria), `dsat_ctrl` (lampka alarmu
+  migająca do skwitowania + przycisk KWIT).
+- Testy: 9 nowych (aspekty odstępowe, wyprawianie za pociągiem, pola
+  ręczne nieczynne, przejazd warunkiem przebiegu, ssp od najazdu,
+  awaria ssp 20 km/h, procedura dSAT pełna i zaniedbana, radiostop).
+  Razem 117.
+
+### Naprawiono
+
+- Kolejność ticku: blokady samoczynne liczą się PRZED interlockingiem,
+  żeby semafor wyjazdowy widział świeży obraz odstępowego (bez opóźnienia
+  o tick).
+- Odmowa wyjazdu na zajęty szlak sbl niesie przyczynę blokową
+  („pierwszy odstęp zajęty"), nie surową zajętość sekcji.
+
+### Test ręczny
+
+Scenariusz „Szczyt w Brzezinach": przed 07:05 zamknąć przejazd
+(ZAMYKANIE → Zamk), nastawić A→tor 1 i wyjazd C1; obserwować kolumnę
+pociągów na wschód (semafory odstępowe O1/O2 na planie). O 07:14 alarm
+dSAT: KWIT, pociąg zatrzymać (nie podawać C1), po oględzinach rozkaz.
+O 07:28 awaria ssp — pociągi zwalniają do 20 km/h na szlaku zachodnim.
+
 ## Faza 7 — Nastawnia mechaniczna (2026-08-22)
 
 ### Dodano

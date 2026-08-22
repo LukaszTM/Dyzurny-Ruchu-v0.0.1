@@ -116,7 +116,7 @@ func _start_scenario(path: String) -> void:
 		_view = mech
 	else:
 		var pulpit := PulpitView.new()
-		pulpit.build(_world.station, _world.interlocking, _world.block_lines)
+		pulpit.build(_world.station, _world.interlocking, _world.block_lines, _world)
 		pulpit.action_requested.connect(_on_ui_action)
 		_view = pulpit
 	_view_center.add_child(_view)

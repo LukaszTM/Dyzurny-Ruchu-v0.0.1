@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "id": "brzeziny-szczyt",
+    "name": "Szczyt w Brzezinach",
+    "station": "brzeziny",
+    "description": "Linia dwutorowa z sbl: trzy pociagi za soba na wschod, dwa na zachod. Alarm dSAT i awaria ssp w trakcie zmiany.",
+    "difficulty": {"auto_docs": true, "hints": true, "time_multiplier_allowed": [1, 2, 5]}
+  },
+
+  "start_time": "07:00",
+  "duration_min": 60,
+
+  "timetable": [
+    {"nr": "31501", "kind": "osobowy", "from": "Sosnów", "to": "Dęby",
+     "arr": "07:08", "dep": "07:09", "track": "t1", "stop": true,
+     "len_m": 120, "vmax_kmh": 100, "mass_t": 180, "power_class": "EZT"},
+
+    {"nr": "31502", "kind": "osobowy", "from": "Dęby", "to": "Sosnów",
+     "arr": "07:12", "dep": "07:13", "track": "t2", "stop": true,
+     "len_m": 120, "vmax_kmh": 100, "mass_t": 180, "power_class": "EZT"},
+
+    {"nr": "645310", "kind": "towarowy", "from": "Sosnów", "to": "Dęby",
+     "arr": "07:16", "dep": "07:16", "track": "t1", "stop": false,
+     "len_m": 550, "vmax_kmh": 70, "mass_t": 1900, "power_class": "lok_el"},
+
+    {"nr": "31503", "kind": "osobowy", "from": "Sosnów", "to": "Dęby",
+     "arr": "07:24", "dep": "07:25", "track": "t1", "stop": true,
+     "len_m": 120, "vmax_kmh": 100, "mass_t": 180, "power_class": "EZT"},
+
+    {"nr": "31504", "kind": "osobowy", "from": "Dęby", "to": "Sosnów",
+     "arr": "07:34", "dep": "07:35", "track": "t2", "stop": true,
+     "len_m": 120, "vmax_kmh": 100, "mass_t": 180, "power_class": "EZT"}
+  ],
+
+  "events": [
+    {"at": "07:14", "type": "dsat_alarm", "target": "dsat1",
+     "payload": {"code": "GM", "level": "ALARM", "axle": 14},
+     "_uwaga": "alarm na towarowym 645310 - zatrzymac przed stacja"},
+
+    {"at": "07:28", "type": "crossing_failure", "target": "przB",
+     "repair_min": 12,
+     "_uwaga": "awaria ssp - pociagi z W zwalniaja do 20 km/h, rozkaz O"}
+  ],
+
+  "scoring": {"target_delay_min": 6, "required_docs": true}
+}

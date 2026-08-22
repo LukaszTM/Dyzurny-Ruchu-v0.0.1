@@ -25,6 +25,9 @@ var can_sz: bool = false
 var tarcza_ostrzegawcza: StringName = &""
 ## Id semafora, do którego odnosi się tarcza/powtarzacz.
 var for_signal: StringName = &""
+## Semafor odstępowy blokady samoczynnej — sterowany wyłącznie zajętością,
+## ślepy na przebiegi (docs/systemy/15 §2); ustawia go BlockLine.
+var sbl: bool = false
 
 ## Bieżący obraz sygnałowy (nazwa wg docs/systemy/11-sygnalizacja.md).
 var aspect: StringName = &"S1"

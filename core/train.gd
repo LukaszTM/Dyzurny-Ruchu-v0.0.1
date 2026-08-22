@@ -47,6 +47,13 @@ var pass_orders: Dictionary = {}
 ## TODO(weryfikacja): zakres obowiązywania rozkazu O — przyjęto do końca
 ## jazdy przez stację (docs/systemy/18 §5, uproszczenie F6).
 var order_speed_cap_ms: float = INF
+## Zatrzymanie przez radiotelefon (radiostop, docs/systemy/17 §2).
+var radio_hold: bool = false
+## Przejazdy wg sekcji (StringName -> LevelCrossing) — do zwolnienia
+## przed niesprawnym/otwartym przejazdem (docs/systemy/16 §4).
+var crossings_by_section: Dictionary = {}
+## Limit przed przejazdem wymagającym ostrożności.
+const CROSSING_CAUTION_MS: float = 20.0 / 3.6
 ## Koniec postoju handlowego (sekundy doby); 0 = jeszcze nie wyliczony.
 var dwell_until_s: float = 0.0
 var dwell_done: bool = false
@@ -137,9 +144,11 @@ func _drive(dt: float, time_of_day_s: float) -> void:
 	limit = minf(limit, order_speed_cap_ms)
 	if sz_authority:
 		limit = minf(limit, SZ_LIMIT_MS)
+	if radio_hold:
+		limit = 0.0
 	var stop_at := _nearest_stop_point()
 	var target := minf(limit, _sz_approach_limit())
-	var brake_rate := brake_service
+	var brake_rate := BRAKE_EMERGENCY if radio_hold else brake_service
 	if stop_at >= 0.0:
 		var distance := stop_at - front_m
 		if distance <= 0.05:
@@ -258,13 +267,21 @@ func sections_ahead_to_next_signal() -> Array[StringName]:
 	return result
 
 
-## Limit prędkości bieżącego segmentu (vmax toru / zwrotnicy).
+## Limit prędkości bieżącego segmentu (vmax toru / zwrotnicy) + ostrożna
+## jazda przed przejazdem w awarii lub z otwartymi rogatkami (docs/16 §4).
 func _current_speed_limit() -> float:
+	var limit := vmax_ms
 	for segment: Dictionary in path:
 		var start := float(segment["start"])
-		if front_m >= start and front_m < start + float(segment["len"]):
-			return float(segment["vmax_ms"])
-	return vmax_ms
+		var end := start + float(segment["len"])
+		if front_m >= start and front_m < end:
+			limit = float(segment["vmax_ms"])
+		# Ostrożność obowiązuje już przy zbliżaniu (odcinek przed przejazdem).
+		if end > front_m and start < front_m + 250.0:
+			var crossing: LevelCrossing = crossings_by_section.get(segment["section"])
+			if crossing != null and crossing.requires_caution():
+				limit = minf(limit, CROSSING_CAUTION_MS)
+	return limit
 
 
 func _maybe_start_dwell(stop_at: float, time_of_day_s: float) -> void:

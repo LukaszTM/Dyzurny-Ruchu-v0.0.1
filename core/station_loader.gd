@@ -55,6 +55,8 @@ static func _validate(data: Dictionary, errors: Array[String]) -> void:
 	var signal_ids := _collect_ids(data["signals"], "sygnalizator", errors)
 	var route_ids := _collect_ids(data["routes"], "przebieg", errors)
 	var block_ids := _collect_ids(data.get("blocks", []), "blokada", errors)
+	var crossing_ids := _collect_ids(data.get("crossings", []), "przejazd", errors)
+	var dsat_ids := _collect_ids(data.get("dsat", []), "dSAT", errors)
 
 	_validate_edges(data["edges"], node_ids, errors)
 	_validate_turnouts(data["turnouts"], data["edges"], node_ids, edge_ids, errors)
@@ -64,11 +66,12 @@ static func _validate(data: Dictionary, errors: Array[String]) -> void:
 		data["routes"], section_ids, turnout_ids, signal_ids, route_ids, block_ids, errors
 	)
 	_validate_blocks(data.get("blocks", []), signal_ids, errors)
+	_validate_blocks_sections(data.get("blocks", []), section_ids, errors)
 	_validate_crossings(data.get("crossings", []), section_ids, errors)
 	_validate_dsat(data.get("dsat", []), edge_ids, errors)
 	_validate_panel(
 		data.get("panel", {}), section_ids, turnout_ids, signal_ids, block_ids,
-		route_ids, errors
+		route_ids, crossing_ids, dsat_ids, errors
 	)
 
 
@@ -327,6 +330,23 @@ static func _validate_blocks(
 				errors.append(
 					"blokada '%s': semafor '%s' (exit_signals) nie istnieje" % [id, signal_variant]
 				)
+		for signal_variant: Variant in (block.get("signals", []) as Array):
+			var line_signal := String(signal_variant)
+			if not line_signal.is_empty() and not signal_ids.has(line_signal):
+				errors.append(
+					"blokada '%s': semafor odstępowy '%s' nie istnieje" % [id, line_signal]
+				)
+
+
+static func _validate_blocks_sections(
+	blocks: Array, section_ids: Dictionary, errors: Array[String]
+) -> void:
+	for item: Variant in blocks:
+		var block: Dictionary = item
+		var id := String(block.get("id", "?"))
+		for section_variant: Variant in (block.get("odstepy", []) as Array):
+			if not section_ids.has(String(section_variant)):
+				errors.append("blokada '%s': odstęp '%s' nie istnieje" % [id, section_variant])
 
 
 static func _validate_crossings(
@@ -360,6 +380,8 @@ static func _validate_panel(
 	signal_ids: Dictionary,
 	block_ids: Dictionary,
 	route_ids: Dictionary,
+	crossing_ids: Dictionary,
+	dsat_ids: Dictionary,
 	errors: Array[String],
 ) -> void:
 	if panel.is_empty():
@@ -409,6 +431,10 @@ static func _validate_panel(
 			errors.append("%s: sygnalizator '%s' nie istnieje" % [where, tile["signal"]])
 		if tile.has("block") and not block_ids.has(String(tile["block"])):
 			errors.append("%s: blokada '%s' nie istnieje" % [where, tile["block"]])
+		if tile.has("crossing") and not crossing_ids.has(String(tile["crossing"])):
+			errors.append("%s: przejazd '%s' nie istnieje" % [where, tile["crossing"]])
+		if tile.has("dsat") and not dsat_ids.has(String(tile["dsat"])):
+			errors.append("%s: dSAT '%s' nie istnieje" % [where, tile["dsat"]])
 
 
 # ---------------------------------------------------------------------------
@@ -479,6 +505,7 @@ static func _build(data: Dictionary) -> StationData:
 			String(signal_def.get("tarcza_ostrzegawcza", ""))
 		)
 		signal_device.for_signal = StringName(String(signal_def.get("for_signal", "")))
+		signal_device.sbl = bool(signal_def.get("sbl", false))
 		signal_device.aspect = SignalDevice.base_aspect(signal_device.kind)
 		graph.signals[signal_device.id] = signal_device
 

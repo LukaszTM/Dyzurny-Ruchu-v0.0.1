@@ -1,8 +1,9 @@
 class_name BlockLine
 extends RefCounted
-## Blokada półsamoczynna jednego szlaku (docs/systemy/15 §1, §4).
-## Pola: Po (początkowe — zablokowanie po wyprawieniu), Ko (końcowe —
-## potwierdzenie przyjazdu), Poz (pozwolenie na szlaku jednotorowym).
+## Blokada liniowa jednego toru szlaku (docs/systemy/15).
+## Półsamoczynna/elektromechaniczna (§1/§3): pola Po/Ko/Poz obsługiwane
+## ręcznie. Samoczynna (§2): odstępy z semaforami odstępowymi sterowanymi
+## wyłącznie zajętością (ślepe na przebiegi), wyprawianie za pociągiem.
 
 ## Po której stronie szlaku jest pozwolenie wyprawiania.
 enum BlockSide { PLAYER, NEIGHBOUR }
@@ -13,6 +14,14 @@ var entry_signal: StringName = &""
 var exit_signals: Array[StringName] = []
 ## Sekcja zbliżania szlaku po stronie gracza (do detekcji wjazdu/wyjazdu).
 var approach_section: StringName = &""
+## Blokada samoczynna (docs/systemy/15 §2): true dla typów samoczynna_*.
+var automatic: bool = false
+## Liczba staw (3 lub 4) — dobór obrazów semaforów odstępowych.
+var staw: int = 3
+## Odstępy w kolejności jazdy (id sekcji).
+var odstepy: Array[StringName] = []
+## Semafory osłaniające kolejne odstępy ("" = osłania semafor stacyjny).
+var odstep_signals: Array[StringName] = []
 
 var permission_at: BlockSide = BlockSide.PLAYER
 ## Awaria blokady (docs/systemy/15 §1, 18 §6): pola nieczynne, ruch
@@ -38,6 +47,17 @@ static func from_def(def: Dictionary, p_approach: StringName) -> BlockLine:
 	for signal_id: Variant in (def.get("exit_signals", []) as Array):
 		block.exit_signals.append(StringName(String(signal_id)))
 	block.approach_section = p_approach
+	var type := String(def.get("type", "polsamoczynna"))
+	block.automatic = type.begins_with("samoczynna")
+	block.staw = 4 if type.contains("4staw") else 3
+	for section_id: Variant in (def.get("odstepy", []) as Array):
+		block.odstepy.append(StringName(String(section_id)))
+	for signal_id: Variant in (def.get("signals", []) as Array):
+		block.odstep_signals.append(StringName(String(signal_id)))
+	if block.automatic and not block.odstepy.is_empty() and p_approach == &"":
+		# Zbliżanie/wyjście dla sbl = odstęp przylegający do stacji.
+		block.approach_section = block.odstepy[0] \
+			if not block.exit_signals.is_empty() else block.odstepy[block.odstepy.size() - 1]
 	return block
 
 
@@ -48,6 +68,11 @@ func can_dispatch() -> CommandResult:
 		return CommandResult.failure(
 			"blokada %s uszkodzona — telefoniczne zapowiadanie, jazda na Sz lub rozkaz „S”" % id
 		)
+	if automatic:
+		# Wyprawianie za pociągiem: wystarczy wolny pierwszy odstęp (§2).
+		if occupied:
+			return CommandResult.failure("blokada %s: pierwszy odstęp zajęty" % id)
+		return CommandResult.success()
 	if permission_at != BlockSide.PLAYER:
 		return CommandResult.failure(
 			"blokada %s: pozwolenie jest u sąsiada (%s)" % [id, neighbour_name]
@@ -65,6 +90,10 @@ func can_dispatch_from_neighbour() -> bool:
 
 ## Obsługa pola przez gracza (przyciski Po/Ko/Poz na pulpicie).
 func press(field: String) -> CommandResult:
+	if automatic:
+		return CommandResult.failure(
+			"blokada %s samoczynna — pola Po/Ko/Poz nie występują" % id
+		)
 	if failed:
 		return CommandResult.failure("blokada %s uszkodzona — pola nieczynne" % id)
 	match field:
@@ -127,10 +156,59 @@ func train_dispatched_by_player(nr: String) -> void:
 
 ## Sąsiad potwierdził przyjazd u siebie (jego Ko) → odstęp wolny.
 func released_by_neighbour() -> void:
+	if automatic:
+		return
 	occupied = false
 	po_locked = false
 	po_pending = false
 	train_nr = ""
+
+
+## Krok blokady samoczynnej (docs/systemy/15 §2): zajętość odstępów
+## z sekcji, obrazy semaforów odstępowych wg liczby wolnych odstępów
+## przed nimi (3-stawna: S1←S5←S2; 4-stawna: S1←S5←S3←S2).
+func update_automatic(graph: TrackGraph) -> void:
+	if not automatic or odstepy.is_empty():
+		return
+	var occupied_flags: Array[bool] = []
+	for section_id: StringName in odstepy:
+		var section := graph.get_section(section_id)
+		occupied_flags.append(section != null and section.occupied)
+	occupied = occupied_flags[0]
+	for i: int in odstep_signals.size():
+		if odstep_signals[i] == &"" or i >= occupied_flags.size():
+			continue
+		var signal_device := graph.get_signal(odstep_signals[i])
+		if signal_device == null:
+			continue
+		var free_count := 0
+		for j: int in range(i, occupied_flags.size()):
+			if occupied_flags[j]:
+				break
+			free_count += 1
+		signal_device.set_aspect(_automatic_aspect(free_count))
+
+
+func _automatic_aspect(free_count: int) -> StringName:
+	if failed:
+		# Awaria sbl: semafory odstępowe ciemne = „stój" (docs/systemy/15 §2).
+		return &"S1"
+	if free_count <= 0:
+		return &"S1"
+	if free_count == 1:
+		return &"S5"
+	if staw == 4 and free_count == 2:
+		return &"S3"
+	return &"S2"
+
+
+## Obraz pierwszego semafora za stacyjnym wyjazdowym (do next_info
+## semafora wyjazdowego przy sbl — docs/04 §6).
+func first_line_signal() -> StringName:
+	for signal_id: StringName in odstep_signals:
+		if signal_id != &"":
+			return signal_id
+	return &""
 
 
 func to_dict() -> Dictionary:

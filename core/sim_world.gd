@@ -36,6 +36,17 @@ var pending_events: Array[Dictionary] = []
 var director: EventDirector = null
 ## Ława dźwigniowa (null poza nastawnią mechaniczną — docs/systemy/12).
 var lever_frame: LeverFrame = null
+## Przejazdy kolejowo-drogowe (StringName -> LevelCrossing).
+var crossings: Dictionary = {}
+## Urządzenia dSAT (StringName -> Dsat).
+var dsats: Dictionary = {}
+## Trwające procedury dSAT: nr pociągu -> {level, at_s, acked, held,
+## inspected, result_at_s} (docs/systemy/17 §3).
+var _dsat_cases: Dictionary = {}
+## Termin reakcji na alarm dSAT (docs/17 §3.5).
+const DSAT_REACT_S: float = 180.0
+## Czas oględzin po zatrzymaniu (docs/17 §3.3: 5–10 min — przyjęto 5).
+const DSAT_INSPECT_S: float = 300.0
 ## Jedyne źródło losowości rdzenia — Main podpina RNG z GameState
 ## (determinizm, CLAUDE.md zasada 5).
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -78,6 +89,15 @@ func load_station_file(path: String) -> Dictionary:
 		lever_frame = null
 		if String(station.panel.get("type", "")) == "mechaniczny":
 			lever_frame = LeverFrame.new(station.panel, station.graph, interlocking)
+		crossings.clear()
+		for crossing_def: Dictionary in station.crossings:
+			var crossing := LevelCrossing.from_def(crossing_def)
+			crossings[crossing.id] = crossing
+		interlocking.crossings = crossings
+		dsats.clear()
+		for dsat_def: Dictionary in station.dsat:
+			var device := Dsat.from_def(dsat_def)
+			dsats[device.id] = device
 		block_lines.clear()
 		for block_def: Dictionary in station.blocks:
 			var entry_signal := station.graph.get_signal(
@@ -116,7 +136,10 @@ func apply_scenario(scenario: Dictionary) -> Dictionary:
 	neighbours.clear()
 	for block_id: StringName in block_lines:
 		var block: BlockLine = block_lines[block_id]
-		neighbours.append(NeighbourAI.new(block.neighbour_name, block, timetable))
+		# AI powstaje przy bloku przyjazdowym (z semaforem wjazdowym);
+		# bloki wyjazdowe sbl zwalniają się same zajętością odstępów.
+		if block.entry_signal != &"":
+			neighbours.append(NeighbourAI.new(block.neighbour_name, block, timetable))
 	director = EventDirector.from_scenario(scenario)
 	return {"ok": true, "errors": [] as Array[String]}
 
@@ -157,7 +180,36 @@ func execute(name: StringName, args: Dictionary) -> CommandResult:
 			if lever_frame == null:
 				return CommandResult.failure("ta nastawnia nie ma aparatu blokowego")
 			return lever_frame.press_block(StringName(String(args.get("id", ""))))
+		&"crossing_close", &"crossing_open":
+			var crossing: LevelCrossing = crossings.get(StringName(String(args.get("id", ""))))
+			if crossing == null:
+				return CommandResult.failure("przejazd %s nie istnieje" % args.get("id", ""))
+			return crossing.command_close() if name == &"crossing_close" \
+				else crossing.command_open()
+		&"dsat_ack":
+			return _cmd_dsat_ack(String(args.get("nr", "")))
+		&"radio_stop", &"radio_release":
+			var held_train := _train_by_nr(String(args.get("nr", "")))
+			if held_train == null:
+				return CommandResult.failure("brak pociągu %s na stacji" % args.get("nr", ""))
+			held_train.radio_hold = name == &"radio_stop"
+			return CommandResult.success()
 	return interlocking.execute(name, args)
+
+
+## Skwitowanie alarmu dSAT (docs/systemy/17 §3.1). Puste nr = wszystkie.
+func _cmd_dsat_ack(nr: String) -> CommandResult:
+	var acked := 0
+	for case_nr: String in _dsat_cases:
+		if not nr.is_empty() and case_nr != nr:
+			continue
+		var case_data: Dictionary = _dsat_cases[case_nr]
+		if not bool(case_data["acked"]):
+			case_data["acked"] = true
+			acked += 1
+	if acked == 0:
+		return CommandResult.failure("brak alarmu dSAT do skwitowania")
+	return CommandResult.success()
 
 
 ## Wystawienie i dyktowanie rozkazu pisemnego (docs/systemy/18 §5).
@@ -273,12 +325,91 @@ func tick(dt: float) -> void:
 	_track_train_procedures()
 	_despawn_done_trains()
 	station.graph.tick(dt)
+	# Blokady samoczynne przed interlockingiem: semafory odstępowe muszą
+	# mieć świeży obraz, zanim update_signals policzy semafor wyjazdowy
+	# (next_info z pierwszego odstępowego — docs/04 §6).
+	for block_id: StringName in block_lines:
+		(block_lines[block_id] as BlockLine).update_automatic(station.graph)
 	interlocking.tick(dt)
+	# (6) przejazdy/dSAT (kolejność wg docs/02).
+	for crossing_id: StringName in crossings:
+		(crossings[crossing_id] as LevelCrossing).tick(dt, station.graph)
+	_tick_dsat()
 	_tick_events()
 	_tick_orders(dt)
 	_tick_neighbours()
 	_check_procedure_deadlines()
 	_check_shift_end()
+
+
+## Pomiary dSAT i pilnowanie procedury alarmowej (docs/systemy/17 §2–§3).
+func _tick_dsat() -> void:
+	var now := time_of_day_s()
+	for dsat_id: StringName in dsats:
+		var device: Dsat = dsats[dsat_id]
+		for train: Train in trains:
+			var report := device.check_train(train, station.graph)
+			if report.is_empty():
+				continue
+			if String(report["level"]) == "OK":
+				pending_events.append({"type": &"dsat_report",
+					"text": "dSAT %s: pociąg %s — bez usterek" % [dsat_id, train.nr]})
+			else:
+				_dsat_cases[train.nr] = {"level": report["level"], "at_s": now,
+					"acked": false, "held": false, "inspected": false, "result_at_s": -1.0}
+				pending_events.append({"type": &"dsat_alarm",
+					"train": train.nr, "code": report["code"],
+					"level": report["level"], "axle": report["axle"],
+					"text": "dSAT %s: pociąg %s, oś %d, kod %s — %s! Skwituj i zatrzymaj pociąg"
+					% [dsat_id, train.nr, report["axle"], report["code"], report["level"]]})
+	for nr: String in _dsat_cases:
+		var case_data: Dictionary = _dsat_cases[nr]
+		var train := _train_by_nr(nr)
+		if not bool(case_data["held"]) and train != null and train.v_ms == 0.0 \
+				and (train.radio_hold or _is_train_held_by_signal(train)):
+			case_data["held"] = true
+			case_data["result_at_s"] = now + DSAT_INSPECT_S
+			pending_events.append({"type": &"alarm",
+				"text": "Pociąg %s zatrzymany — drużyna wykonuje oględziny (%d min)"
+				% [nr, int(DSAT_INSPECT_S / 60.0)]})
+		if not bool(case_data.get("penalized", false)) \
+				and now > float(case_data["at_s"]) + DSAT_REACT_S \
+				and not (bool(case_data["acked"]) and bool(case_data["held"])):
+			case_data["penalized"] = true
+			pending_events.append({"type": &"penalty", "points": 50,
+				"reason": "ZDARZENIE NIEBEZPIECZNE: brak reakcji na alarm dSAT (pociąg %s)" % nr})
+		if bool(case_data["held"]) and not bool(case_data["inspected"]) \
+				and now >= float(case_data["result_at_s"]):
+			case_data["inspected"] = true
+			# Wynik oględzin z RNG scenariusza (docs/17 §3.4).
+			var confirmed := rng.randf() < 0.6
+			if train != null:
+				train.radio_hold = false
+				if confirmed:
+					train.order_speed_cap_ms = 40.0 / 3.6
+			pending_events.append({"type": &"alarm",
+				"text": ("Oględziny %s: usterka potwierdzona — wagon wyłączony, jazda ≤40 km/h"
+					if confirmed else "Oględziny %s: alarm fałszywy — pociąg gotów do jazdy") % nr})
+
+
+## Czy jest nieskwitowany alarm dSAT (lampka/brzęczyk w UI).
+func dsat_unacked() -> bool:
+	for nr: String in _dsat_cases:
+		if not bool((_dsat_cases[nr] as Dictionary)["acked"]):
+			return true
+	return false
+
+
+func _is_train_held_by_signal(train: Train) -> bool:
+	# Pociąg stoi przed semaforem „stój" (przytrzymany sygnałem).
+	for point: Dictionary in train.signal_points:
+		if bool(point["passed"]):
+			continue
+		var signal_device := station.graph.get_signal(point["signal"])
+		if signal_device != null and signal_device.shows_stop() \
+				and float(point["pos"]) - train.front_m < 60.0:
+			return true
+	return false
 
 
 ## Zdarzenia scenariusza: skutki w rdzeniu + alarm dla gracza (docs/05 §6).
@@ -317,6 +448,18 @@ func _tick_events() -> void:
 				else:
 					pending_events.append({"type": &"alarm",
 						"text": "AWARIA blokady %s — przejdź na telefoniczne zapowiadanie" % target})
+			"crossing_failure":
+				var crossing: LevelCrossing = crossings.get(StringName(target))
+				if crossing == null:
+					continue
+				crossing.set_failure(not is_repair)
+				pending_events.append({"type": &"alarm",
+					"text": ("Przejazd %s znów sprawny" if is_repair
+						else "AWARIA przejazdu %s — rozkaz „O” dla drużyn!") % target})
+			"dsat_alarm":
+				var device: Dsat = dsats.get(StringName(target))
+				if device != null and not is_repair:
+					device.armed = (action.get("payload", {}) as Dictionary).duplicate(true)
 			_:
 				pending_events.append({"type": &"alarm",
 					"text": "Zdarzenie scenariusza: %s (%s)" % [action["type"], target]})
@@ -485,29 +628,45 @@ func _check_shift_end() -> void:
 
 
 ## Wstawia pociąg na krawędź wjazdową od strony sąsiada (docs/05 §3).
-## Krawędź wyznacza blokada: neighbour → entry_signal → sekcja zbliżania.
+## Krawędź wyznacza blokada: neighbour → entry_signal → sekcja zbliżania;
+## przy sbl pociąg wchodzi na początek pierwszego odstępu.
 func spawn_train(entry: Timetable.Entry) -> Train:
-	var entry_signal := _entry_signal_for_neighbour(entry.from_station)
-	if entry_signal == &"":
+	var entry_block_id := _block_for_neighbour(entry.from_station, false)
+	var entry_block: BlockLine = block_lines.get(entry_block_id)
+	if entry_block == null:
 		push_warning("SimWorld: brak blokady od sąsiada '%s' — pociąg %s pominięty"
 			% [entry.from_station, entry.nr])
 		return null
-	var signal_device := station.graph.get_signal(entry_signal)
-	var entry_edge := _approach_edge_of(signal_device)
-	if entry_edge == &"":
-		return null
+	var entry_edge: StringName = &""
+	var boundary: StringName = &""
+	if entry_block.automatic and not entry_block.odstepy.is_empty():
+		var first := station.graph.get_section(entry_block.odstepy[0])
+		if first == null or first.edge_ids.is_empty():
+			return null
+		entry_edge = first.edge_ids[0]
+		boundary = _outer_node_of(entry_edge)
+	else:
+		var signal_device := station.graph.get_signal(entry_block.entry_signal)
+		entry_edge = _approach_edge_of(signal_device)
+		if entry_edge == &"":
+			return null
+		var edge_ref := station.graph.get_edge(entry_edge)
+		boundary = edge_ref.from_node \
+			if edge_ref.to_node == signal_device.at_node else edge_ref.to_node
 	var edge := station.graph.get_edge(entry_edge)
-	# Pociąg wjeżdża od granicznego węzła szlaku w stronę semafora.
-	var boundary := edge.from_node \
-		if edge.to_node == signal_device.at_node else edge.to_node
 	var train := Train.from_entry(entry)
 	train.eastbound = edge.from_node == boundary
 	train.place_on_entry(station.graph, _signal_approach, entry_edge, boundary)
+	# Mapa sekcja → przejazd (ostrożność przed niesprawnym przejazdem).
+	for crossing_id: StringName in crossings:
+		var crossing: LevelCrossing = crossings[crossing_id]
+		for section_id: StringName in crossing.on_sections:
+			train.crossings_by_section[section_id] = crossing
 	trains.append(train)
 	_train_meta[entry.nr] = {
 		"entry": entry,
-		"entry_block": _block_for_neighbour(entry.from_station),
-		"exit_block": _block_for_neighbour(entry.to_station),
+		"entry_block": _block_for_neighbour(entry.from_station, false),
+		"exit_block": _block_for_neighbour(entry.to_station, true),
 		"was_on_entry": false,
 		"arrived": false,
 		"arrived_s": 0.0,
@@ -522,18 +681,32 @@ func spawn_train(entry: Timetable.Entry) -> Train:
 	return train
 
 
-func _block_for_neighbour(neighbour_name: String) -> StringName:
+## Blokada od/do sąsiada: przyjazdowa (z entry_signal) albo wyjazdowa
+## (z exit_signals) — na dwutorówce to osobne bloki per tor.
+func _block_for_neighbour(neighbour_name: String, for_exit: bool) -> StringName:
 	for block_id: StringName in block_lines:
-		if (block_lines[block_id] as BlockLine).neighbour_name == neighbour_name:
+		var block: BlockLine = block_lines[block_id]
+		if block.neighbour_name != neighbour_name:
+			continue
+		if for_exit and not block.exit_signals.is_empty():
+			return block_id
+		if not for_exit and block.entry_signal != &"":
 			return block_id
 	return &""
 
 
-func _entry_signal_for_neighbour(neighbour: String) -> StringName:
-	for block: Dictionary in station.blocks:
-		if String(block.get("neighbour", "")) == neighbour:
-			return StringName(String(block.get("entry_signal", "")))
-	return &""
+## Węzeł graniczny krawędzi (stopień 1 w grafie) — punkt wejścia do świata.
+func _outer_node_of(edge_id: StringName) -> StringName:
+	var edge := station.graph.get_edge(edge_id)
+	for candidate: StringName in [edge.from_node, edge.to_node]:
+		var degree := 0
+		for other_id: StringName in station.graph.edges:
+			var other := station.graph.get_edge(other_id)
+			if other.from_node == candidate or other.to_node == candidate:
+				degree += 1
+		if degree == 1:
+			return candidate
+	return edge.from_node
 
 
 func _approach_edge_of(signal_device: SignalDevice) -> StringName:
@@ -605,6 +778,14 @@ func to_dict() -> Dictionary:
 		data["director"] = director.to_dict()
 	if lever_frame != null:
 		data["lever_frame"] = lever_frame.to_dict()
+	var crossings_state := {}
+	for crossing_id: StringName in crossings:
+		crossings_state[String(crossing_id)] = (crossings[crossing_id] as LevelCrossing).to_dict()
+	data["crossings"] = crossings_state
+	var dsat_state := {}
+	for dsat_id: StringName in dsats:
+		dsat_state[String(dsat_id)] = (dsats[dsat_id] as Dsat).to_dict()
+	data["dsats"] = dsat_state
 	data["orders"] = orders.duplicate(true)
 	return data
 
@@ -628,4 +809,12 @@ func from_dict(data: Dictionary) -> void:
 		director.from_dict(data["director"])
 	if lever_frame != null and data.has("lever_frame"):
 		lever_frame.from_dict(data["lever_frame"])
+	var crossings_state: Dictionary = data.get("crossings", {})
+	for key: String in crossings_state:
+		if crossings.has(StringName(key)):
+			(crossings[StringName(key)] as LevelCrossing).from_dict(crossings_state[key])
+	var dsat_state: Dictionary = data.get("dsats", {})
+	for key: String in dsat_state:
+		if dsats.has(StringName(key)):
+			(dsats[StringName(key)] as Dsat).from_dict(dsat_state[key])
 	orders.assign(data.get("orders", []))

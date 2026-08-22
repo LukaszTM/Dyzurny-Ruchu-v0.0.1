@@ -86,6 +86,25 @@ czego dotyczy wątpliwość, źródło w docs.
     automatyczne, ręcznie cofa się rygiel i zwalnia nakaz (klawisz
     „Zwol. przeb." działa tylko po zakończonej jeździe).
 
+21. **Obraz ostatniego semafora odstępowego sbl** — `core/block_line.gd`
+    (`_automatic_aspect`). Przy jednym wolnym odstępie przed stacją
+    sąsiada przyjęto S5 (nie znamy obrazu semafora wjazdowego sąsiada);
+    realnie sbl podaje obraz wg następnego sygnalizatora — do weryfikacji
+    z docs/systemy/15 §2.
+22. **Czasy przejazdu kat. A** — `core/level_crossing.gd`. Przyjęto
+    zamykanie 25 s (otwieranie ×0,6) i lampkę: białą ciągłą przy
+    zamkniętym, migającą przy ruchu rogatek, czerwoną migającą przy
+    awarii — konwencję lampek potwierdzić z dokumentacją EOP/pulpitu.
+23. **Procedura dSAT** — `core/sim_world.gd` (`_tick_dsat`). Uproszczenie:
+    reakcja dyżurnego = kwit + zatrzymanie pociągu ≤180 s, oględziny
+    drużyny 300 s, wynik losowy (60% potwierdzenia → rozkaz „O" 20 km/h
+    dalej 40 km/h). Rzeczywiste progi GM/GH/PM i procedura Ir-1 do
+    weryfikacji (docs/systemy/17 [DO WERYFIKACJI]).
+24. **Detekcja „pociąg zatrzymany do oględzin"** — `core/sim_world.gd`
+    (`_is_train_held_by_signal`). Uznajemy przytrzymanie radiostopem albo
+    zatrzymanie ≤60 m przed semaforem „stój"; realnie miejsce zatrzymania
+    wskazuje dyżurny.
+
 ## Zweryfikowane / zamknięte
 
 _(brak)_

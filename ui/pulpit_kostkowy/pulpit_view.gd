@@ -23,7 +23,7 @@ var _blink_on: bool = true
 
 ## Buduje pulpit z definicji stacji. Wołane raz po wczytaniu stacji.
 func build(station: StationData, interlocking: Interlocking,
-		blocks: Dictionary = {}) -> void:
+		blocks: Dictionary = {}, world: SimWorld = null) -> void:
 	for tile: PulpitTile in _tiles:
 		tile.queue_free()
 	_tiles.clear()
@@ -36,7 +36,7 @@ func build(station: StationData, interlocking: Interlocking,
 	for tile_def: Variant in (panel.get("tiles", []) as Array):
 		var def: Dictionary = tile_def
 		var tile := PulpitTile.new()
-		tile.setup(def, station.graph, interlocking, blocks)
+		tile.setup(def, station.graph, interlocking, blocks, world)
 		var xy: Array = def.get("xy", [0, 0])
 		tile.position = Vector2(FRAME + int(xy[0]) * TILE, FRAME + int(xy[1]) * TILE)
 		tile.button_activated.connect(_on_tile_button)
