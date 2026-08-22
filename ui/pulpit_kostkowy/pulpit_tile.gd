@@ -32,6 +32,54 @@ const COL_PLATE := Color("EDE9DC")
 const TRACK_WIDTH: float = 6.0
 const BUTTON_RADIUS: float = 9.0
 
+## Skórka fotorealistyczna (assets/pulpit/*.png): kafelek rysuje teksturę
+## kostki, a na wierzchu wyłącznie elementy dynamiczne (lampki, przyciski,
+## opisy). Brak pliku tekstury = dotychczasowe rysowanie wektorowe.
+const TEX_DIR := "res://assets/pulpit"
+static var _tex_cache: Dictionary = {}
+
+
+static func skin_texture(name: String) -> Texture2D:
+	if _tex_cache.has(name):
+		return _tex_cache[name]
+	var path := "%s/%s.png" % [TEX_DIR, name]
+	var tex: Texture2D = load(path) if ResourceLoader.exists(path) else null
+	_tex_cache[name] = tex
+	return tex
+
+
+## Tekstura rozciągnięta na cały kafelek; false = brak skórki (fallback).
+func _draw_tile_tex(name: String) -> bool:
+	var tex := skin_texture(name)
+	if tex == null:
+		return false
+	draw_texture_rect(tex, Rect2(Vector2.ZERO, size), false)
+	return true
+
+
+## Lampka stanu jako PNG (plakietka z kloszem) albo wektorowo (fallback).
+func _draw_state_lamp(center: Vector2, color: Color, radius: float = 7.0) -> void:
+	var tex := skin_texture(_lamp_tex_name(color))
+	if tex == null:
+		draw_circle(center, radius + 1.5, COL_LAMP_RING)
+		draw_circle(center, radius, color)
+		return
+	if color == COL_OCCUPIED:
+		draw_circle(center, radius * 2.0, Color(COL_OCCUPIED, 0.18))
+	var side := radius * 3.4
+	draw_texture_rect(tex, Rect2(center - Vector2(side, side) / 2.0,
+		Vector2(side, side)), false)
+
+
+func _lamp_tex_name(color: Color) -> String:
+	if color == COL_OCCUPIED:
+		return "lamp_red"
+	if color == COL_GREEN:
+		return "lamp_green"
+	if color == COL_LOCKED:
+		return "lamp_white"
+	return "lamp_off"
+
 var tile_def: Dictionary = {}
 var graph: TrackGraph = null
 var interlocking: Interlocking = null
@@ -156,23 +204,29 @@ func _button_center() -> Vector2:
 func _draw() -> void:
 	match _tile_type:
 		"track_h":
-			_draw_track_h()
+			if not _draw_tile_tex("track_h"):
+				_draw_track_h()
 			_draw_section_lamp(Vector2(24.0, 24.0))
 			_draw_tile_label(Vector2(24.0, 12.0))
 		"track_diag_ne":
-			draw_line(Vector2(0.0, TILE), Vector2(TILE, 0.0), COL_TRACK, TRACK_WIDTH)
+			if not _draw_tile_tex("diag_ne"):
+				draw_line(Vector2(0.0, TILE), Vector2(TILE, 0.0), COL_TRACK, TRACK_WIDTH)
 			_draw_section_lamp_round(Vector2(24.0, 24.0))
 		"track_diag_nw":
-			draw_line(Vector2(0.0, 0.0), Vector2(TILE, TILE), COL_TRACK, TRACK_WIDTH)
+			if not _draw_tile_tex("diag_nw"):
+				draw_line(Vector2(0.0, 0.0), Vector2(TILE, TILE), COL_TRACK, TRACK_WIDTH)
 			_draw_section_lamp_round(Vector2(24.0, 24.0))
 		"track_curve_se":
-			_draw_curve(Vector2(0.0, TILE), Vector2(24.0, 24.0), Vector2(TILE, 24.0))
+			if not _draw_tile_tex("curve_se"):
+				_draw_curve(Vector2(0.0, TILE), Vector2(24.0, 24.0), Vector2(TILE, 24.0))
 			_draw_section_lamp_round(Vector2(21.0, 33.0))
 		"track_curve_sw":
-			_draw_curve(Vector2(TILE, TILE), Vector2(24.0, 24.0), Vector2(0.0, 24.0))
+			if not _draw_tile_tex("curve_sw"):
+				_draw_curve(Vector2(TILE, TILE), Vector2(24.0, 24.0), Vector2(0.0, 24.0))
 			_draw_section_lamp_round(Vector2(27.0, 33.0))
 		"insulation_gap":
-			_draw_insulation_gap()
+			if not _draw_tile_tex("insulation"):
+				_draw_insulation_gap()
 		"turnout_ne":
 			_draw_turnout(true)
 		"turnout_nw":
@@ -222,7 +276,10 @@ func _draw_insulation_gap() -> void:
 
 
 func _draw_turnout(branch_ne: bool) -> void:
-	_draw_track_h()
+	# Skórka: kostka torowa jako podkład, odgałęzienie dorysowane (kierunek
+	# zależy od stacji — tekstura wspólna).
+	if not _draw_tile_tex("track_h"):
+		_draw_track_h()
 	# Odgałęzienie 45° do narożnika: turnout_ne → NE, turnout_nw → NW.
 	var corner := Vector2(TILE, 0.0) if branch_ne else Vector2(0.0, 0.0)
 	draw_line(Vector2(24.0, 24.0), corner, COL_TRACK, TRACK_WIDTH)
@@ -272,7 +329,8 @@ func _draw_position_lamps(branch_ne: bool) -> void:
 
 
 func _draw_signal_tile(travel_east: bool) -> void:
-	_draw_track_h()
+	if not _draw_tile_tex("track_h"):
+		_draw_track_h()
 	# Symbol semafora po prawej stronie toru w kierunku jazdy: jazda na wschód
 	# → pod torem, na zachód → nad torem. Kółko 12 px + kreska-podstawa
 	# prostopadła do toru, „chorągiewka" w kierunku jazdy (spec §3).
@@ -380,7 +438,8 @@ func _button_color() -> Color:
 ## Pole blokady liniowej (3×2 kostki, assets-spec/20 §5): ramka, etykieta,
 ## lampki stanu (odstęp zajęty, pozwolenie u nas) i przyciski Po/Ko/Poz.
 func _draw_block_field() -> void:
-	draw_rect(Rect2(4.0, 4.0, 136.0, 88.0), COL_TEXT, false, 2.0)
+	if not _draw_tile_tex("kostka_wide"):
+		draw_rect(Rect2(4.0, 4.0, 136.0, 88.0), COL_TEXT, false, 2.0)
 	_draw_text(Vector2(4.0, 18.0), 136.0, String(tile_def.get("label", "")), 10)
 	var block: BlockLine = blocks.get(StringName(String(tile_def.get("block", ""))))
 	var occupied_color := COL_LAMP_OFF
@@ -397,8 +456,7 @@ func _draw_block_field() -> void:
 	var lamp_colors: Array[Color] = [occupied_color, po_color, permission_color]
 	var lamp_labels: Array[String] = ["odstęp", "Po", "pozw."]
 	for i: int in 3:
-		draw_circle(Vector2(lamp_x[i], 36.0), 7.0, COL_LAMP_RING)
-		draw_circle(Vector2(lamp_x[i], 36.0), 5.5, lamp_colors[i])
+		_draw_state_lamp(Vector2(lamp_x[i], 36.0), lamp_colors[i], 6.0)
 		_draw_text(Vector2(lamp_x[i] - 20.0, 52.0), 40.0, lamp_labels[i], 8)
 	var centers := _block_button_centers()
 	for field: String in centers:
@@ -420,7 +478,8 @@ func _block_button_centers() -> Dictionary:
 ## biała = zamknięty (bezpieczny dla kolei), ciemna = otwarty,
 ## miganie = ruch drągów / awaria (czerwone).
 func _draw_crossing_ctrl() -> void:
-	draw_rect(Rect2(4.0, 4.0, 136.0, 88.0), COL_TEXT, false, 2.0)
+	if not _draw_tile_tex("kostka_wide"):
+		draw_rect(Rect2(4.0, 4.0, 136.0, 88.0), COL_TEXT, false, 2.0)
 	_draw_text(Vector2(4.0, 18.0), 136.0, String(tile_def.get("label", "")), 9)
 	var crossing: LevelCrossing = null
 	if world != null:
@@ -436,8 +495,7 @@ func _draw_crossing_ctrl() -> void:
 				lamp = COL_OCCUPIED if blink_on else COL_LAMP_OFF
 			_:
 				lamp = COL_LAMP_OFF
-	draw_circle(Vector2(72.0, 38.0), 8.0, COL_LAMP_RING)
-	draw_circle(Vector2(72.0, 38.0), 6.5, lamp)
+	_draw_state_lamp(Vector2(72.0, 38.0), lamp, 7.0)
 	var state_name := "?" if crossing == null \
 		else LevelCrossing.STATE_NAMES[crossing.state]
 	_draw_text(Vector2(4.0, 54.0), 136.0, state_name, 8)
@@ -450,7 +508,8 @@ func _draw_crossing_ctrl() -> void:
 ## Kontrola ssp na pulpicie (docs/systemy/16 §3): sprawna / załączona /
 ## awaria.
 func _draw_ssp_ctrl() -> void:
-	draw_rect(Rect2(4.0, 4.0, 136.0, 88.0), COL_TEXT, false, 2.0)
+	if not _draw_tile_tex("kostka_wide"):
+		draw_rect(Rect2(4.0, 4.0, 136.0, 88.0), COL_TEXT, false, 2.0)
 	_draw_text(Vector2(4.0, 18.0), 136.0, String(tile_def.get("label", "")), 9)
 	var crossing: LevelCrossing = null
 	if world != null:
@@ -469,19 +528,23 @@ func _draw_ssp_ctrl() -> void:
 	var lamp_colors: Array[Color] = [ok_lamp, active_lamp, fail_lamp]
 	var labels: Array[String] = ["sprawna", "załącz.", "awaria"]
 	for i: int in 3:
-		draw_circle(Vector2(lamp_x[i], 44.0), 7.0, COL_LAMP_RING)
-		draw_circle(Vector2(lamp_x[i], 44.0), 5.5, lamp_colors[i])
+		_draw_state_lamp(Vector2(lamp_x[i], 44.0), lamp_colors[i], 6.0)
 		_draw_text(Vector2(lamp_x[i] - 22.0, 62.0), 44.0, labels[i], 8)
 
 
 ## Terminal dSAT (docs/systemy/17 §2): lampka alarmu + kwitowanie.
 func _draw_dsat_ctrl() -> void:
-	draw_rect(Rect2(4.0, 4.0, 136.0, 88.0), COL_TEXT, false, 2.0)
+	if not _draw_tile_tex("kostka_wide"):
+		draw_rect(Rect2(4.0, 4.0, 136.0, 88.0), COL_TEXT, false, 2.0)
 	_draw_text(Vector2(4.0, 18.0), 136.0, String(tile_def.get("label", "")), 9)
 	var alarm := world != null and world.dsat_unacked()
-	var lamp := (COL_OCCUPIED if blink_on else COL_LAMP_OFF) if alarm else COL_LAMP_OFF
-	draw_circle(Vector2(72.0, 40.0), 8.0, COL_LAMP_RING)
-	draw_circle(Vector2(72.0, 40.0), 6.5, lamp)
+	var beacon := skin_texture("beacon")
+	if alarm and blink_on and beacon != null:
+		# Kogut alarmowy dSAT (skórka) — miga do skwitowania.
+		draw_texture_rect(beacon, Rect2(72.0 - 14.0, 26.0, 28.0, 28.0), false)
+	else:
+		var lamp := (COL_OCCUPIED if blink_on else COL_LAMP_OFF) if alarm else COL_LAMP_OFF
+		_draw_state_lamp(Vector2(72.0, 40.0), lamp, 7.0)
 	_draw_button(Vector2(72.0, 70.0), COL_BUTTON_RED)
 	_draw_text(Vector2(52.0, 89.0), 40.0, "KWIT", 8)
 
@@ -493,8 +556,17 @@ func _draw_counter_button() -> void:
 	var sealed := bool(tile_def.get("sealed", false))
 	_draw_button(Vector2(24.0, 34.0), _button_color(), sealed)
 	if bool(tile_def.get("counter", false)):
-		draw_rect(Rect2(10.0, 58.0, 28.0, 14.0), COL_COUNTER_BG)
-		_draw_text_color(Vector2(10.0, 69.0), 28.0, "%03d" % _counter_value(), 10, COL_COUNTER_DIGITS)
+		var counter_tex := skin_texture("counter")
+		if counter_tex != null:
+			# Licznik bębenkowy ze skórki; okienko przykrywamy bieżącym stanem.
+			draw_texture_rect(counter_tex, Rect2(6.0, 50.0, 36.0, 36.0), false)
+			draw_rect(Rect2(12.0, 63.0, 24.0, 11.0), COL_COUNTER_BG)
+			_draw_text_color(Vector2(12.0, 72.0), 24.0, "%03d" % _counter_value(), 9,
+				COL_COUNTER_DIGITS)
+		else:
+			draw_rect(Rect2(10.0, 58.0, 28.0, 14.0), COL_COUNTER_BG)
+			_draw_text_color(Vector2(10.0, 69.0), 28.0, "%03d" % _counter_value(), 10,
+				COL_COUNTER_DIGITS)
 
 
 ## Stan licznika bębenkowego przycisku (docs/systemy/13 §4) z rdzenia.

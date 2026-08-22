@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## GUI v1 — skórka fotorealistyczna pulpitu (2026-08-22)
+
+### Dodano
+
+- `assets/pulpit/*.png` — pierwsza partia grafik GUI od użytkownika
+  (przetworzone: wygaszone wypalone podświetlenia torów, docięte
+  i przeskalowane; stany pokazują wyłącznie dynamiczne lampki rdzenia).
+- Kafelki pulpitu rysują teksturę kostki jako podkład, a na wierzchu
+  tylko elementy dynamiczne: kapsuły zajętości/utwierdzenia, powtarzacze,
+  przyciski, opisy. Brak pliku tekstury = dotychczasowe rysowanie
+  wektorowe (pełny fallback, `PulpitTile.skin_texture`).
+- Zastosowane tekstury: kostka pusta (tło całej siatki), tor poziomy
+  (też pod semaforami i zwrotnicami), ukosy NE/NW, przerwa izolacyjna,
+  płyta szeroka (pola blokad / przejazd / ssp / dSAT), lampki stanu
+  (czerwona/zielona/biała/pomarańczowa/ciemna), kogut alarmu dSAT,
+  licznik bębenkowy przycisków dSz/dZw.
+- Łuki i odgałęzienia zwrotnic pozostały wektorowe — geometria musi
+  domykać się z sąsiednimi kafelkami (do podmiany, gdy powstaną grafiki
+  o zgodnej geometrii ćwiartek).
+- Widok komputerowy (Lipiny) dziedziczy skórkę planu automatycznie.
+
+### Jak przetestować ręcznie
+
+Uruchomić „Szczyt w Brzezinach": plan stacji na kostkach PNG, zajętość
+= czerwone kapsuły z poświatą, przebieg = białe, moduły po prawej na
+płytach z lampkami-kloszami, liczniki dSz z bębenkiem. Alarm dSAT
+(07:14) miga pomarańczowym kogutem.
+
 ## Faza 10 (mechaniki) — Pełny save/load i tryb swobodny (2026-08-22)
 
 ### Dodano

@@ -63,9 +63,18 @@ func _process(_delta: float) -> void:
 
 
 func _draw() -> void:
-	# Rama pulpitu i tło kostek z fugami 1 px (assets-spec/20 §1).
+	# Rama pulpitu i tło kostek (assets-spec/20 §1). Ze skórką: pusta kostka
+	# PNG w każdym polu siatki; bez niej: płaskie tło z fugami 1 px.
 	draw_rect(Rect2(Vector2.ZERO, size), COL_FRAME)
 	var plan := Rect2(Vector2(FRAME, FRAME), Vector2(_grid.x * TILE, _grid.y * TILE))
+	var kostka := PulpitTile.skin_texture("kostka")
+	if kostka != null:
+		draw_rect(plan, COL_GROUT)
+		for x: int in _grid.x:
+			for y: int in _grid.y:
+				draw_texture_rect(kostka,
+					Rect2(FRAME + x * TILE, FRAME + y * TILE, TILE, TILE), false)
+		return
 	draw_rect(plan, COL_TILE_BG)
 	for x: int in _grid.x + 1:
 		var line_x := FRAME + x * TILE
