@@ -1,5 +1,49 @@
 # CHANGELOG
 
+## Faza 9 — Komputerowe urządzenia nastawcze (2026-08-22)
+
+### Dodano
+
+- Nastawianie przebiegowe (docs/systemy/14 §3/§5): polecenie `route_set
+  {id}` — konflikty sprawdzane od razu, niezgodne zwrotnice przestawiają
+  się same, przebieg utwierdza się po dojściu zwrotnic do kontroli
+  (limit 45 s); niepowodzenie po ułożeniu drogi zgłaszane zdarzeniem
+  `route_set_failed`.
+- Polecenia dwustopniowe (docs/14 §3): na stacji z panelem `komputer`
+  polecenia specjalne (Sz, dZw, zamknięcie zwrotnicy, RADIOSTOP,
+  otwarcie przejazdu, Poz blokady) odkładają się do potwierdzenia —
+  `command_confirm` wykonuje, `command_cancel` rezygnuje, 30 s na
+  decyzję (zdarzenia `confirm_required`/`confirm_expired`).
+- `core/event_register.gd` — rejestr zdarzeń (docs/14 §4): każde
+  polecenie dyżurnego (wykonano/odmowa z przyczyną) i każde zdarzenie
+  rdzenia jako `hh:mm:ss | źródło | treść`; prowadzony na każdej
+  stacji, w snapshotcie save.
+- `data/stations/lipiny.json` — stacja poziomu 5 „Lipiny"
+  (Kalina–Rogów, układ dwutorowy z sbl, urządzenia komputerowe);
+  scenariusz `lipiny-wieczor` (60 min, 4 pociągi, usterka zwrotnicy
+  18:30).
+- `ui/komputer/komputer_view.gd` — REFERENCYJNY widok komputerowy:
+  plan synoptyczny (współdzielony renderer pulpitu), okno „Wykonać?
+  [Tak/Nie]", lista przebiegów (nastawianie przebiegowe), aktywne
+  przebiegi z cofaniem, rejestr zdarzeń na żywo. Docelowe GUI buduje
+  użytkownik na tym samym API.
+- Testy: 11 nowych (route_set natychmiast/po przestawieniu/konflikt/
+  niepowodzenie zdarzeniem, potwierdzenie/anulowanie/wygaśnięcie,
+  pulpit bez trybu potwierdzeń, rejestr + przycinanie). Razem 128.
+
+### Odłożone
+
+- LCS-lite (zdalne sterowanie 2 posterunkami) — wymaga wielu stacji
+  w SimWorld; zapisane w WERYFIKACJA.md (poz. 25), do iteracji po
+  zbudowaniu docelowego GUI.
+
+### Test ręczny
+
+Scenariusz „Wieczór w Lipinach": nastawić A→t1 jednym kliknięciem
+z listy PRZEBIEGI (zwrotnice ułożą się same), potem spróbować Sz —
+pojawi się okno POLECENIE SPECJALNE (Tak/Nie). Obserwować REJESTR
+ZDARZEŃ. O 18:30 usterka z1 — przebiegi przez z1 odmawiają.
+
 ## Faza 8 — Linia dwutorowa, sbl, przejazdy, dSAT (2026-08-22)
 
 ### Dodano

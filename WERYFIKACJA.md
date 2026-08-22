@@ -105,6 +105,20 @@ czego dotyczy wątpliwość, źródło w docs.
     zatrzymanie ≤60 m przed semaforem „stój"; realnie miejsce zatrzymania
     wskazuje dyżurny.
 
+25. **Zakres F9 (komputerowe)** — zrealizowano mechaniki rdzenia:
+    nastawianie przebiegowe (`route_set`), polecenia dwustopniowe
+    (`command_confirm`/`command_cancel`), rejestr zdarzeń. **LCS-lite
+    (zdalne sterowanie 2 posterunkami, docs/systemy/14 §5) ODŁOŻONE** —
+    wymaga wielu stacji w SimWorld; do osobnej iteracji po zbudowaniu
+    docelowego GUI. Konwencja barw planu CBI (docs/14 §2
+    [DO WERYFIKACJI]) nie jest implementowana w widoku referencyjnym —
+    plan synoptyczny współdzieli renderer pulpitu; docelowe GUI
+    użytkownika powinno ją zastosować.
+26. **Lista poleceń specjalnych** — `core/sim_world.gd`
+    (`SPECIAL_COMMANDS`). Przyjęto: Sz, dZw, zamknięcie zwrotnicy,
+    RADIOSTOP, otwarcie przejazdu kat. A, pozwolenie blokady (Poz);
+    czas na potwierdzenie 30 s. Zestaw i czas do weryfikacji z docs/14 §3.
+
 ## Zweryfikowane / zamknięte
 
 _(brak)_

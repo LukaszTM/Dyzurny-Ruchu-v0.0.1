@@ -63,6 +63,23 @@ var _phone_clearance: Dictionary = {}
 ## Poprzedni stan jazdy na Sz per pociąg (detekcja minięcia Sz/rozkazu).
 var _train_sz_prev: Dictionary = {}
 var _order_counter: int = 0
+## Rejestr zdarzeń (docs/systemy/14 §4) — polecenia i zdarzenia z czasem;
+## prowadzony na każdej stacji (raport zmiany korzysta z tych danych).
+var register: EventRegister = EventRegister.new()
+## Tryb komputerowy (panel "komputer"): polecenia specjalne wymagają
+## potwierdzenia — filozofia dwóch kroków (docs/systemy/14 §3).
+var confirm_mode: bool = false
+## Oczekujące polecenie specjalne: {"name": StringName, "args": Dictionary}.
+var pending_confirm: Dictionary = {}
+var _confirm_left_s: float = 0.0
+## Czas na potwierdzenie polecenia specjalnego (docs/14 §3 — przyjęto 30 s).
+const CONFIRM_TIME_S: float = 30.0
+## Polecenia specjalne — odpowiedniki przycisków plombowanych (docs/14 §3).
+## block_press z polem "Poz" też jest specjalne (pozwolenie blokady).
+const SPECIAL_COMMANDS: Array[StringName] = [
+	&"sub_signal", &"route_emergency_release", &"turnout_lock_toggle",
+	&"radio_stop", &"crossing_open",
+]
 ## Mapa semafor → sekcja zbliżania (z tablicy przebiegów, dla AI maszynisty).
 var _signal_approach: Dictionary = {}
 ## Sekcje zajmowane przez pociągi w poprzednim ticku (diff zajętości).
@@ -89,6 +106,9 @@ func load_station_file(path: String) -> Dictionary:
 		lever_frame = null
 		if String(station.panel.get("type", "")) == "mechaniczny":
 			lever_frame = LeverFrame.new(station.panel, station.graph, interlocking)
+		confirm_mode = String(station.panel.get("type", "")) == "komputer"
+		pending_confirm = {}
+		_confirm_left_s = 0.0
 		crossings.clear()
 		for crossing_def: Dictionary in station.crossings:
 			var crossing := LevelCrossing.from_def(crossing_def)
@@ -151,9 +171,78 @@ func time_of_day_s() -> float:
 
 ## Wykonanie polecenia gracza (command pattern, docs/02-architektura.md).
 ## Rdzeń waliduje; odrzucenie z powodem to normalna sytuacja.
+## W trybie komputerowym polecenia specjalne przechodzą przez dwa kroki:
+## pierwsze wywołanie odkłada polecenie (odmowa z instrukcją), wykonuje je
+## dopiero `command_confirm`; `command_cancel` rezygnuje (docs/14 §3).
 func execute(name: StringName, args: Dictionary) -> CommandResult:
 	if station == null:
 		return CommandResult.failure("stacja nie jest wczytana")
+	if name == &"command_confirm":
+		return _cmd_confirm()
+	if name == &"command_cancel":
+		if pending_confirm.is_empty():
+			return CommandResult.failure("brak polecenia do anulowania")
+		register.add(time_of_day_s(), "DYŻ",
+			"Anulowano polecenie %s" % pending_confirm["name"])
+		pending_confirm = {}
+		_confirm_left_s = 0.0
+		return CommandResult.success()
+	if confirm_mode and _is_special(name, args):
+		pending_confirm = {"name": name, "args": args.duplicate(true)}
+		_confirm_left_s = CONFIRM_TIME_S
+		register.add(time_of_day_s(), "DYŻ",
+			"Polecenie specjalne %s czeka na potwierdzenie" % name)
+		pending_events.append({"type": &"confirm_required",
+			"command": name, "args": args.duplicate(true),
+			"text": "Polecenie specjalne %s — wykonać? (potwierdź/anuluj)" % name})
+		return CommandResult.failure(
+			"polecenie specjalne %s — wymaga potwierdzenia (%.0f s)"
+			% [name, CONFIRM_TIME_S]
+		)
+	var result := _execute_inner(name, args)
+	_log_command(name, args, result)
+	return result
+
+
+## Czy polecenie wymaga drugiego kroku (odpowiednik plomby — docs/14 §3).
+func _is_special(name: StringName, args: Dictionary) -> bool:
+	if SPECIAL_COMMANDS.has(name):
+		return true
+	# Pozwolenie blokady (Poz) — specjalne; Po/Ko to obsługa rutynowa.
+	return name == &"block_press" and String(args.get("value", "")) == "Poz"
+
+
+## Potwierdzenie odłożonego polecenia specjalnego (drugi krok).
+func _cmd_confirm() -> CommandResult:
+	if pending_confirm.is_empty():
+		return CommandResult.failure("brak polecenia do potwierdzenia")
+	var name: StringName = pending_confirm["name"]
+	var args: Dictionary = pending_confirm["args"]
+	pending_confirm = {}
+	_confirm_left_s = 0.0
+	var result := _execute_inner(name, args)
+	_log_command(name, args, result)
+	return result
+
+
+## Wpis polecenia do rejestru zdarzeń (docs/14 §4). Pomija debugowe
+## i otwarcie okna telefonu (to nie są operacje ruchowe).
+func _log_command(name: StringName, args: Dictionary, result: CommandResult) -> void:
+	if String(name).begins_with("debug_") or name == &"phone_open":
+		return
+	var parts: Array[String] = []
+	for key: String in ["id", "value", "nr", "type", "signal"]:
+		if args.has(key) and not String(args[key]).is_empty():
+			parts.append(String(args[key]))
+	var call := String(name) if parts.is_empty() \
+		else "%s %s" % [name, " ".join(parts)]
+	if result.ok:
+		register.add(time_of_day_s(), "DYŻ", "%s — wykonano" % call)
+	else:
+		register.add(time_of_day_s(), "DYŻ", "%s — odmowa: %s" % [call, result.reason])
+
+
+func _execute_inner(name: StringName, args: Dictionary) -> CommandResult:
 	match name:
 		&"debug_section_occupied":
 			# Ręczne zadawanie zajętości (tryb debug F2; od F4 robią to pociągi).
@@ -305,6 +394,13 @@ func _neighbour_for_block(block_id: StringName) -> NeighbourAI:
 func drain_events() -> Array[Dictionary]:
 	var out := pending_events
 	pending_events = []
+	# Lustro zdarzeń w rejestrze (docs/14 §4) — źródło SYS.
+	for event: Dictionary in out:
+		if event["type"] == &"confirm_required":
+			continue  # zalogowane już przy odłożeniu polecenia
+		var text := String(event.get("text",
+			event.get("reason", "zdarzenie %s" % event["type"])))
+		register.add(time_of_day_s(), "SYS", "[%s] %s" % [event["type"], text])
 	return out
 
 
@@ -331,11 +427,24 @@ func tick(dt: float) -> void:
 	for block_id: StringName in block_lines:
 		(block_lines[block_id] as BlockLine).update_automatic(station.graph)
 	interlocking.tick(dt)
+	if not interlocking.events_out.is_empty():
+		pending_events.append_array(interlocking.events_out)
+		interlocking.events_out = []
 	# (6) przejazdy/dSAT (kolejność wg docs/02).
 	for crossing_id: StringName in crossings:
 		(crossings[crossing_id] as LevelCrossing).tick(dt, station.graph)
 	_tick_dsat()
 	_tick_events()
+	# Wygaśnięcie niepotwierdzonego polecenia specjalnego (docs/14 §3).
+	if _confirm_left_s > 0.0:
+		_confirm_left_s = maxf(0.0, _confirm_left_s - dt)
+		if _confirm_left_s == 0.0 and not pending_confirm.is_empty():
+			register.add(time_of_day_s(), "SYS",
+				"Polecenie %s niepotwierdzone — wygasło" % pending_confirm["name"])
+			pending_events.append({"type": &"confirm_expired",
+				"command": pending_confirm["name"],
+				"text": "Polecenie %s wygasło bez potwierdzenia" % pending_confirm["name"]})
+			pending_confirm = {}
 	_tick_orders(dt)
 	_tick_neighbours()
 	_check_procedure_deadlines()
@@ -787,6 +896,7 @@ func to_dict() -> Dictionary:
 		dsat_state[String(dsat_id)] = (dsats[dsat_id] as Dsat).to_dict()
 	data["dsats"] = dsat_state
 	data["orders"] = orders.duplicate(true)
+	data["register"] = register.to_dict()
 	return data
 
 
@@ -818,3 +928,5 @@ func from_dict(data: Dictionary) -> void:
 		if dsats.has(StringName(key)):
 			(dsats[StringName(key)] as Dsat).from_dict(dsat_state[key])
 	orders.assign(data.get("orders", []))
+	if data.has("register"):
+		register.from_dict(data["register"])

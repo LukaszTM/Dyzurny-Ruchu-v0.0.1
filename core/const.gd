@@ -54,3 +54,18 @@ const TURNOUT_POS_FROM_STRING: Dictionary = {
 
 ## Dozwolone kierunki sygnalizatora i orientacje krawędzi (docs/03 §1).
 const DIRECTIONS: Array[String] = ["N", "P"]
+
+## Polskie nazwy stanów przebiegu (do rejestru zdarzeń i widoków).
+const ROUTE_STATE_NAMES: Dictionary = {
+	RouteState.IDLE: "wolny",
+	RouteState.SELECTED: "wybrany",
+	RouteState.SETTING: "nastawianie",
+	RouteState.LOCKED: "utwierdzony",
+	RouteState.TRAIN_ON: "jazda",
+	RouteState.RELEASING: "zwalnianie",
+	RouteState.CANCELLED: "doraźne zwalnianie",
+}
+
+
+static func route_state_name(state: RouteState) -> String:
+	return String(ROUTE_STATE_NAMES.get(state, "?"))

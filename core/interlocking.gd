@@ -38,6 +38,14 @@ var _sz_left: Dictionary = {}
 var _armed_emergency_left_s: float = 0.0
 ## Uzbrojenie zamknięcia indywidualnego: gracz wskazuje zwrotnicę.
 var _armed_lock_left_s: float = 0.0
+## Nastawianie przebiegowe (docs/systemy/14 §3/§5): wskazany przebieg —
+## zwrotnice układają się same, utwierdzenie gdy wszystkie mają kontrolę.
+var pending_route_id: StringName = &""
+var _pending_left_s: float = 0.0
+## Zdarzenia dla SimWorld (niepowodzenie nastawiania przebiegowego itp.).
+var events_out: Array[Dictionary] = []
+## Limit czasu na ułożenie drogi przebiegowej (zwrotnice + utwierdzenie).
+const ROUTE_SET_TIME_S: float = 45.0
 
 
 func _init(p_graph: TrackGraph, route_defs: Array[Dictionary], p_table: AspectTable) -> void:
@@ -63,6 +71,8 @@ func execute(name: StringName, args: Dictionary) -> CommandResult:
 			return _cmd_turnout_throw(id)
 		&"route_start":
 			return _cmd_route_start(id)
+		&"route_set":
+			return _cmd_route_set(id)
 		&"signal_cancel":
 			return _cmd_signal_cancel(id)
 		&"sub_signal":
@@ -142,6 +152,91 @@ func _cmd_route_start(signal_id: StringName) -> CommandResult:
 	_lock_route(candidate)
 	update_signals()
 	return CommandResult.success()
+
+
+## Polecenie przebiegowe (docs/systemy/14 §3/§5): przebieg wskazany po id,
+## niezgodne zwrotnice przestawiają się same; utwierdzenie natychmiast albo
+## po dojściu zwrotnic do kontroli (w ticku), z limitem czasu.
+func _cmd_route_set(route_id: StringName) -> CommandResult:
+	var route := get_route(route_id)
+	if route == null:
+		return CommandResult.failure("przebieg %s nie istnieje" % route_id)
+	if route.is_active():
+		return CommandResult.failure("przebieg %s już nastawiony" % route_id)
+	if pending_route_id != &"" and pending_route_id != route_id:
+		return CommandResult.failure(
+			"trwa nastawianie przebiegu %s" % pending_route_id
+		)
+	# Konflikty przed ruszeniem zwrotnic — nie układamy drogi pod sprzeczny.
+	for conflict_id: StringName in route.conflicts:
+		var conflict := get_route(conflict_id)
+		if conflict != null and conflict.is_active():
+			return CommandResult.failure("przebieg sprzeczny %s jest nastawiony" % conflict_id)
+	var throw_result := _throw_for_route(route)
+	if not throw_result.ok:
+		return throw_result
+	if _turnouts_match(route.turnouts_req) and _turnouts_match(route.flank_turnouts) \
+			and _turnouts_match(route.overlap_turnouts):
+		# Wszystko już leży — utwierdzenie od ręki, odmowa z przyczyną.
+		var check := _check_lock_conditions(route)
+		if not check.ok:
+			return check
+		_lock_route(route)
+		update_signals()
+		return CommandResult.success()
+	pending_route_id = route.id
+	_pending_left_s = ROUTE_SET_TIME_S
+	return CommandResult.success()
+
+
+## Przestawia zwrotnice przebiegu do wymaganych położeń (droga jazdy,
+## ochrona boczna, droga ochronna). Odmowa pierwszej niemożliwej przerywa.
+func _throw_for_route(route: Route) -> CommandResult:
+	var groups: Array[Dictionary] = [
+		route.turnouts_req, route.flank_turnouts, route.overlap_turnouts,
+	]
+	for required: Dictionary in groups:
+		for turnout_id: StringName in required:
+			var turnout := graph.get_turnout(turnout_id)
+			if turnout == null:
+				return CommandResult.failure("zwrotnica %s nie istnieje" % turnout_id)
+			var required_pos: Const.TurnoutPos = required[turnout_id]
+			if turnout.has_control() \
+					and (required_pos == Const.TurnoutPos.PLUS) == turnout.is_plus():
+				continue
+			if turnout.state == Const.TurnoutState.MOVING \
+					and turnout.target_pos == required_pos:
+				continue
+			var result := graph.throw_turnout(turnout.id)
+			if not result.ok:
+				return CommandResult.failure(
+					"nastawianie %s: %s" % [route.id, result.reason]
+				)
+	return CommandResult.success()
+
+
+## Próba utwierdzenia przebiegu oczekującego na zwrotnice (route_set).
+func _try_lock_pending() -> void:
+	if pending_route_id == &"":
+		return
+	var route := get_route(pending_route_id)
+	if route == null:
+		pending_route_id = &""
+		return
+	if not _turnouts_match(route.turnouts_req) \
+			or not _turnouts_match(route.flank_turnouts) \
+			or not _turnouts_match(route.overlap_turnouts):
+		return  # zwrotnice jeszcze w ruchu — czekamy (limit pilnuje reszty)
+	var check := _check_lock_conditions(route)
+	pending_route_id = &""
+	_pending_left_s = 0.0
+	if check.ok:
+		_lock_route(route)
+		update_signals()
+	else:
+		events_out.append({"type": &"route_set_failed", "route": route.id,
+			"reason": check.reason,
+			"text": "Nastawianie %s: %s" % [route.id, check.reason]})
 
 
 ## Warunki utwierdzenia — checklista docs/04 §3 (konflikty sprawdzane
@@ -347,6 +442,17 @@ func tick(dt: float) -> void:
 			_sz_left.erase(signal_id)
 	for route_id: StringName in routes:
 		_tick_route(routes[route_id], dt)
+	# Nastawianie przebiegowe: utwierdzenie po dojściu zwrotnic (docs/14 §3).
+	if pending_route_id != &"":
+		_pending_left_s -= dt
+		_try_lock_pending()
+		if pending_route_id != &"" and _pending_left_s <= 0.0:
+			events_out.append({"type": &"route_set_failed",
+				"route": pending_route_id,
+				"reason": "zwrotnice nie osiągnęły położenia",
+				"text": "Nastawianie %s: zwrotnice nie osiągnęły położenia"
+					% pending_route_id})
+			pending_route_id = &""
 	update_signals()
 
 

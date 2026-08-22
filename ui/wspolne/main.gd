@@ -114,6 +114,11 @@ func _start_scenario(path: String) -> void:
 				EventBus.send_command(command_name, args)
 		)
 		_view = mech
+	elif _world.confirm_mode:
+		var komputer := KomputerView.new()
+		komputer.build_view(_world)
+		komputer.action_requested.connect(_on_ui_action)
+		_view = komputer
 	else:
 		var pulpit := PulpitView.new()
 		pulpit.build(_world.station, _world.interlocking, _world.block_lines, _world)

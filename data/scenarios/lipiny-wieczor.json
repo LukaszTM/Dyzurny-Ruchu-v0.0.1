@@ -1,0 +1,21 @@
+{
+ "meta": {
+  "id": "lipiny-wieczor",
+  "name": "Wieczór w Lipinach",
+  "station": "lipiny",
+  "description": "Urządzenia komputerowe: nastawianie przebiegowe, polecenia dwustopniowe i rejestr zdarzeń. Cztery pociągi, usterka zwrotnicy pod koniec zmiany.",
+  "difficulty": {"auto_docs": true, "hints": true, "time_multiplier_allowed": [1, 2, 5]}
+ },
+ "start_time": "18:00",
+ "duration_min": 60,
+ "timetable": [
+  {"nr": "41601", "kind": "osobowy", "from": "Kalina", "to": "Rogów", "arr": "18:07", "dep": "18:08", "track": "t1", "stop": true, "len_m": 120, "vmax_kmh": 100, "mass_t": 180, "power_class": "EZT"},
+  {"nr": "41602", "kind": "osobowy", "from": "Rogów", "to": "Kalina", "arr": "18:14", "dep": "18:15", "track": "t2", "stop": true, "len_m": 120, "vmax_kmh": 100, "mass_t": 180, "power_class": "EZT"},
+  {"nr": "745120", "kind": "towarowy", "from": "Kalina", "to": "Rogów", "arr": "18:24", "dep": "18:24", "track": "t3", "stop": false, "len_m": 480, "vmax_kmh": 70, "mass_t": 1700, "power_class": "lok_el"},
+  {"nr": "41603", "kind": "osobowy", "from": "Kalina", "to": "Rogów", "arr": "18:36", "dep": "18:37", "track": "t1", "stop": true, "len_m": 120, "vmax_kmh": 100, "mass_t": 180, "power_class": "EZT"}
+ ],
+ "events": [
+  {"at": "18:30", "type": "turnout_no_control", "target": "z1", "repair_min": 10,
+   "_uwaga": "utrata kontroli z1 — jazda po rozkazie albo czekać na naprawę"}
+ ]
+}
