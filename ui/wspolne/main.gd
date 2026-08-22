@@ -186,6 +186,15 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			_dziennik_panel.visible = not _dziennik_panel.visible
 		KEY_R:
 			_orders_panel.visible = not _orders_panel.visible
+		KEY_F5:
+			if GameState.save_game(_world):
+				_show_message("Zapisano grę (wczytanie: F9)")
+		KEY_F9:
+			if GameState.load_game(_world):
+				_show_message("Wczytano zapis")
+				_refresh_views()
+			else:
+				_show_message("Brak zapisu dla tego scenariusza")
 
 
 ## Akcja z przycisku pulpitu/panelu debug ("polecenie:arg[:arg2]") →

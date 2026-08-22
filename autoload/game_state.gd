@@ -52,12 +52,13 @@ func add_penalty(points: int, reason: String) -> void:
 	penalties.append({"points": points, "reason": reason})
 
 
-## Snapshot stanu do zapisu gry (rozbudowywany w kolejnych fazach).
+## Snapshot stanu do zapisu gry (RNG jako tekst — uint64 nie mieści się
+## w liczbie JSON bez utraty precyzji).
 func to_dict() -> Dictionary:
 	return {
 		"scenario_id": scenario_id,
-		"rng_seed": rng_seed,
-		"rng_state": rng.state,
+		"rng_seed": str(rng_seed),
+		"rng_state": str(rng.state),
 		"start_of_day_s": start_of_day_s,
 		"score": score,
 		"penalties": penalties.duplicate(true),
@@ -69,11 +70,62 @@ func to_dict() -> Dictionary:
 ## Odtworzenie stanu z zapisu gry.
 func from_dict(data: Dictionary) -> void:
 	scenario_id = str(data.get("scenario_id", ""))
-	rng_seed = int(data.get("rng_seed", 0))
+	rng_seed = String(str(data.get("rng_seed", "0"))).to_int()
 	rng.seed = rng_seed
-	rng.state = int(data.get("rng_state", rng.state))
+	rng.state = String(str(data.get("rng_state", str(rng.state)))).to_int()
 	start_of_day_s = int(data.get("start_of_day_s", DEFAULT_START_OF_DAY_S))
 	score = int(data.get("score", 100))
 	penalties.assign(data.get("penalties", []))
 	SimClock.sim_time = float(data.get("sim_time", 0.0))
 	SimClock.tick_count = int(data.get("tick_count", 0))
+
+
+# ---------------------------------------------------------------------------
+# Zapis/odczyt na dysk (F10) — user://saves/<scenariusz>.json
+# ---------------------------------------------------------------------------
+
+const SAVES_DIR := "user://saves"
+const SAVE_VERSION: int = 1
+
+
+func save_path(p_scenario_id: String = "") -> String:
+	var id := p_scenario_id if not p_scenario_id.is_empty() else scenario_id
+	return "%s/%s.json" % [SAVES_DIR, id]
+
+
+func has_save(p_scenario_id: String) -> bool:
+	return FileAccess.file_exists(save_path(p_scenario_id))
+
+
+## Zapis pełnego stanu gry (stan gracza + snapshot rdzenia) na dysk.
+func save_game(world: SimWorld) -> bool:
+	DirAccess.make_dir_recursive_absolute(SAVES_DIR)
+	var file := FileAccess.open(save_path(), FileAccess.WRITE)
+	if file == null:
+		push_error("GameState: nie można zapisać %s" % save_path())
+		return false
+	file.store_string(JSON.stringify({
+		"version": SAVE_VERSION,
+		"game": to_dict(),
+		"world": world.to_dict(),
+	}, "", false))
+	file.close()
+	return true
+
+
+## Wczytanie zapisu do działającego świata (scenariusz musi być ten sam —
+## stację i rozkład buduje load_scenario_file, snapshot nakłada stan).
+func load_game(world: SimWorld) -> bool:
+	if not FileAccess.file_exists(save_path()):
+		return false
+	var parsed: Variant = JSON.parse_string(
+		FileAccess.get_file_as_string(save_path())
+	)
+	if parsed == null or not (parsed is Dictionary):
+		push_error("GameState: uszkodzony zapis %s" % save_path())
+		return false
+	var data: Dictionary = parsed
+	from_dict(data.get("game", {}))
+	world.from_dict(data.get("world", {}))
+	world.rng = rng
+	return true

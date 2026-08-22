@@ -1,0 +1,27 @@
+{
+ "meta": {
+  "id": "brzeziny-swobodny",
+  "name": "Tryb swobodny — Brzeziny",
+  "station": "brzeziny",
+  "description": "Służba bez końca: generator dokłada pociągi losowo (osobowe, towarowe, pospieszne). Zapis F5, wczytanie F9.",
+  "difficulty": {"auto_docs": true, "hints": true, "time_multiplier_allowed": [1, 2, 5]}
+ },
+ "start_time": "08:00",
+ "duration_min": 0,
+ "timetable": [],
+ "events": [],
+ "generator": {
+  "enabled": true,
+  "gap_min_s": 300,
+  "gap_max_s": 780,
+  "relations": [
+   {"from": "Sosnów", "to": "Dęby", "tracks": ["t1", "t1", "t3"]},
+   {"from": "Dęby", "to": "Sosnów", "tracks": ["t2"]}
+  ],
+  "kinds": [
+   {"kind": "osobowy", "weight": 6, "len_m": 120, "vmax_kmh": 100, "mass_t": 180, "power_class": "EZT", "stop_chance": 0.85, "nr_base": 31600},
+   {"kind": "towarowy", "weight": 3, "len_m": 520, "vmax_kmh": 70, "mass_t": 1800, "power_class": "lok_el", "stop_chance": 0.0, "nr_base": 645400},
+   {"kind": "pospieszny", "weight": 1, "len_m": 220, "vmax_kmh": 100, "mass_t": 420, "power_class": "lok_el", "stop_chance": 0.25, "nr_base": 13100}
+  ]
+ }
+}

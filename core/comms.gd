@@ -76,3 +76,24 @@ func add(from_name: String, text: String, time_s: float, incoming: bool) -> Mess
 
 func mark_read() -> void:
 	unread = 0
+
+
+func to_dict() -> Dictionary:
+	var list: Array = []
+	for message: Message in log:
+		list.append({"time_s": message.time_s, "from": message.from_name,
+			"text": message.text, "incoming": message.incoming})
+	return {"log": list, "unread": unread}
+
+
+func from_dict(data: Dictionary) -> void:
+	log.clear()
+	for item: Variant in (data.get("log", []) as Array):
+		var def: Dictionary = item
+		var message := Message.new()
+		message.time_s = float(def["time_s"])
+		message.from_name = String(def["from"])
+		message.text = String(def["text"])
+		message.incoming = bool(def["incoming"])
+		log.append(message)
+	unread = int(data.get("unread", 0))

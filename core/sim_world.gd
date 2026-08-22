@@ -34,6 +34,8 @@ var train_log: TrainLog = TrainLog.new()
 var pending_events: Array[Dictionary] = []
 ## Reżyser zdarzeń scenariusza (docs/05 §6).
 var director: EventDirector = null
+## Generator ruchu trybu swobodnego (null/wyłączony poza F10 free-play).
+var traffic_gen: TrafficGen = null
 ## Ława dźwigniowa (null poza nastawnią mechaniczną — docs/systemy/12).
 var lever_frame: LeverFrame = null
 ## Przejazdy kolejowo-drogowe (StringName -> LevelCrossing).
@@ -161,6 +163,7 @@ func apply_scenario(scenario: Dictionary) -> Dictionary:
 		if block.entry_signal != &"":
 			neighbours.append(NeighbourAI.new(block.neighbour_name, block, timetable))
 	director = EventDirector.from_scenario(scenario)
+	traffic_gen = TrafficGen.from_scenario(scenario)
 	return {"ok": true, "errors": [] as Array[String]}
 
 
@@ -446,6 +449,7 @@ func tick(dt: float) -> void:
 				"text": "Polecenie %s wygasło bez potwierdzenia" % pending_confirm["name"]})
 			pending_confirm = {}
 	_tick_orders(dt)
+	_tick_traffic_gen()
 	_tick_neighbours()
 	_check_procedure_deadlines()
 	_check_shift_end()
@@ -573,6 +577,24 @@ func _tick_events() -> void:
 				pending_events.append({"type": &"alarm",
 					"text": "Zdarzenie scenariusza: %s (%s)" % [action["type"], target]})
 	interlocking.update_signals()
+
+
+## Generator ruchu trybu swobodnego: nowy pociąg trafia do rozkładu
+## i do AI właściwego sąsiada — dalej normalny obieg zapowiadania.
+func _tick_traffic_gen() -> void:
+	if traffic_gen == null or timetable == null:
+		return
+	var entry := traffic_gen.tick(time_of_day_s(), rng)
+	if entry == null:
+		return
+	timetable.entries.append(entry)
+	for ai: NeighbourAI in neighbours:
+		ai.add_incoming(entry)
+	pending_events.append({"type": &"timetable_add", "nr": entry.nr,
+		"text": "Rozkład: pociąg %s (%s) %s → %s, przyjazd ok. %s" % [
+			entry.nr, entry.kind, entry.from_station, entry.to_station,
+			Comms.format_time(float(entry.arr_s)),
+		]})
 
 
 ## Dyktowanie i aktywacja rozkazów pisemnych (docs/systemy/18 §5).
@@ -897,6 +919,39 @@ func to_dict() -> Dictionary:
 	data["dsats"] = dsat_state
 	data["orders"] = orders.duplicate(true)
 	data["register"] = register.to_dict()
+	# Pełny save (F10): pociągi w drodze, procedury, łączność, AI sąsiadów,
+	# RNG (jako tekst — stan to uint64, JSON gubi precyzję liczb 64-bit).
+	var trains_out: Array = []
+	for train: Train in trains:
+		trains_out.append(train.to_dict())
+	data["trains"] = trains_out
+	var meta_out := {}
+	for nr: String in _train_meta:
+		var meta: Dictionary = (_train_meta[nr] as Dictionary).duplicate()
+		meta.erase("entry")
+		meta["entry_block"] = String(meta["entry_block"])
+		meta["exit_block"] = String(meta["exit_block"])
+		meta_out[nr] = meta
+	data["train_meta"] = meta_out
+	data["dsat_cases"] = _dsat_cases.duplicate(true)
+	data["train_sz_prev"] = _train_sz_prev.duplicate(true)
+	data["phone_clearance"] = _phone_clearance.duplicate(true)
+	data["comms"] = comms.to_dict()
+	data["train_log"] = train_log.to_dict()
+	var neighbours_out := {}
+	for ai: NeighbourAI in neighbours:
+		neighbours_out[String(ai.block.id)] = ai.to_dict()
+	data["neighbours"] = neighbours_out
+	if traffic_gen != null:
+		data["traffic_gen"] = traffic_gen.to_dict()
+	data["rng"] = {"seed": str(rng.seed), "state": str(rng.state)}
+	data["pending_confirm"] = {} if pending_confirm.is_empty() else {
+		"name": String(pending_confirm["name"]),
+		"args": (pending_confirm["args"] as Dictionary).duplicate(true),
+	}
+	data["confirm_left_s"] = _confirm_left_s
+	data["shift_ended"] = _shift_ended
+	data["order_counter"] = _order_counter
 	return data
 
 
@@ -930,3 +985,54 @@ func from_dict(data: Dictionary) -> void:
 	orders.assign(data.get("orders", []))
 	if data.has("register"):
 		register.from_dict(data["register"])
+	# Pełny load (F10) — kolejność: rozkład już odtworzony wyżej, więc
+	# można wiązać metadane pociągów i AI sąsiadów po numerach/blokach.
+	if data.has("trains"):
+		trains.clear()
+		for train_data: Variant in (data["trains"] as Array):
+			var train := Train.new()
+			train.restore(station.graph, _signal_approach, train_data)
+			for crossing_id: StringName in crossings:
+				var crossing: LevelCrossing = crossings[crossing_id]
+				for section_id: StringName in crossing.on_sections:
+					train.crossings_by_section[section_id] = crossing
+			trains.append(train)
+		_train_cover = {}
+		for train: Train in trains:
+			if train.phase != Train.Phase.DONE:
+				_train_cover.merge(train.covered_sections())
+	if data.has("train_meta"):
+		_train_meta.clear()
+		for nr: String in (data["train_meta"] as Dictionary):
+			var meta: Dictionary = (data["train_meta"] as Dictionary)[nr]
+			meta = meta.duplicate()
+			meta["entry_block"] = StringName(String(meta["entry_block"]))
+			meta["exit_block"] = StringName(String(meta["exit_block"]))
+			meta["entry"] = timetable.entry_by_nr(nr) if timetable != null else null
+			_train_meta[nr] = meta
+	_dsat_cases = (data.get("dsat_cases", _dsat_cases) as Dictionary).duplicate(true)
+	_train_sz_prev = (data.get("train_sz_prev", _train_sz_prev) as Dictionary).duplicate(true)
+	_phone_clearance = (data.get("phone_clearance", _phone_clearance) as Dictionary).duplicate(true)
+	if data.has("comms"):
+		comms.from_dict(data["comms"])
+	if data.has("train_log"):
+		train_log.from_dict(data["train_log"])
+	if data.has("neighbours"):
+		var neighbours_data: Dictionary = data["neighbours"]
+		for ai: NeighbourAI in neighbours:
+			ai.rebind_timetable(timetable)
+			if neighbours_data.has(String(ai.block.id)):
+				ai.from_dict(neighbours_data[String(ai.block.id)])
+	if traffic_gen != null and data.has("traffic_gen"):
+		traffic_gen.from_dict(data["traffic_gen"])
+	if data.has("rng"):
+		rng.seed = String((data["rng"] as Dictionary)["seed"]).to_int()
+		rng.state = String((data["rng"] as Dictionary)["state"]).to_int()
+	var confirm_data: Dictionary = data.get("pending_confirm", {})
+	pending_confirm = {} if confirm_data.is_empty() else {
+		"name": StringName(String(confirm_data["name"])),
+		"args": (confirm_data["args"] as Dictionary).duplicate(true),
+	}
+	_confirm_left_s = float(data.get("confirm_left_s", 0.0))
+	_shift_ended = bool(data.get("shift_ended", _shift_ended))
+	_order_counter = int(data.get("order_counter", _order_counter))

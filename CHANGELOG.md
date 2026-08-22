@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## Faza 10 (mechaniki) — Pełny save/load i tryb swobodny (2026-08-22)
+
+### Dodano
+
+- Pełny save/load: serializacja pociągów w drodze (ścieżka, punkty
+  sygnałowe, rozkazy, radiostop), metadanych proceduralnych, spraw dSAT,
+  łączności (telefonogramy), dziennika ruchu, stanu AI sąsiadów,
+  rozkładu (z wpisami generowanymi w locie) i RNG (jako tekst — uint64).
+  Determinizm: po wczytaniu symulacja biegnie identycznie jak oryginał.
+- `GameState.save_game/load_game` — zapis do `user://saves/<scenariusz>.json`;
+  w grze klawisze F5 (zapis) / F9 (wczytanie).
+- `core/traffic_gen.gd` — generator ruchu trybu swobodnego: dokłada
+  pociągi do rozkładu w locie (relacje/rodzaje/odstępy z sekcji
+  `generator` scenariusza, losowanie wyłącznie z RNG świata); nowy wpis
+  przechodzi normalny obieg zapowiadania u AI sąsiada; zdarzenie
+  `timetable_add` dla GUI.
+- Scenariusz `brzeziny-swobodny` — służba bez limitu czasu
+  (duration_min 0) z generatorem.
+- Testy: 7 nowych (round-trip snapshotu przez JSON, determinizm po
+  wczytaniu, zapis/odczyt z dysku, zgodność wstecz snapshotów,
+  generator: dokładanie/determinizm/wyłączony). Razem 135.
+
+### Test ręczny
+
+Scenariusz „Tryb swobodny — Brzeziny": poczekać na telefonogram
+o pierwszym wygenerowanym pociągu (komunikat „Rozkład: …"), przestawić
+i obsłużyć; F5 w dowolnym momencie, pojeździć dalej, F9 — stan wraca
+(pociągi w tych samych miejscach, te same przebiegi).
+
 ## Faza 9 — Komputerowe urządzenia nastawcze (2026-08-22)
 
 ### Dodano

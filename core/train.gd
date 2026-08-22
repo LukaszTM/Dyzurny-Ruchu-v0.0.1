@@ -477,3 +477,106 @@ func covered_sections() -> Dictionary:
 		if section_id != &"":
 			covered[section_id] = true
 	return covered
+
+
+# ---------------------------------------------------------------------------
+# Serializacja (pełny save/load — docs/06 F10)
+# ---------------------------------------------------------------------------
+
+## Pełny snapshot pociągu (JSON-owalny: StringName → String, INF → null).
+func to_dict() -> Dictionary:
+	var path_out: Array = []
+	for segment: Dictionary in path:
+		var seg := {
+			"start": float(segment["start"]),
+			"len": float(segment["len"]),
+			"vmax_ms": float(segment["vmax_ms"]),
+			"section": String(segment["section"]),
+			"turnout": String(segment["turnout"]),
+			"entered": bool(segment["entered"]),
+		}
+		if segment.has("from_edge"):
+			seg["from_edge"] = String(segment["from_edge"])
+			seg["from_branch"] = int(segment["from_branch"])
+			seg["chosen"] = String(segment["chosen"])
+		path_out.append(seg)
+	var points_out: Array = []
+	for point: Dictionary in signal_points:
+		points_out.append({
+			"pos": float(point["pos"]),
+			"signal": String(point["signal"]),
+			"passed": bool(point["passed"]),
+		})
+	var orders_out: Array[String] = []
+	for signal_id: StringName in pass_orders:
+		orders_out.append(String(signal_id))
+	return {
+		"nr": nr, "kind": kind, "length_m": length_m, "vmax_ms": vmax_ms,
+		"accel_base": accel_base, "brake_service": brake_service,
+		"wants_stop": wants_stop, "dep_time_s": dep_time_s,
+		"phase": int(phase), "eastbound": eastbound,
+		"front_m": front_m, "v_ms": v_ms,
+		"sz_authority": sz_authority, "pass_orders": orders_out,
+		"order_speed_cap_ms": null if order_speed_cap_ms == INF else order_speed_cap_ms,
+		"radio_hold": radio_hold,
+		"dwell_until_s": dwell_until_s, "dwell_done": dwell_done,
+		"dwell_point_m": dwell_point_m,
+		"path": path_out, "signal_points": points_out,
+		"next_node": String(_next_node), "prev_edge": String(_prev_edge),
+		"path_ended": _path_ended,
+	}
+
+
+## Odtworzenie pociągu ze snapshotu (graf i mapa zbliżania od SimWorld).
+func restore(graph: TrackGraph, signal_approach: Dictionary, data: Dictionary) -> void:
+	_graph = graph
+	_signal_approach = signal_approach
+	nr = String(data["nr"])
+	kind = String(data["kind"])
+	length_m = float(data["length_m"])
+	vmax_ms = float(data["vmax_ms"])
+	accel_base = float(data["accel_base"])
+	brake_service = float(data["brake_service"])
+	wants_stop = bool(data["wants_stop"])
+	dep_time_s = float(data["dep_time_s"])
+	phase = int(data["phase"]) as Phase
+	eastbound = bool(data["eastbound"])
+	front_m = float(data["front_m"])
+	v_ms = float(data["v_ms"])
+	sz_authority = bool(data["sz_authority"])
+	pass_orders.clear()
+	for signal_id: Variant in (data.get("pass_orders", []) as Array):
+		pass_orders[StringName(String(signal_id))] = true
+	var cap: Variant = data.get("order_speed_cap_ms")
+	order_speed_cap_ms = INF if cap == null else float(cap)
+	radio_hold = bool(data["radio_hold"])
+	dwell_until_s = float(data["dwell_until_s"])
+	dwell_done = bool(data["dwell_done"])
+	dwell_point_m = float(data["dwell_point_m"])
+	path.clear()
+	for seg_variant: Variant in (data["path"] as Array):
+		var seg: Dictionary = seg_variant
+		var out := {
+			"start": float(seg["start"]),
+			"len": float(seg["len"]),
+			"vmax_ms": float(seg["vmax_ms"]),
+			"section": StringName(String(seg["section"])),
+			"turnout": StringName(String(seg["turnout"])),
+			"entered": bool(seg["entered"]),
+		}
+		if seg.has("from_edge"):
+			out["from_edge"] = StringName(String(seg["from_edge"]))
+			out["from_branch"] = int(seg["from_branch"]) as Const.TurnoutPos
+			out["chosen"] = StringName(String(seg["chosen"]))
+		path.append(out)
+	signal_points.clear()
+	for point_variant: Variant in (data["signal_points"] as Array):
+		var point: Dictionary = point_variant
+		signal_points.append({
+			"pos": float(point["pos"]),
+			"signal": StringName(String(point["signal"])),
+			"passed": bool(point["passed"]),
+		})
+	_next_node = StringName(String(data["next_node"]))
+	_prev_edge = StringName(String(data["prev_edge"]))
+	_path_ended = bool(data["path_ended"])

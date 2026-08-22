@@ -70,3 +70,30 @@ func add_remark(nr: String, remark: String) -> void:
 		entry.remarks = remark
 	elif not entry.remarks.contains(remark):
 		entry.remarks += "; " + remark
+
+
+func to_dict() -> Dictionary:
+	var list: Array = []
+	for entry: Entry in entries:
+		list.append({
+			"nr": entry.nr, "relation": entry.relation, "track": entry.track,
+			"permission_s": entry.permission_s, "announced_s": entry.announced_s,
+			"departed_s": entry.departed_s, "arrived_s": entry.arrived_s,
+			"confirmed_s": entry.confirmed_s, "remarks": entry.remarks,
+		})
+	return {"entries": list}
+
+
+func from_dict(data: Dictionary) -> void:
+	entries.clear()
+	_by_nr.clear()
+	for item: Variant in (data.get("entries", []) as Array):
+		var def: Dictionary = item
+		var entry := entry_for(String(def["nr"]), String(def["relation"]),
+			String(def["track"]))
+		entry.permission_s = float(def["permission_s"])
+		entry.announced_s = float(def["announced_s"])
+		entry.departed_s = float(def["departed_s"])
+		entry.arrived_s = float(def["arrived_s"])
+		entry.confirmed_s = float(def["confirmed_s"])
+		entry.remarks = String(def["remarks"])

@@ -43,6 +43,42 @@ func _init(p_name: String, p_block: BlockLine, timetable: Timetable) -> void:
 				incoming.append(entry)
 
 
+## Nowy pociąg od tego sąsiada dopisany w locie (generator ruchu, F10).
+func add_incoming(entry: Timetable.Entry) -> void:
+	if entry.from_station == neighbour_name:
+		incoming.append(entry)
+
+
+## Odświeżenie referencji wpisów po odtworzeniu rozkładu z zapisu.
+func rebind_timetable(timetable: Timetable) -> void:
+	incoming.clear()
+	for entry: Timetable.Entry in timetable.entries:
+		if entry.from_station == neighbour_name:
+			incoming.append(entry)
+
+
+func to_dict() -> Dictionary:
+	return {
+		"pending": _pending.duplicate(true),
+		"last_request": _last_request.duplicate(true),
+		"announced": _announced.duplicate(true),
+		"held": _held.duplicate(true),
+		"phone_permission": _phone_permission.duplicate(true),
+	}
+
+
+func from_dict(data: Dictionary) -> void:
+	_pending.clear()
+	for action: Variant in (data.get("pending", []) as Array):
+		var def: Dictionary = action
+		_pending.append({"at_s": float(def["at_s"]),
+			"kind": String(def["kind"]), "nr": String(def["nr"])})
+	_last_request = (data.get("last_request", {}) as Dictionary).duplicate(true)
+	_announced = (data.get("announced", {}) as Dictionary).duplicate(true)
+	_held = (data.get("held", {}) as Dictionary).duplicate(true)
+	_phone_permission = (data.get("phone_permission", {}) as Dictionary).duplicate(true)
+
+
 ## Krok AI; zwraca zdarzenia dla świata:
 ## {kind: "phone", type, nr} | {kind: "spawn", nr} | {kind: "permission_given"}
 ## | {kind: "released", nr} (Ko sąsiada po przyjeździe u niego).

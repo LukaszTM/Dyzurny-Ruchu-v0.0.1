@@ -119,6 +119,11 @@ czego dotyczy wątpliwość, źródło w docs.
     RADIOSTOP, otwarcie przejazdu kat. A, pozwolenie blokady (Poz);
     czas na potwierdzenie 30 s. Zestaw i czas do weryfikacji z docs/14 §3.
 
+27. **Parametry generatora ruchu** — `data/scenarios/brzeziny-swobodny.json`.
+    Odstępy 5–13 min, proporcje osobowy/towarowy/pospieszny 6:3:1 dobrane
+    zdroworozsądkowo — skalibrować po testach grywalności. Wygenerowany
+    pociąg ma stały lead 300 s od utworzenia do planowego przyjazdu.
+
 ## Zweryfikowane / zamknięte
 
 _(brak)_
