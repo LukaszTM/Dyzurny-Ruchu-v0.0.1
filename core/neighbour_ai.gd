@@ -29,6 +29,9 @@ var _last_request: Dictionary = {}
 var _announced: Dictionary = {}
 ## Wstrzymane pociągi (gracz nadał „Stój").
 var _held: Dictionary = {}
+## Pozwolenia telefoniczne od gracza per nr (telefoniczne zapowiadanie
+## przy awarii blokady — docs/systemy/18 §6).
+var _phone_permission: Dictionary = {}
 
 
 func _init(p_name: String, p_block: BlockLine, timetable: Timetable) -> void:
@@ -50,6 +53,23 @@ func tick(now_s: float) -> Array[Dictionary]:
 		if entry.spawned or _announced.has(entry.nr) or _held.has(entry.nr):
 			continue
 		if now_s < float(entry.arr_s) - REQUEST_LEAD_S:
+			continue
+		if block.failed:
+			# Awaria blokady: pozwolenie wyłącznie telefonicznie (formuła
+			# „danie pozwolenia" od gracza), pola blokady nieczynne.
+			if not _phone_permission.has(entry.nr):
+				var last_failed := float(_last_request.get(entry.nr, -INF))
+				if now_s - last_failed >= REMIND_EVERY_S:
+					_last_request[entry.nr] = now_s
+					events.append({
+						"kind": "phone", "type": &"zadanie_pozwolenia", "nr": entry.nr,
+					})
+			elif not block.occupied and now_s >= float(entry.arr_s) - ANNOUNCE_LEAD_S:
+				_announced[entry.nr] = true
+				events.append({
+					"kind": "phone", "type": &"oznajmienie_odjazdu", "nr": entry.nr,
+				})
+				_pending.append({"at_s": now_s + 15.0, "kind": "spawn", "nr": entry.nr})
 			continue
 		if block.permission_at != BlockLine.BlockSide.NEIGHBOUR:
 			# Pozwolenie u gracza — żądaj (i ponaglaj) telefonicznie.
@@ -79,10 +99,12 @@ func on_player_phone(type: StringName, nr: String, now_s: float) -> void:
 			_pending.append({"at_s": now_s + RESPONSE_DELAY_S,
 				"kind": "answer_permission", "nr": nr})
 		&"danie_pozwolenia":
-			# Uprzejme potwierdzenie; fizycznie pozwolenie przekazuje Poz.
+			# Przy sprawnej blokadzie uprzejmość (pozwolenie przekazuje Poz);
+			# przy awarii to WŁAŚCIWE pozwolenie telefoniczne.
 			_pending.append({"at_s": now_s + RESPONSE_DELAY_S,
 				"kind": "ack", "nr": nr})
 			_held.erase(nr)
+			_phone_permission[nr] = true
 		&"stoj":
 			_held[nr] = true
 			_pending.append({"at_s": now_s + RESPONSE_DELAY_S, "kind": "ack", "nr": nr})
@@ -107,7 +129,15 @@ func _run_pending(now_s: float, events: Array[Dictionary]) -> void:
 			"spawn":
 				events.append({"kind": "spawn", "nr": nr})
 			"answer_permission":
-				if block.give_permission_to_player():
+				if block.failed:
+					# Telefoniczne zapowiadanie: sąsiad daje drogę formułą,
+					# bez obsługi pól blokady (docs/systemy/18 §6).
+					if not block.occupied:
+						events.append({"kind": "phone", "type": &"danie_pozwolenia", "nr": nr})
+						events.append({"kind": "phone_clearance", "nr": nr})
+					else:
+						events.append({"kind": "phone", "type": &"stoj", "nr": nr})
+				elif block.give_permission_to_player():
 					events.append({"kind": "phone", "type": &"danie_pozwolenia", "nr": nr})
 					events.append({"kind": "permission_given", "nr": nr})
 				else:

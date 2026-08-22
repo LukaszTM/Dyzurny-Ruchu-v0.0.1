@@ -15,6 +15,9 @@ var exit_signals: Array[StringName] = []
 var approach_section: StringName = &""
 
 var permission_at: BlockSide = BlockSide.PLAYER
+## Awaria blokady (docs/systemy/15 §1, 18 §6): pola nieczynne, ruch
+## prowadzony na telefoniczne zapowiadanie, wyjazdy na Sz lub rozkaz.
+var failed: bool = false
 ## Odstęp (szlak) zajęty przez pociąg.
 var occupied: bool = false
 ## Pole początkowe zablokowane (gracz wyprawił i zablokował Po).
@@ -41,6 +44,10 @@ static func from_def(def: Dictionary, p_approach: StringName) -> BlockLine:
 ## Czy blokada pozwala wyprawić pociąg (warunek 6 checklisty docs/04 §3):
 ## pozwolenie u gracza i odstęp wolny.
 func can_dispatch() -> CommandResult:
+	if failed:
+		return CommandResult.failure(
+			"blokada %s uszkodzona — telefoniczne zapowiadanie, jazda na Sz lub rozkaz „S”" % id
+		)
 	if permission_at != BlockSide.PLAYER:
 		return CommandResult.failure(
 			"blokada %s: pozwolenie jest u sąsiada (%s)" % [id, neighbour_name]
@@ -58,6 +65,8 @@ func can_dispatch_from_neighbour() -> bool:
 
 ## Obsługa pola przez gracza (przyciski Po/Ko/Poz na pulpicie).
 func press(field: String) -> CommandResult:
+	if failed:
+		return CommandResult.failure("blokada %s uszkodzona — pola nieczynne" % id)
 	match field:
 		"Po":
 			if not po_pending or po_locked:
@@ -127,6 +136,7 @@ func released_by_neighbour() -> void:
 func to_dict() -> Dictionary:
 	return {
 		"permission_at": permission_at,
+		"failed": failed,
 		"occupied": occupied,
 		"po_locked": po_locked,
 		"train_nr": train_nr,
@@ -137,6 +147,7 @@ func to_dict() -> Dictionary:
 
 func from_dict(data: Dictionary) -> void:
 	permission_at = int(data.get("permission_at", BlockSide.PLAYER)) as BlockLine.BlockSide
+	failed = bool(data.get("failed", false))
 	occupied = bool(data.get("occupied", false))
 	po_locked = bool(data.get("po_locked", false))
 	train_nr = String(data.get("train_nr", ""))

@@ -32,8 +32,24 @@ var comms: Comms = Comms.new()
 var train_log: TrainLog = TrainLog.new()
 ## Zdarzenia dla warstwy UI/scoringu — odbiera je scena Main (drain_events).
 var pending_events: Array[Dictionary] = []
+## Reżyser zdarzeń scenariusza (docs/05 §6).
+var director: EventDirector = null
+## Jedyne źródło losowości rdzenia — Main podpina RNG z GameState
+## (determinizm, CLAUDE.md zasada 5).
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+## Rozkazy pisemne (docs/systemy/18 §5): {no, type, nr, signal, left_s,
+## active, applied}.
+var orders: Array[Dictionary] = []
 ## Termin na potwierdzenie przyjazdu / oznajmienie odjazdu (scoring v1).
 const PROCEDURE_DEADLINE_S: float = 300.0
+## Czas dyktowania rozkazu przez radiotelefon (docs/systemy/18 §5).
+const ORDER_DICTATE_S: float = 20.0
+## Pozwolenia telefoniczne otrzymane od sąsiadów (nr → true) — przy
+## awarii blokady warunkują ocenę wyprawienia.
+var _phone_clearance: Dictionary = {}
+## Poprzedni stan jazdy na Sz per pociąg (detekcja minięcia Sz/rozkazu).
+var _train_sz_prev: Dictionary = {}
+var _order_counter: int = 0
 ## Mapa semafor → sekcja zbliżania (z tablicy przebiegów, dla AI maszynisty).
 var _signal_approach: Dictionary = {}
 ## Sekcje zajmowane przez pociągi w poprzednim ticku (diff zajętości).
@@ -96,6 +112,7 @@ func apply_scenario(scenario: Dictionary) -> Dictionary:
 	for block_id: StringName in block_lines:
 		var block: BlockLine = block_lines[block_id]
 		neighbours.append(NeighbourAI.new(block.neighbour_name, block, timetable))
+	director = EventDirector.from_scenario(scenario)
 	return {"ok": true, "errors": [] as Array[String]}
 
 
@@ -125,7 +142,30 @@ func execute(name: StringName, args: Dictionary) -> CommandResult:
 		&"phone_open":
 			comms.mark_read()
 			return CommandResult.success()
+		&"order_dictate":
+			return _cmd_order_dictate(args)
 	return interlocking.execute(name, args)
+
+
+## Wystawienie i dyktowanie rozkazu pisemnego (docs/systemy/18 §5).
+func _cmd_order_dictate(args: Dictionary) -> CommandResult:
+	var type := String(args.get("type", ""))
+	var nr := String(args.get("nr", ""))
+	var signal_id := String(args.get("signal", ""))
+	if not ["S", "O", "N"].has(type):
+		return CommandResult.failure("nieznany druk rozkazu: %s" % type)
+	if type == "S":
+		if station.graph.get_signal(StringName(signal_id)) == null:
+			return CommandResult.failure("rozkaz „S”: semafor %s nie istnieje" % signal_id)
+	for order: Dictionary in orders:
+		if String(order["nr"]) == nr and not bool(order["active"]):
+			return CommandResult.failure("trwa już dyktowanie rozkazu dla pociągu %s" % nr)
+	_order_counter += 1
+	orders.append({
+		"no": _order_counter, "type": type, "nr": nr, "signal": signal_id,
+		"left_s": ORDER_DICTATE_S, "active": false, "applied": false,
+	})
+	return CommandResult.success()
 
 
 ## Obsługa pola blokady przez gracza (Po/Ko/Poz — docs/systemy/15 §1).
@@ -221,9 +261,88 @@ func tick(dt: float) -> void:
 	_despawn_done_trains()
 	station.graph.tick(dt)
 	interlocking.tick(dt)
+	_tick_events()
+	_tick_orders(dt)
 	_tick_neighbours()
 	_check_procedure_deadlines()
 	_check_shift_end()
+
+
+## Zdarzenia scenariusza: skutki w rdzeniu + alarm dla gracza (docs/05 §6).
+func _tick_events() -> void:
+	if director == null:
+		return
+	for action: Dictionary in director.tick(time_of_day_s(), rng):
+		var target := String(action["target"])
+		var is_repair := String(action["kind"]) == "repair"
+		match String(action["type"]):
+			"turnout_no_control":
+				var turnout := station.graph.get_turnout(StringName(target))
+				if turnout == null:
+					continue
+				if is_repair:
+					# Ekipa przywraca kontrolę w bieżącym położeniu iglic
+					# (rozprucie w międzyczasie wymaga osobnej procedury).
+					if turnout.state == Const.TurnoutState.NO_CONTROL:
+						turnout.state = Const.TurnoutState.PLUS \
+							if turnout.physical_pos() == Const.TurnoutPos.PLUS \
+							else Const.TurnoutState.MINUS
+						pending_events.append({"type": &"alarm",
+							"text": "Zwrotnica %s: kontrola przywrócona" % target})
+				else:
+					turnout.set_no_control()
+					pending_events.append({"type": &"alarm",
+						"text": "USTERKA: zwrotnica %s bez kontroli położenia" % target})
+			"block_failure":
+				var block: BlockLine = block_lines.get(StringName(target))
+				if block == null:
+					continue
+				block.failed = not is_repair
+				if is_repair:
+					pending_events.append({"type": &"alarm",
+						"text": "Blokada %s znów sprawna" % target})
+				else:
+					pending_events.append({"type": &"alarm",
+						"text": "AWARIA blokady %s — przejdź na telefoniczne zapowiadanie" % target})
+			_:
+				pending_events.append({"type": &"alarm",
+					"text": "Zdarzenie scenariusza: %s (%s)" % [action["type"], target]})
+	interlocking.update_signals()
+
+
+## Dyktowanie i aktywacja rozkazów pisemnych (docs/systemy/18 §5).
+func _tick_orders(dt: float) -> void:
+	for order: Dictionary in orders:
+		if not bool(order["active"]):
+			order["left_s"] = float(order["left_s"]) - dt
+			if float(order["left_s"]) <= 0.0:
+				order["active"] = true
+				pending_events.append({"type": &"alarm",
+					"text": "Rozkaz „%s” nr %d dla pociągu %s podyktowany — maszynista powtórzył"
+					% [order["type"], order["no"], order["nr"]]})
+				train_log.add_remark(String(order["nr"]),
+					"rozkaz „%s” nr %d" % [order["type"], order["no"]])
+		if bool(order["active"]) and not bool(order["applied"]):
+			var train := _train_by_nr(String(order["nr"]))
+			if train == null:
+				continue
+			order["applied"] = true
+			match String(order["type"]):
+				"S":
+					train.pass_orders[StringName(String(order["signal"]))] = true
+				"O":
+					# Ograniczenie prędkości 20 km/h (docs/04 §8 — obsługa
+					# ręczna zwrotnicy / ostrzeżenie).
+					train.order_speed_cap_ms = 20.0 / 3.6
+				_:
+					pass
+
+
+func _train_by_nr(nr: String) -> Train:
+	for train: Train in trains:
+		if train.nr == nr:
+			return train
+	return null
 
 
 ## Obsługa zdarzeń AI sąsiadów: telefonogramy, wjazdy pociągów na odstęp
@@ -250,6 +369,9 @@ func _tick_neighbours() -> void:
 					pending_events.append({"type": &"phone_ring"})
 				"spawn":
 					_spawn_announced(ai, String(event["nr"]))
+				"phone_clearance":
+					# Telefoniczne „droga wolna" od sąsiada (awaria blokady).
+					_phone_clearance[String(event["nr"])] = true
 				_:
 					pass
 
@@ -297,6 +419,28 @@ func _track_train_procedures() -> void:
 			meta["departed_s"] = now
 			exit_block.train_dispatched_by_player(train.nr)
 			train_log.note_departed(train.nr, now)
+			# Ocena proceduralna: wyprawienie przy awarii blokady wymaga
+			# uprzedniego telefonicznego zapowiadania (docs/systemy/18 §6).
+			if exit_block.failed and not _phone_clearance.get(train.nr, false):
+				pending_events.append({"type": &"penalty", "points": 10,
+					"reason": "wyprawienie %s przy awarii blokady bez telefonicznego zapowiadania"
+					% train.nr})
+		# Ocena jazdy na Sz/rozkaz: w chwili minięcia semafora droga do
+		# następnego semafora musi być wolna (docs/00 — zdarzenie
+		# niebezpieczne; docs/05 §7).
+		var sz_now := train.sz_authority
+		if sz_now and not bool(_train_sz_prev.get(train.nr, false)):
+			# Wpis do dziennika (uwagi) — docs/systemy/18 §6.
+			train_log.add_remark(train.nr, "jazda na Sz/rozkaz")
+			for section_id: StringName in train.sections_ahead_to_next_signal():
+				var section := station.graph.get_section(section_id)
+				if section != null and section.occupied \
+						and not train.covered_sections().has(section_id):
+					pending_events.append({"type": &"penalty", "points": 50,
+						"reason": "ZDARZENIE NIEBEZPIECZNE: pociąg %s skierowany na zajęty tor (%s) na Sz/rozkaz"
+						% [train.nr, section_id]})
+					break
+		_train_sz_prev[train.nr] = sz_now
 
 
 ## Kary proceduralne (scoring v1, docs/05 §7): brak potwierdzenia przyjazdu
@@ -443,6 +587,9 @@ func to_dict() -> Dictionary:
 		# Pełna serializacja pociągów w drodze dojdzie z pełnym save/load
 		# (roadmapa F10); na razie zapisujemy, które wpisy już wjechały.
 		data["timetable"] = timetable.to_dict()
+	if director != null:
+		data["director"] = director.to_dict()
+	data["orders"] = orders.duplicate(true)
 	return data
 
 
@@ -461,3 +608,6 @@ func from_dict(data: Dictionary) -> void:
 	for key: String in blocks_state:
 		if block_lines.has(StringName(key)):
 			(block_lines[StringName(key)] as BlockLine).from_dict(blocks_state[key])
+	if director != null and data.has("director"):
+		director.from_dict(data["director"])
+	orders.assign(data.get("orders", []))

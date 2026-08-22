@@ -38,6 +38,13 @@ var front_m: float = 0.0
 var v_ms: float = 0.0
 ## Jazda na Sz: limit 40 km/h do minięcia następnego semafora.
 var sz_authority: bool = false
+## Rozkazy pisemne „S" (docs/systemy/18 §5): semafory, które wolno minąć
+## na „stój" (id → true); zużywane przy minięciu.
+var pass_orders: Dictionary = {}
+## Ograniczenie prędkości z rozkazu „O" (INF = brak).
+## TODO(weryfikacja): zakres obowiązywania rozkazu O — przyjęto do końca
+## jazdy przez stację (docs/systemy/18 §5, uproszczenie F6).
+var order_speed_cap_ms: float = INF
 ## Koniec postoju handlowego (sekundy doby); 0 = jeszcze nie wyliczony.
 var dwell_until_s: float = 0.0
 var dwell_done: bool = false
@@ -125,6 +132,7 @@ func tick(dt: float, time_of_day_s: float) -> void:
 ## do najbliższego punktu zatrzymania) — docs/05 §2.
 func _drive(dt: float, time_of_day_s: float) -> void:
 	var limit := minf(vmax_ms, _current_speed_limit())
+	limit = minf(limit, order_speed_cap_ms)
 	if sz_authority:
 		limit = minf(limit, SZ_LIMIT_MS)
 	var stop_at := _nearest_stop_point()
@@ -171,9 +179,10 @@ func _nearest_stop_point() -> float:
 		var signal_device := _graph.get_signal(point["signal"])
 		if signal_device == null:
 			continue
-		if signal_device.aspect == &"Sz" or not signal_device.shows_stop():
-			# Sygnał zezwalający/Sz: minięcie odnotowujemy, gdy czoło
-			# przekroczy słupek.
+		if signal_device.aspect == &"Sz" or not signal_device.shows_stop() \
+				or pass_orders.has(signal_device.id):
+			# Sygnał zezwalający / Sz / rozkaz „S": minięcie odnotowujemy,
+			# gdy czoło przekroczy słupek.
 			if front_m >= pos - 0.5:
 				_pass_signal(point)
 			continue
@@ -185,8 +194,8 @@ func _nearest_stop_point() -> float:
 	return nearest
 
 
-## Krzywa zwalniania przed semaforem z Sz: pociąg ma go minąć już
-## z prędkością ≤40 km/h (jazda za Sz z ograniczoną prędkością, docs/05 §2).
+## Krzywa zwalniania przed semaforem z Sz albo mijanym na rozkaz „S":
+## pociąg ma go minąć już z prędkością ≤40 km/h (docs/05 §2).
 func _sz_approach_limit() -> float:
 	var allowed := INF
 	for point: Dictionary in signal_points:
@@ -196,7 +205,11 @@ func _sz_approach_limit() -> float:
 		if pos < front_m:
 			continue
 		var signal_device := _graph.get_signal(point["signal"])
-		if signal_device == null or signal_device.aspect != &"Sz":
+		if signal_device == null:
+			continue
+		var restricted := signal_device.aspect == &"Sz" \
+			or (signal_device.shows_stop() and pass_orders.has(signal_device.id))
+		if not restricted:
 			continue
 		var distance := pos - front_m
 		allowed = minf(allowed,
@@ -207,9 +220,37 @@ func _sz_approach_limit() -> float:
 func _pass_signal(point: Dictionary) -> void:
 	point["passed"] = true
 	var signal_device := _graph.get_signal(point["signal"])
-	# Jazda na Sz: limit 40 km/h od minięcia Sz do minięcia następnego
-	# semafora (docs/05 §2, TODO(weryfikacja) — reżim wg Ir-1 §61).
-	sz_authority = signal_device != null and signal_device.aspect == &"Sz"
+	if signal_device == null:
+		sz_authority = false
+		return
+	var by_order := pass_orders.has(signal_device.id) and signal_device.shows_stop()
+	if by_order:
+		# Rozkaz „S" zużywa się przy minięciu semafora (docs/systemy/18 §5).
+		# TODO(weryfikacja): prędkość za rozkazem „S" — przyjęto reżim jak
+		# przy Sz (≤40 km/h do następnego semafora).
+		pass_orders.erase(signal_device.id)
+	# Jazda na Sz/rozkaz: limit 40 km/h do minięcia następnego semafora
+	# (docs/05 §2, TODO(weryfikacja) — reżim wg Ir-1 §61).
+	sz_authority = signal_device.aspect == &"Sz" or by_order
+
+
+## Sekcje na ścieżce od czoła do najbliższego semafora (do proceduralnej
+## oceny jazdy na Sz — sprawdzenie, czy droga za semaforem nie jest zajęta).
+func sections_ahead_to_next_signal() -> Array[StringName]:
+	var until := path_length()
+	for point: Dictionary in signal_points:
+		if not bool(point["passed"]) and float(point["pos"]) > front_m + 0.5:
+			until = float(point["pos"])
+			break
+	var result: Array[StringName] = []
+	for segment: Dictionary in path:
+		var start := float(segment["start"])
+		if start + float(segment["len"]) <= front_m or start >= until:
+			continue
+		var section_id: StringName = segment["section"]
+		if section_id != &"" and not result.has(section_id):
+			result.append(section_id)
+	return result
 
 
 ## Limit prędkości bieżącego segmentu (vmax toru / zwrotnicy).

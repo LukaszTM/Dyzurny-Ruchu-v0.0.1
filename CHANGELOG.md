@@ -1,5 +1,52 @@
 # CHANGELOG
 
+## Faza 6 — Zdarzenia i procedury awaryjne (2026-08-22)
+
+### Dodano
+
+- `core/event_director.gd` — reżyser zdarzeń scenariusza (docs/05 §6):
+  zdarzenia planowe („at") i losowane w oknach (window + p, rzut z RNG
+  scenariusza — determinizm), naprawy po `repair_min`.
+- Skutki zdarzeń w rdzeniu: `turnout_no_control` (utrata kontroli,
+  przebiegi przez zwrotnicę niemożliwe, alarm; naprawa przywraca kontrolę
+  w bieżącym położeniu iglic), `block_failure` (pola blokady nieczynne,
+  semafory wyjazdowe zablokowane — przejście na telefoniczne
+  zapowiadanie wg systemy/18 §6; AI sąsiada żąda i daje drogę wyłącznie
+  formułami, „danie pozwolenia" od gracza działa jak pozwolenie).
+- Rozkazy pisemne „S"/„O"/„N" (systemy/18 §5): bloczek rozkazów (R),
+  dyktowanie przez radiotelefon 20 s, numeracja automatyczna, kopia
+  w uwagach dziennika. „S" pozwala minąć wskazany semafor na „stój"
+  (reżim jak przy Sz), „O" ogranicza prędkość pociągu do 20 km/h,
+  „N" ewidencyjnie (tor lewy — od stacji poziomu 4).
+- Proceduralna ocena jazd na Sz/rozkaz: wpis „jazda na Sz/rozkaz" do
+  dziennika; −50 (zdarzenie niebezpieczne) za skierowanie pociągu na
+  zajęty tor; −10 za wyprawienie przy awarii blokady bez telefonicznego
+  zapowiadania.
+- Alarmy zdarzeń w pasku górnym; scenariusz `borki-poranek` odpala teraz
+  swoje zdarzenia (usterka z2 o 06:20 z naprawą po 25 min, losowa awaria
+  blokady E po 06:50 z p=0,4).
+- Testy: 11 nowych (reżyser: planowe/losowe/naprawy/brzegowe; usterka
+  zwrotnicy z naprawą; awaria blokady — pola nieczynne i odmowa wyjazdu;
+  wyjazd na Sz z zapowiedzią bez kary i bez zapowiedzi z karą; rozkaz „S"
+  z zatrzymaniem na czas dyktowania; rozkaz „O"; Sz na zajęty tor).
+  Razem 98.
+
+### Jak przetestować ręcznie
+
+1. Graj scenariusz do 06:20 — alarm „USTERKA: zwrotnica z2"; lampki
+   położenia z2 migają czerwono, nastawienie wyjazdu C1/C2 odmawiane.
+   Po 25 min kontrola wraca.
+2. Po 06:50 może paść blokada E (alarm) — pola Po/Ko/Poz nieczynne,
+   semafor wyjazdowy się nie poda. Zażądaj drogi telefonicznie
+   (Suchowola odpowie „Droga wolna"), podaj Sz (dSz C1, licznik rośnie)
+   — pociąg wyjedzie; bez telefonogramu dostaniesz −10.
+3. Rozkazy (R): wybierz druk „S", pociąg i semafor, „Podyktuj" — przez
+   ~20 s status „dyktowanie…", potem AKTYWNY; pociąg stojący przed tym
+   semaforem rusza i mija go z prędkością ≤40 km/h. Druk „O" zwalnia
+   pociąg do 20 km/h. Wszystko ląduje w uwagach dziennika.
+4. Podaj Sz na tor zajęty (F12 → zajmij it1, dSz A, przyjmij pociąg) —
+   kara −50 „ZDARZENIE NIEBEZPIECZNE" w pasku i podsumowaniu.
+
 ## Faza 5 — Blokada półsamoczynna, telefonogramy, dziennik ruchu (2026-08-20)
 
 ### Dodano

@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://ui/wspolne/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://ui/wspolne/analog_clock.gd" id="2_clock"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://ui/wspolne/debug_panel.gd" id="4_debug"]
 [ext_resource type="Script" path="res://ui/telefon/phone_panel.gd" id="5_phone"]
 [ext_resource type="Script" path="res://ui/dokumentacja/dziennik_panel.gd" id="6_dziennik"]
+[ext_resource type="Script" path="res://ui/dokumentacja/orders_panel.gd" id="7_orders"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -89,6 +90,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Dziennik (D)"
 
+[node name="OrdersButton" type="Button" parent="Layout/TopBar/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Rozkazy (R)"
+
 [node name="PauseButton" type="Button" parent="Layout/TopBar/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -154,3 +160,13 @@ offset_top = 64.0
 offset_right = 1080.0
 offset_bottom = 560.0
 script = ExtResource("6_dziennik")
+
+[node name="OrdersPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+offset_left = 442.0
+offset_top = 572.0
+offset_right = 900.0
+offset_bottom = 880.0
+script = ExtResource("7_orders")

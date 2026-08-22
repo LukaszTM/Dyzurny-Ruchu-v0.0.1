@@ -63,6 +63,13 @@ czego dotyczy wątpliwość, źródło w docs.
     (konfigurowalne per stacja); przyjęto obsługę ręczną przez gracza,
     w scoringu v1 bez kary za brak.
 
+15. **Prędkość za rozkazem „S"** — `core/train.gd` (`_pass_signal`).
+    Przyjęto reżim jak przy Sz: ≤40 km/h do minięcia następnego semafora;
+    dokładny reżim wg Ir-1 do weryfikacji.
+16. **Zakres obowiązywania rozkazu „O"** — `core/train.gd`
+    (`order_speed_cap_ms`). Ograniczenie 20 km/h przyjęto do końca jazdy
+    przez stację (realnie dotyczy wskazanego miejsca) — uproszczenie F6.
+
 ## Zweryfikowane / zamknięte
 
 _(brak)_

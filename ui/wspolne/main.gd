@@ -21,8 +21,10 @@ var _message_left_s: float = 0.0
 @onready var _debug_panel: DebugPanel = %DebugPanel
 @onready var _phone_panel: PhonePanel = %PhonePanel
 @onready var _dziennik_panel: DziennikPanel = %DziennikPanel
+@onready var _orders_panel: OrdersPanel = %OrdersPanel
 @onready var _phone_button: Button = %PhoneButton
 @onready var _dziennik_button: Button = %DziennikButton
+@onready var _orders_button: Button = %OrdersButton
 @onready var _speed_buttons: Dictionary = {
 	1: %Speed1Button,
 	2: %Speed2Button,
@@ -42,6 +44,9 @@ func _ready() -> void:
 	_debug_panel.build(_world.station, _world.interlocking, _world)
 	_phone_panel.build(_world)
 	_dziennik_panel.build(_world)
+	_orders_panel.build(_world)
+	# Determinizm: rdzeń losuje wyłącznie z RNG scenariusza (zasada 5).
+	_world.rng = GameState.rng
 
 	SimClock.tick.connect(_on_sim_tick)
 	SimClock.multiplier_changed.connect(func(_m: int) -> void: _refresh_controls())
@@ -54,6 +59,9 @@ func _ready() -> void:
 	_phone_button.pressed.connect(_toggle_phone)
 	_dziennik_button.pressed.connect(
 		func() -> void: _dziennik_panel.visible = not _dziennik_panel.visible
+	)
+	_orders_button.pressed.connect(
+		func() -> void: _orders_panel.visible = not _orders_panel.visible
 	)
 
 	_pulpit.action_requested.connect(_on_ui_action)
@@ -90,6 +98,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			_toggle_phone()
 		KEY_D:
 			_dziennik_panel.visible = not _dziennik_panel.visible
+		KEY_R:
+			_orders_panel.visible = not _orders_panel.visible
 
 
 ## Akcja z przycisku pulpitu/panelu debug ("polecenie:arg[:arg2]") →
@@ -135,6 +145,8 @@ func _dispatch_world_events() -> void:
 			&"penalty":
 				GameState.add_penalty(int(event["points"]), String(event["reason"]))
 				_show_message("KARA −%d: %s" % [int(event["points"]), String(event["reason"])])
+			&"alarm":
+				_show_message(String(event["text"]), 8.0)
 			&"shift_end":
 				_show_shift_summary()
 			_:
@@ -183,6 +195,8 @@ func _refresh_views() -> void:
 		_phone_panel.refresh()
 	if _dziennik_panel.visible:
 		_dziennik_panel.refresh()
+	if _orders_panel.visible:
+		_orders_panel.refresh()
 	var unread := _world.comms.unread
 	_phone_button.text = "☎ Telefon (T)" if unread == 0 else "☎ TELEFON (%d)" % unread
 	_phone_button.modulate = Color(1, 1, 1) if unread == 0 \
@@ -202,9 +216,9 @@ func _refresh_controls() -> void:
 	_status_label.text = "%s | ticki: %d" % [state, SimClock.tick_count]
 
 
-func _show_message(text: String) -> void:
+func _show_message(text: String, time_s: float = MESSAGE_TIME_S) -> void:
 	_message_label.text = text
-	_message_left_s = MESSAGE_TIME_S
+	_message_left_s = time_s
 
 
 ## Formatuje sekundy doby jako HH:MM:SS (zawija po północy).
