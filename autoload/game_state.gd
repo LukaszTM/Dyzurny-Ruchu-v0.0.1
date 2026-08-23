@@ -81,6 +81,48 @@ func from_dict(data: Dictionary) -> void:
 
 
 # ---------------------------------------------------------------------------
+# Ustawienia gracza (F10) — user://settings.json, stosowane przy starcie
+# ---------------------------------------------------------------------------
+
+const SETTINGS_PATH := "user://settings.json"
+
+## Ustawienia: głośność (0–1); kolejne klucze dojdą wraz z opcjami.
+var settings: Dictionary = {"volume": 1.0}
+
+
+func _ready() -> void:
+	load_settings()
+	apply_settings()
+
+
+func set_setting(key: String, value: Variant) -> void:
+	settings[key] = value
+	apply_settings()
+	save_settings()
+
+
+func apply_settings() -> void:
+	var volume := clampf(float(settings.get("volume", 1.0)), 0.0, 1.0)
+	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 0.001)))
+	AudioServer.set_bus_mute(0, volume <= 0.0)
+
+
+func save_settings() -> void:
+	var file := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
+	if file != null:
+		file.store_string(JSON.stringify(settings))
+		file.close()
+
+
+func load_settings() -> void:
+	if not FileAccess.file_exists(SETTINGS_PATH):
+		return
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(SETTINGS_PATH))
+	if parsed is Dictionary:
+		settings.merge(parsed as Dictionary, true)
+
+
+# ---------------------------------------------------------------------------
 # Zapis/odczyt na dysk (F10) — user://saves/<scenariusz>.json
 # ---------------------------------------------------------------------------
 

@@ -176,11 +176,11 @@ func _show_scenario_picker(scenarios: Array[Dictionary]) -> void:
 	volume.min_value = 0.0
 	volume.max_value = 1.0
 	volume.step = 0.05
-	volume.value = db_to_linear(AudioServer.get_bus_volume_db(0))
+	volume.value = float(GameState.settings.get("volume", 1.0))
 	volume.custom_minimum_size = Vector2(220, 0)
+	# Zapamiętywane na dysku (user://settings.json).
 	volume.value_changed.connect(func(v: float) -> void:
-		AudioServer.set_bus_volume_db(0, linear_to_db(maxf(v, 0.001)))
-		AudioServer.set_bus_mute(0, v <= 0.0)
+		GameState.set_setting("volume", v)
 	)
 	settings.add_child(volume)
 	var hint := Label.new()

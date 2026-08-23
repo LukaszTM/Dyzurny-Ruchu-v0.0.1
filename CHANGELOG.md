@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## F10 szlif cz. 4 — ustawienia, eksport, ikona (2026-08-23)
+
+### Dodano
+
+- Ustawienia gracza na dysku (`user://settings.json`): głośność
+  zapamiętywana między sesjami, stosowana przy starcie
+  (GameState.set_setting / apply_settings). Suwak w menu głównym
+  zapisuje na bieżąco.
+- `export_presets.cfg` w repo (wyjęte z .gitignore): presety Linux
+  i Windows x86_64 z wbudowanym PCK, bez testów/addonów/tools.
+- `docs/08-wydania.md` — procedura eksportu (edytor i headless/CI),
+  wersjonowanie, smoke test przed wydaniem.
+- Własna ikona gry (icon.svg — sylwetka semafora, rysowana kodem).
+- i18n: świadomie odłożone (gra po polsku) — wpis WERYFIKACJA 28
+  i sekcja w docs/08.
+- Test ustawień na dysku. Razem 141.
+
 ## F10 szlif cz. 3 — 15 scenariuszy (2026-08-23)
 
 ### Dodano

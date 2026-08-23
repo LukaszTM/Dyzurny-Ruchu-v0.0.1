@@ -125,6 +125,11 @@ czego dotyczy wątpliwość, źródło w docs.
     zdroworozsądkowo — skalibrować po testach grywalności. Wygenerowany
     pociąg ma stały lead 300 s od utworzenia do planowego przyjazdu.
 
+28. **i18n** — gra jednojęzyczna (polski). Teksty gracza są literałami
+    w UI i w danych JSON; ekstrakcja do `tr()`/CSV odłożona do czasu
+    decyzji o tłumaczeniach (docs/08-wydania.md). Nazwy w kodzie już
+    po angielsku, więc refaktor będzie mechaniczny.
+
 ## Zweryfikowane / zamknięte
 
 _(brak)_

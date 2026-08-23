@@ -116,6 +116,16 @@ func test_zapis_na_dysk_przez_game_state() -> void:
 	DirAccess.remove_absolute(GameState.save_path("gut-test-save"))
 
 
+func test_ustawienia_zapisywane_na_dysk() -> void:
+	GameState.set_setting("volume", 0.5)
+	assert_true(FileAccess.file_exists("user://settings.json"))
+	GameState.settings["volume"] = 1.0
+	GameState.load_settings()
+	assert_almost_eq(float(GameState.settings["volume"]), 0.5, 0.001,
+		"głośność wraca z dysku")
+	GameState.set_setting("volume", 1.0)
+
+
 func test_stary_snapshot_bez_pol_f10_dziala() -> void:
 	var world := _new_world()
 	var legacy := {"sim_time": 5.0, "tick_count": 50}
