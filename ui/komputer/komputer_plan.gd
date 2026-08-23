@@ -29,7 +29,14 @@ const COL_WHITE := Color("f2f4f7")
 const COL_LAMP_DARK := Color("2a2e35")
 const COL_BUTTON := Color("262c35")
 
-const TRACK_W: float = 5.0
+const TRACK_W: float = 9.0
+## Wcięcie segmentu na granicy odcinków (kanciasta „kreska" planu SCS).
+const SECTION_NOTCH: float = 2.5
+## Kafelki rysujące tor poziomy (do wykrywania granic odcinków).
+const H_TRACK_TILES: Array[String] = [
+	"track_h", "signal_e", "signal_w", "insulation_gap",
+	"turnout_ne", "turnout_nw",
+]
 
 var _tiles: Array[Dictionary] = []
 var _grid: Vector2i = Vector2i.ZERO
@@ -40,6 +47,8 @@ var _world: SimWorld = null
 var _blink_on: bool = true
 ## Strefy kliknięć: {"center": Vector2, "r": float, "action"/"signal": ...}.
 var _hotspots: Array[Dictionary] = []
+## Sekcja toru poziomego per pole siatki (granice odcinków na planie).
+var _section_at: Dictionary = {}
 
 
 func build(station: StationData, interlocking: Interlocking,
@@ -49,8 +58,14 @@ func build(station: StationData, interlocking: Interlocking,
 	_blocks = blocks
 	_world = world
 	_tiles.clear()
+	_section_at.clear()
 	for tile_variant: Variant in (station.panel.get("tiles", []) as Array):
-		_tiles.append(tile_variant as Dictionary)
+		var tile: Dictionary = tile_variant
+		_tiles.append(tile)
+		if H_TRACK_TILES.has(String(tile.get("tile", ""))):
+			var xy: Array = tile.get("xy", [0, 0])
+			_section_at[Vector2i(int(xy[0]), int(xy[1]))] = \
+				String(tile.get("section", ""))
 	var grid: Array = station.panel.get("grid", [8, 4])
 	_grid = Vector2i(int(grid[0]), int(grid[1]))
 	custom_minimum_size = Vector2(
@@ -109,7 +124,7 @@ func _draw_tile(tile: Dictionary) -> void:
 	var color := _section_color(StringName(String(tile.get("section", ""))))
 	match String(tile.get("tile", "")):
 		"track_h":
-			draw_line(o + Vector2(0, 24), o + Vector2(TILE, 24), color, TRACK_W)
+			_draw_h_segment(tile, o, color)
 			_draw_tile_text(o + Vector2(0, 10), TILE, String(tile.get("label", "")))
 		"track_diag_ne":
 			draw_line(o + Vector2(0, TILE), o + Vector2(TILE, 0), color, TRACK_W)
@@ -120,9 +135,10 @@ func _draw_tile(tile: Dictionary) -> void:
 		"track_curve_sw":
 			_draw_curve(o + Vector2(TILE, TILE), c, o + Vector2(0, 24), color)
 		"insulation_gap":
-			draw_line(o + Vector2(0, 24), o + Vector2(20, 24), color, TRACK_W)
-			draw_line(o + Vector2(28, 24), o + Vector2(TILE, 24), color, TRACK_W)
-			draw_line(o + Vector2(24, 17), o + Vector2(24, 31), COL_TEXT_DIM, 2.0)
+			draw_rect(Rect2(o.x, o.y + 24.0 - TRACK_W / 2.0, 20.0, TRACK_W), color)
+			draw_rect(Rect2(o.x + 28.0, o.y + 24.0 - TRACK_W / 2.0,
+				TILE - 28.0, TRACK_W), color)
+			draw_line(o + Vector2(24, 16), o + Vector2(24, 32), COL_TEXT_DIM, 2.0)
 		"turnout_ne":
 			_draw_turnout(tile, o, true)
 		"turnout_nw":
@@ -145,6 +161,24 @@ func _draw_tile(tile: Dictionary) -> void:
 			_draw_counter_button(tile, o)
 		"button":
 			_draw_small_button(tile, o)
+
+
+## Kanciasty segment toru poziomego (styl planu SCS): prostokąt z wcięciem
+## na granicy odcinków — sąsiad o innej sekcji = przerwa w pasie.
+func _draw_h_segment(tile: Dictionary, o: Vector2, color: Color) -> void:
+	var xy: Array = tile.get("xy", [0, 0])
+	var cell := Vector2i(int(xy[0]), int(xy[1]))
+	var my_section := String(tile.get("section", ""))
+	var inset_l := 0.0
+	var inset_r := 0.0
+	var left: Variant = _section_at.get(cell + Vector2i(-1, 0))
+	var right: Variant = _section_at.get(cell + Vector2i(1, 0))
+	if left != null and String(left) != my_section:
+		inset_l = SECTION_NOTCH
+	if right != null and String(right) != my_section:
+		inset_r = SECTION_NOTCH
+	draw_rect(Rect2(o.x + inset_l, o.y + 24.0 - TRACK_W / 2.0,
+		TILE - inset_l - inset_r, TRACK_W), color)
 
 
 ## Kolor toru wg stanu sekcji (docs/14 §2); poświata dla zajętości.
@@ -189,22 +223,24 @@ func _draw_turnout(tile: Dictionary, o: Vector2, branch_ne: bool) -> void:
 		elif turnout.is_minus():
 			branch_color = section_color
 			main_color = COL_LEG_OFF
-	# Nogi: prosto (cały kafelek) i w bok (od środka do narożnika).
-	draw_line(o + Vector2(0, 24), o + Vector2(TILE, 24), main_color, TRACK_W)
+	# Nogi: prosto (segment kanciasty) i w bok (od środka do narożnika).
+	_draw_h_segment(tile, o, main_color)
 	draw_line(center, corner, branch_color, TRACK_W)
 	var label := String(tile.get("label", ""))
 	var label_pos := o + (Vector2(4, 44) if branch_ne else Vector2(30, 44))
+	draw_rect(Rect2(label_pos + Vector2(-1.0, -10.0), Vector2(16.0, 13.0)), COL_BOX)
+	draw_rect(Rect2(label_pos + Vector2(-1.0, -10.0), Vector2(16.0, 13.0)),
+		COL_BOX_EDGE, false, 1.0)
 	_draw_text(label_pos, 14.0, label, COL_TEXT)
 	# Klik w zwrotnicę = przestawienie (mapowanie akcji z JSON).
 	_register_press(tile, center, 14.0)
 
 
 func _draw_signal(tile: Dictionary, o: Vector2, travel_east: bool) -> void:
-	var section_color := _section_color(StringName(String(tile.get("section", ""))))
-	draw_line(o + Vector2(0, 24), o + Vector2(TILE, 24), section_color, TRACK_W)
+	_draw_h_segment(tile, o, _section_color(StringName(String(tile.get("section", "")))))
 	var signal_id := StringName(String(tile.get("signal", "")))
 	var signal_device := _graph.get_signal(signal_id)
-	var head := o + Vector2(30.0, 37.0) if travel_east else o + Vector2(18.0, 11.0)
+	var head := o + Vector2(28.0, 38.0) if travel_east else o + Vector2(20.0, 10.0)
 	var color := COL_LAMP_DARK
 	if signal_device != null:
 		if signal_device.aspect == &"Sz":
@@ -213,14 +249,18 @@ func _draw_signal(tile: Dictionary, o: Vector2, travel_east: bool) -> void:
 			color = COL_OCCUPIED
 		else:
 			color = COL_ROUTE
-	# Maszt + głowica (symbol planu, nie obraz semafora).
-	var mast_x := head.x - 10.0 if travel_east else head.x + 10.0
+	# Symbol SCS: krótki maszt + kaseta z kloszem (nie obraz semafora).
+	var mast_x := head.x - 12.0 if travel_east else head.x + 12.0
 	draw_line(Vector2(mast_x, o.y + 24.0), Vector2(mast_x, head.y), COL_TEXT_DIM, 2.0)
-	draw_line(Vector2(mast_x, head.y), head, COL_TEXT_DIM, 2.0)
-	draw_circle(head, 6.0, color)
-	draw_arc(head, 6.5, 0.0, TAU, 20, COL_TEXT_DIM, 1.5)
-	var letter_y := 47.0 if travel_east else 9.0
-	_draw_text(o + Vector2(0.0, letter_y), TILE, String(signal_id), COL_TEXT)
+	draw_line(Vector2(mast_x, head.y), Vector2(head.x - 8.0 if travel_east \
+		else head.x + 8.0, head.y), COL_TEXT_DIM, 2.0)
+	var box := Rect2(head - Vector2(8.0, 8.0), Vector2(16.0, 16.0))
+	draw_rect(box, Color("141920"))
+	draw_rect(box, COL_BOX_EDGE, false, 1.5)
+	draw_circle(head, 4.5, color)
+	var letter_y := 49.0 if travel_east else 9.0
+	var letter_x := -14.0 if travel_east else 14.0
+	_draw_text(o + Vector2(letter_x, letter_y), TILE, String(signal_id), COL_TEXT)
 	_hotspots.append({"center": head, "r": 12.0, "signal": String(signal_id)})
 
 

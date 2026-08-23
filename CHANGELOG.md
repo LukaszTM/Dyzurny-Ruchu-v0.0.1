@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## GUI v1.5 — pełne stanowisko komputerowe (2026-08-23)
+
+### Zmieniono
+
+- KomputerView przebudowany na stanowisko wg docs/systemy/14 §1:
+  pasek menu poleceń (Sz…, Cofnij przebieg…, dZw… — polecenie
+  „ze wskazaniem": klik pozycji menu uzbraja, klik semafora na planie
+  adresuje), linia dialogowa (uzbrojone polecenie / oczekujące
+  potwierdzenie / ostatni wpis rejestru) i pole alarmów z KWIT
+  (dSAT, awarie przejazdów i blokad, miganie).
+- Plan SCS: kanciaste segmenty torów (prostokąty zamiast linii)
+  z przerwami na granicach odcinków izolowanych; semafory jako kasety
+  z kloszem i masztem; numery zwrotnic w ramkach.
+- Panel boczny w kasetach z nagłówkami (POLECENIE SPECJALNE /
+  PRZEBIEGI / AKTYWNE PRZEBIEGI / REJESTR ZDARZEŃ).
+
 ## GUI v1.4 — ciemna skórka widoku komputerowego (2026-08-23)
 
 ### Dodano
