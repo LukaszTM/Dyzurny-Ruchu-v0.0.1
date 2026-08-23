@@ -12,6 +12,8 @@ const TILE: float = 48.0
 ## Paleta z assets-spec/20 §2 (robocza, do strojenia).
 const COL_TRACK := Color("1C1C1C")
 const COL_LAMP_OFF := Color("8E8A80")
+## Zgaszone okienko lampki w torze: ciemne szkło (nie „dziura" w torze).
+const COL_GLASS_OFF := Color("35353A")
 const COL_LAMP_RING := Color("55524A")
 const COL_OCCUPIED := Color("E0362C")
 const COL_LOCKED := Color("F4EFE2")
@@ -381,16 +383,16 @@ func _draw_section_lamp_round(center: Vector2) -> void:
 
 
 ## Kolory lampek odcinków (systemy/13 §1): czerwona = zajęty, biała =
-## utwierdzony w przebiegu, ciemna = wolny; zajętość nadpisuje białą.
+## utwierdzony w przebiegu, ciemne szkło = wolny; zajętość nadpisuje białą.
 func _section_lamp_color() -> Color:
 	var section := graph.get_section(_section_id) if graph != null else null
 	if section == null:
-		return COL_LAMP_OFF
+		return COL_GLASS_OFF
 	if section.occupied:
 		return COL_OCCUPIED
 	if section.is_locked():
 		return COL_LOCKED
-	return COL_LAMP_OFF
+	return COL_GLASS_OFF
 
 
 ## Okienko lampki: kapsuła 20×8 px wpuszczona w linię toru (spec §3).
