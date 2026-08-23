@@ -1,0 +1,103 @@
+{
+ "meta": {
+  "id": "samouczek-4-sbl-dsat",
+  "name": "Lekcja 4 — sbl, przejazd i dSAT",
+  "station": "brzeziny",
+  "description": "Dwutorówka z blokadą samoczynną, przejazd kat. A i procedura alarmu dSAT.",
+  "difficulty": {
+   "auto_docs": true,
+   "hints": true,
+   "time_multiplier_allowed": [
+    1,
+    2,
+    5
+   ]
+  }
+ },
+ "start_time": "06:00",
+ "duration_min": 0,
+ "timetable": [
+  {
+   "nr": "31501",
+   "kind": "osobowy",
+   "from": "Sosnów",
+   "to": "Dęby",
+   "arr": "06:05",
+   "dep": "06:06",
+   "track": "t1",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  },
+  {
+   "nr": "645310",
+   "kind": "towarowy",
+   "from": "Sosnów",
+   "to": "Dęby",
+   "arr": "06:14",
+   "dep": "06:14",
+   "track": "t1",
+   "stop": false,
+   "len_m": 500,
+   "vmax_kmh": 70,
+   "mass_t": 1800,
+   "power_class": "lok_el"
+  }
+ ],
+ "events": [
+  {
+   "at": "06:08",
+   "type": "dsat_alarm",
+   "target": "dsat1",
+   "payload": {
+    "code": "GM",
+    "level": "ALARM",
+    "axle": 12
+   }
+  }
+ ],
+ "tutorial": {
+  "title": "Lekcja 4 — sbl, przejazd i dSAT",
+  "outro": "Pełna procedura dSAT za Tobą: kwit, zatrzymanie, oględziny. Przy potwierdzonej usterce pamiętaj o rozkazie „O” (ograniczenie).",
+  "steps": [
+   {
+    "text": "Brzeziny leżą na dwutorówce z blokadą samoczynną. Na torze 2 jest przejazd kat. A — zamknij rogatki: pole PRZEJAZD, przycisk Zamk (zamykanie trwa chwilę).",
+    "done_when": {
+     "type": "crossing_closed",
+     "id": "przA"
+    }
+   },
+   {
+    "text": "Od Sosnowa jedzie 31501. Nastaw wjazd na tor 1 (przycisk semafora A).",
+    "done_when": {
+     "type": "route_locked",
+     "id": "A_t1"
+    }
+   },
+   {
+    "text": "Nastaw też wyjazd C1 — zwróć uwagę: semafor wyjazdowy pokazuje obraz według SEMAFORA ODSTĘPOWEGO sbl (S2 przy wolnym szlaku).",
+    "done_when": {
+     "type": "route_locked",
+     "id": "C1_out"
+    }
+   },
+   {
+    "text": "Za 31501 jedzie towarowy 645310. Urządzenie dSAT zgłosi ALARM (grzejące się łożysko) — gdy zamiga lampka, skwituj przyciskiem KWIT.",
+    "done_when": {
+     "type": "command",
+     "name": "dsat_ack"
+    }
+   },
+   {
+    "text": "Pociąg z alarmem musi się zatrzymać: NIE nastawiaj mu przebiegu — stanie przed semaforem A. Drużyna wykona oględziny (ok. 5 min czasu symulacji — możesz przyspieszyć ×5).",
+    "done_when": {
+     "type": "event",
+     "event": "alarm",
+     "contains": "Oględziny "
+    }
+   }
+  ]
+ }
+}

@@ -15,6 +15,9 @@ var _started: bool = false
 var _view: Control = null
 ## Odtwarzacze dźwięków gry (nazwa -> AudioStreamPlayer).
 var _sounds: Dictionary = {}
+## Nakładka samouczka (tworzona przy scenariuszu z sekcją "tutorial").
+var _tutorial_panel: PanelContainer = null
+var _tutorial_label: Label = null
 
 @onready var _plaque_label: Label = %PlaqueLabel
 @onready var _clock_label: Label = %ClockLabel
@@ -78,7 +81,14 @@ func _list_scenarios() -> Array[Dictionary]:
 				"path": path,
 				"name": String(meta.get("name", file_name)),
 				"description": String(meta.get("description", "")),
+				"is_tutorial": (parsed as Dictionary).has("tutorial"),
 			})
+	# Lekcje samouczka przed służbami, w kolejności plików.
+	result.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if a["is_tutorial"] != b["is_tutorial"]:
+			return bool(a["is_tutorial"])
+		return String(a["path"]) < String(b["path"])
+	)
 	return result
 
 
@@ -106,7 +116,16 @@ func _show_scenario_picker(scenarios: Array[Dictionary]) -> void:
 	subtitle.add_theme_color_override("font_color", Color(0.55, 0.6, 0.68))
 	vbox.add_child(subtitle)
 	vbox.add_child(HSeparator.new())
+	var last_group := ""
 	for scenario: Dictionary in scenarios:
+		var group := "SAMOUCZEK" if bool(scenario.get("is_tutorial", false)) else "SŁUŻBY"
+		if group != last_group:
+			last_group = group
+			var header := Label.new()
+			header.text = group
+			header.add_theme_font_size_override("font_size", 13)
+			header.add_theme_color_override("font_color", Color(0.5, 0.62, 0.78))
+			vbox.add_child(header)
 		var path := String(scenario["path"])
 		var scenario_id := path.get_file().get_basename()
 		var row := HBoxContainer.new()
@@ -328,11 +347,46 @@ func _dispatch_world_events() -> void:
 				_play("buzzer")
 			&"phone_ring":
 				_play("phone_ring")
+			&"tutorial_step":
+				_show_tutorial_step(event)
+			&"tutorial_done":
+				if _tutorial_label != null:
+					_tutorial_label.text = "✔ %s\n%s" % [
+						String(event.get("title", "Samouczek")), String(event["text"])]
+					_play("ding")
+					get_tree().create_timer(12.0).timeout.connect(func() -> void:
+						if _tutorial_panel != null:
+							_tutorial_panel.visible = false
+					)
 			&"shift_end":
 				_play("ding")
 				_show_shift_summary()
 			_:
 				pass
+
+
+## Nakładka samouczka: krok z licznikiem, u góry ekranu pod paskiem.
+func _show_tutorial_step(event: Dictionary) -> void:
+	if _tutorial_panel == null:
+		_tutorial_panel = PanelContainer.new()
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.09, 0.11, 0.15, 0.96)
+		style.border_color = Color(0.35, 0.55, 0.8)
+		style.set_border_width_all(2)
+		style.set_content_margin_all(12)
+		_tutorial_panel.add_theme_stylebox_override("panel", style)
+		_tutorial_panel.position = Vector2(24, 56)
+		_tutorial_panel.custom_minimum_size = Vector2(560, 0)
+		_tutorial_label = Label.new()
+		_tutorial_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_tutorial_label.custom_minimum_size = Vector2(536, 0)
+		_tutorial_panel.add_child(_tutorial_label)
+		add_child(_tutorial_panel)
+	_tutorial_panel.visible = true
+	_tutorial_label.text = "%s — KROK %d/%d\n%s" % [
+		String(event.get("title", "Samouczek")), int(event["index"]),
+		int(event["total"]), String(event["text"]),
+	]
 
 
 func _toggle_phone() -> void:

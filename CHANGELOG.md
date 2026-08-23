@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## F10 szlif cz. 2 — samouczek (2026-08-23)
+
+### Dodano
+
+- `core/tutorial.gd` — silnik samouczka: kroki z tekstem i warunkiem
+  zaliczenia w JSON scenariusza (sekcja "tutorial"; warunki: polecenie,
+  utwierdzenie przebiegu, położenie zwrotnicy, obraz semafora, przyjazd/
+  odjazd pociągu, stan blokady/przejazdu, zdarzenie rdzenia, czas
+  w kroku). Zdarzenia tutorial_step/tutorial_done dla GUI.
+- 5 lekcji (dane, nie kod): 1 — pulpit i wjazd (Borki), 2 — wyprawienie
+  na szlak (Borki), 3 — nastawnia mechaniczna (Jodłów), 4 — sbl,
+  przejazd i dSAT (Brzeziny), 5 — urządzenia komputerowe (Lipiny).
+- Menu główne grupuje: SAMOUCZEK / SŁUŻBY; nakładka kroków w grze
+  (panel u góry ekranu z licznikiem KROK n/m).
+- SimWorld: pomocnicze train_arrived/train_departed (też dla GUI).
+- Testy: 3 nowe (pełna lekcja komputerowa, warunek command z id,
+  scenariusz bez samouczka). Razem 138.
+
 ## F10 szlif cz. 1 — menu główne i dźwięki (2026-08-23)
 
 ### Dodano

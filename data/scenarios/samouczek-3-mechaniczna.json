@@ -1,0 +1,80 @@
+{
+ "meta": {
+  "id": "samouczek-3-mechaniczna",
+  "name": "Lekcja 3 — nastawnia mechaniczna",
+  "station": "jodlow",
+  "description": "Kolejność dźwigni: zwrotnice → rygiel → nakaz → sygnałowa; zwalnianie po jeździe.",
+  "difficulty": {
+   "auto_docs": true,
+   "hints": true,
+   "time_multiplier_allowed": [
+    1,
+    2,
+    5
+   ]
+  }
+ },
+ "start_time": "12:00",
+ "duration_min": 0,
+ "timetable": [
+  {
+   "nr": "52101",
+   "kind": "osobowy",
+   "from": "Cisów",
+   "to": "Grabno",
+   "arr": "12:05",
+   "dep": "12:30",
+   "track": "t1",
+   "stop": true,
+   "len_m": 110,
+   "vmax_kmh": 80,
+   "mass_t": 160,
+   "power_class": "osobowy"
+  }
+ ],
+ "events": [],
+ "tutorial": {
+  "title": "Lekcja 3 — nastawnia mechaniczna",
+  "outro": "Świetnie! Na mechanicznej liczy się kolejność i cofanie w odwrotnym porządku — dokładnie jak przed chwilą.",
+  "steps": [
+   {
+    "text": "Jodłów to nastawnia mechaniczna: dźwignie i aparat blokowy. Obowiązuje kolejność zwrotnice → rygiel → nakaz → sygnałowa. Zwrotnica 1 leży dobrze (+). Przełóż dźwignię RYGLOWĄ 3 (zielona).",
+    "done_when": {
+     "type": "command",
+     "name": "lever_move",
+     "id": "r3"
+    }
+   },
+   {
+    "text": "Daj nakaz wjazdu: klawisz „Nakaz wjazd” na aparacie blokowym (korbka induktora kręci się 2 s).",
+    "done_when": {
+     "type": "command",
+     "name": "station_block_press",
+     "id": "nakaz_wjazd"
+    }
+   },
+   {
+    "text": "Przełóż czerwoną dźwignię sygnałową A — semafor kształtowy przed oknem podniesie ramię (Sr2).",
+    "done_when": {
+     "type": "signal_go",
+     "id": "A"
+    }
+   },
+   {
+    "text": "Patrz w panoramę: 52101 od Cisowa wjeżdża na tor 1. Tu nie ma kontroli zajętości — wolność toru sprawdzasz WZROKIEM.",
+    "done_when": {
+     "type": "train_arrived",
+     "nr": "52101"
+    }
+   },
+   {
+    "text": "Po zakończonej jeździe cofnij dźwignię A, potem rygiel 3 (odwrotna kolejność!), na końcu klawisz „Zwol. przeb.”.",
+    "done_when": {
+     "type": "command",
+     "name": "station_block_press",
+     "id": "zwol_przeb"
+    }
+   }
+  ]
+ }
+}

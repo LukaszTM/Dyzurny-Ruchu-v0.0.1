@@ -1,0 +1,89 @@
+{
+ "meta": {
+  "id": "samouczek-1-pulpit",
+  "name": "Lekcja 1 — pulpit i wjazd pociągu",
+  "station": "borki",
+  "description": "Podstawy pulpitu kostkowego: zwrotnica, przebieg wjazdowy, potwierdzenie przyjazdu.",
+  "difficulty": {
+   "auto_docs": true,
+   "hints": true,
+   "time_multiplier_allowed": [
+    1,
+    2,
+    5
+   ]
+  }
+ },
+ "start_time": "06:00",
+ "duration_min": 0,
+ "timetable": [
+  {
+   "nr": "45201",
+   "kind": "osobowy",
+   "from": "Lipno",
+   "to": "Suchowola",
+   "arr": "06:05",
+   "dep": "06:30",
+   "track": "t1",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  }
+ ],
+ "events": [],
+ "tutorial": {
+  "title": "Lekcja 1 — pulpit i wjazd pociągu",
+  "outro": "Brawo! Umiesz przestawiać zwrotnice, nastawiać przebiegi i potwierdzać przyjazd. W Lekcji 2 wyprawisz pociąg na szlak.",
+  "steps": [
+   {
+    "text": "Witaj na nastawni Borki! Przed Tobą pulpit kostkowy. Zacznij od zwrotnicy: naciśnij przycisk na kafelku zwrotnicy 1 (szary przycisk przy rozjeździe).",
+    "done_when": {
+     "type": "command",
+     "name": "turnout_throw",
+     "id": "z1"
+    }
+   },
+   {
+    "text": "Zwrotnica przestawia się kilka sekund — lampki położenia migają. Przestaw ją Z POWROTEM w położenie zasadnicze (+).",
+    "done_when": {
+     "type": "turnout_pos",
+     "id": "z1",
+     "pos": "PLUS"
+    }
+   },
+   {
+    "text": "Od Lipna zbliża się pociąg 45201. Nastaw przebieg wjazdowy na tor 1: naciśnij zielony przycisk semafora A.",
+    "done_when": {
+     "type": "route_locked",
+     "id": "A_t1"
+    }
+   },
+   {
+    "text": "Semafor A podał sygnał zezwalający, a droga jazdy świeci na biało (utwierdzona). Poczekaj, aż 45201 wjedzie i się zatrzyma.",
+    "done_when": {
+     "type": "train_arrived",
+     "nr": "45201"
+    }
+   },
+   {
+    "text": "Pociąg przyjechał. Potwierdź to na blokadzie: na polu BLOKADA LIPNO naciśnij przycisk Ko.",
+    "done_when": {
+     "type": "command",
+     "name": "block_press",
+     "id": "blk_w",
+     "value": "Ko"
+    }
+   },
+   {
+    "text": "Została część telefoniczna: otwórz telefon (T), wybierz Lipno i nadaj telefonogram „Potwierdzenie przyjazdu” dla 45201.",
+    "done_when": {
+     "type": "command",
+     "name": "phone_send",
+     "phone_type": "potwierdzenie_przyjazdu"
+    }
+   }
+  ]
+ }
+}

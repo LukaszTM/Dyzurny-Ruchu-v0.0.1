@@ -1,0 +1,63 @@
+{
+ "meta": {
+  "id": "samouczek-5-komputer",
+  "name": "Lekcja 5 — urządzenia komputerowe",
+  "station": "lipiny",
+  "description": "Nastawianie przebiegowe, polecenia dwustopniowe, linia komend i rejestr zdarzeń.",
+  "difficulty": {
+   "auto_docs": true,
+   "hints": true,
+   "time_multiplier_allowed": [
+    1,
+    2,
+    5
+   ]
+  }
+ },
+ "start_time": "18:00",
+ "duration_min": 0,
+ "timetable": [],
+ "events": [],
+ "tutorial": {
+  "title": "Lekcja 5 — urządzenia komputerowe",
+  "outro": "To wszystko! Znasz pulpit kostkowy, nastawnię mechaniczną i stanowisko komputerowe. Czas na prawdziwą służbę.",
+  "steps": [
+   {
+    "text": "Stanowisko komputerowe: plan świeci kolorami (szary wolny, zielony przebieg, czerwony zajęty). Nastaw przebieg POLECENIEM PRZEBIEGOWYM: kliknij „A → t1” na liście PRZEBIEGI albo wpisz w linii komend: przebieg A_t1",
+    "done_when": {
+     "type": "route_locked",
+     "id": "A_t1"
+    }
+   },
+   {
+    "text": "Zwrotnice ułożyły się same. Teraz polecenie specjalne: podaj sygnał zastępczy na B — menu „Sz…”, potem klik semafora B na planie (albo komenda: sz B).",
+    "done_when": {
+     "type": "confirm_pending"
+    }
+   },
+   {
+    "text": "Polecenia specjalne wymagają potwierdzenia (odpowiednik plomby). Zatwierdź: przycisk WYKONAĆ albo komenda: tak",
+    "done_when": {
+     "type": "signal_aspect",
+     "id": "B",
+     "aspect": "Sz"
+    }
+   },
+   {
+    "text": "Sz miga na biało na planie, a licznik użyć rośnie w rejestrze. Teraz cofnij przebieg A→t1: menu „Cofnij przebieg…” i klik semafora A (albo: cofnij A).",
+    "done_when": {
+     "type": "command",
+     "name": "signal_cancel",
+     "id": "A"
+    }
+   },
+   {
+    "text": "Spójrz na pole KOMUNIKATY na dole — każda operacja ma tam wpis z godziną i wynikiem. To rejestr zdarzeń stanowiska.",
+    "done_when": {
+     "type": "in_step_s",
+     "s": 6
+    }
+   }
+  ]
+ }
+}

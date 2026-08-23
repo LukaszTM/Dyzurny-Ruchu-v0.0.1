@@ -1,0 +1,105 @@
+{
+ "meta": {
+  "id": "samouczek-2-wyprawienie",
+  "name": "Lekcja 2 — wyprawienie na szlak",
+  "station": "borki",
+  "description": "Pozwolenie od sąsiada, przebieg wyjazdowy, oznajmienie odjazdu i obsługa Po.",
+  "difficulty": {
+   "auto_docs": true,
+   "hints": true,
+   "time_multiplier_allowed": [
+    1,
+    2,
+    5
+   ]
+  }
+ },
+ "start_time": "06:00",
+ "duration_min": 0,
+ "timetable": [
+  {
+   "nr": "45302",
+   "kind": "osobowy",
+   "from": "Suchowola",
+   "to": "Lipno",
+   "arr": "06:04",
+   "dep": "06:06",
+   "track": "t2",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  }
+ ],
+ "events": [],
+ "tutorial": {
+  "title": "Lekcja 2 — wyprawienie na szlak",
+  "outro": "Znakomicie! Pełny obieg: pozwolenie → przebieg → oznajmienie → Po. To chleb powszedni dyżurnego.",
+  "steps": [
+   {
+    "text": "Suchowola dzwoni w sprawie pociągu 45302 — odbierz telefon (klawisz T).",
+    "done_when": {
+     "type": "command",
+     "name": "phone_open"
+    }
+   },
+   {
+    "text": "Nastaw przebieg wjazdowy z Suchowoli na tor 2: przycisk semafora B (zwrotnica 2 musi leżeć na minus — jeśli odmowa, najpierw ją przestaw).",
+    "done_when": {
+     "type": "route_locked",
+     "id": "B_t2"
+    }
+   },
+   {
+    "text": "Po zatrzymaniu pociągu potwierdź przyjazd: Ko na polu BLOKADA SUCHOWOLA.",
+    "done_when": {
+     "type": "command",
+     "name": "block_press",
+     "id": "blk_e",
+     "value": "Ko"
+    }
+   },
+   {
+    "text": "Teraz wyprawimy 45302 do Lipna. Najpierw pozwolenie: telefonogram „Żądanie pozwolenia” do Lipna (T).",
+    "done_when": {
+     "type": "command",
+     "name": "phone_send",
+     "phone_type": "zadanie_pozwolenia"
+    }
+   },
+   {
+    "text": "Lipno odpowie „droga wolna” — lampka pozw. na BLOKADA LIPNO zaświeci na zielono. Poczekaj na nią.",
+    "done_when": {
+     "type": "block",
+     "id": "blk_w",
+     "field": "permission_player"
+    }
+   },
+   {
+    "text": "Nastaw przebieg wyjazdowy: przycisk semafora D2.",
+    "done_when": {
+     "type": "route_locked",
+     "id": "D2_out"
+    }
+   },
+   {
+    "text": "Oznajmij odjazd: telefonogram „Oznajmienie odjazdu” dla 45302 do Lipna.",
+    "done_when": {
+     "type": "command",
+     "name": "phone_send",
+     "phone_type": "oznajmienie_odjazdu"
+    }
+   },
+   {
+    "text": "Gdy pociąg zjedzie na szlak, zablokuj Po na polu BLOKADA LIPNO (pociąg jest teraz na odstępie).",
+    "done_when": {
+     "type": "command",
+     "name": "block_press",
+     "id": "blk_w",
+     "value": "Po"
+    }
+   }
+  ]
+ }
+}

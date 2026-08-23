@@ -36,6 +36,8 @@ var pending_events: Array[Dictionary] = []
 var director: EventDirector = null
 ## Generator ruchu trybu swobodnego (null/wyłączony poza F10 free-play).
 var traffic_gen: TrafficGen = null
+## Samouczek (null poza scenariuszami lekcji — sekcja "tutorial").
+var tutorial: Tutorial = null
 ## Ława dźwigniowa (null poza nastawnią mechaniczną — docs/systemy/12).
 var lever_frame: LeverFrame = null
 ## Przejazdy kolejowo-drogowe (StringName -> LevelCrossing).
@@ -164,6 +166,7 @@ func apply_scenario(scenario: Dictionary) -> Dictionary:
 			neighbours.append(NeighbourAI.new(block.neighbour_name, block, timetable))
 	director = EventDirector.from_scenario(scenario)
 	traffic_gen = TrafficGen.from_scenario(scenario)
+	tutorial = Tutorial.from_scenario(scenario)
 	return {"ok": true, "errors": [] as Array[String]}
 
 
@@ -204,6 +207,8 @@ func execute(name: StringName, args: Dictionary) -> CommandResult:
 		)
 	var result := _execute_inner(name, args)
 	_log_command(name, args, result)
+	if tutorial != null:
+		tutorial.notify_command(name, args, result.ok)
 	return result
 
 
@@ -225,6 +230,9 @@ func _cmd_confirm() -> CommandResult:
 	_confirm_left_s = 0.0
 	var result := _execute_inner(name, args)
 	_log_command(name, args, result)
+	if tutorial != null:
+		# Samouczek widzi potwierdzone polecenie pod jego właściwą nazwą.
+		tutorial.notify_command(name, args, result.ok)
 	return result
 
 
@@ -451,6 +459,9 @@ func tick(dt: float) -> void:
 	_tick_orders(dt)
 	_tick_traffic_gen()
 	_tick_neighbours()
+	if tutorial != null and station != null:
+		tutorial.observe_events(pending_events)
+		pending_events.append_array(tutorial.tick(self))
 	_check_procedure_deadlines()
 	_check_shift_end()
 
@@ -810,6 +821,16 @@ func spawn_train(entry: Timetable.Entry) -> Train:
 	train_log.entry_for(entry.nr, "%s → %s" % [entry.from_station, entry.to_station],
 		entry.track)
 	return train
+
+
+## Czy pociąg przyjechał (dla samouczka i GUI — stan proceduralny).
+func train_arrived(nr: String) -> bool:
+	return bool((_train_meta.get(nr, {}) as Dictionary).get("arrived", false))
+
+
+## Czy pociąg odjechał ze stacji.
+func train_departed(nr: String) -> bool:
+	return bool((_train_meta.get(nr, {}) as Dictionary).get("departed", false))
 
 
 ## Blokada od/do sąsiada: przyjazdowa (z entry_signal) albo wyjazdowa
