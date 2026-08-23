@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## GUI v1.4 — ciemna skórka widoku komputerowego (2026-08-23)
+
+### Dodano
+
+- `ui/komputer/komputer_plan.gd` — ciemny plan synoptyczny w konwencji
+  barw CBI (docs/systemy/14 §2): tor wolny szary, droga przebiegu
+  zielona, odcinek zajęty czerwony, zwrotnica bez kontroli miga,
+  semafor czerwony/zielony, Sz biały migający; symbole semaforów
+  z masztami, moduły (blokady/przejazd/ssp/dSAT/liczniki) jako ciemne
+  kasety z lampkami i przyciskami (te same akcje co na pulpicie).
+- Klik w semafor na planie filtruje listę przebiegów od tego semafora
+  (docs/14 §3 „klik semafora początkowego"); ponowny klik = wszystkie.
+- Kafelki semaforów w Brzezinach/Lipinach dziedziczą sekcję toru —
+  kolor linii biegnie bez przerw pod symbolami semaforów.
+- KomputerView: ciemne tło całego widoku; plan zastępuje osadzony
+  wcześniej renderer pulpitu kostkowego.
+
+### Jak przetestować ręcznie
+
+„Wieczór w Lipinach": nastawić A→t3 — droga zapala się na zielono
+przez rozjazd i łuki; zająć odcinek (debug F12) — czerwień z ciągłością
+pod semaforami; kliknąć semafor na planie — lista przebiegów się
+filtruje; Sz po potwierdzeniu miga na biało na symbolu semafora.
+
 ## GUI v1.2 — proceduralny tileset torowy (2026-08-23)
 
 ### Zmieniono

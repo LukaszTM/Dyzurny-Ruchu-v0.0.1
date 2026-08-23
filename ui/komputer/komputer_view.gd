@@ -1,10 +1,12 @@
 class_name KomputerView
 extends Control
 ## Minimalny widok komputerowych urządzeń nastawczych (docs/systemy/14) —
-## REFERENCYJNY: plan synoptyczny współdzieli renderer pulpitu, a panel
-## boczny pokazuje mechaniki rdzenia (nastawianie przebiegowe, polecenia
-## dwustopniowe, rejestr zdarzeń). Docelowe GUI buduje użytkownik na tym
-## samym API (docs/07-interfejs-gui.md); ten widok dokumentuje przepływy.
+## REFERENCYJNY: ciemny plan synoptyczny w konwencji barw CBI (docs/14 §2),
+## panel boczny pokazuje mechaniki rdzenia (nastawianie przebiegowe,
+## polecenia dwustopniowe, rejestr zdarzeń). Klik w semafor na planie
+## filtruje listę przebiegów od tego semafora (docs/14 §3 — „klik semafora
+## początkowego"). Docelowe GUI buduje użytkownik na tym samym API
+## (docs/07-interfejs-gui.md); ten widok dokumentuje przepływy.
 
 ## Akcja w formacie "polecenie:arg[:arg2]" — jak na pulpicie.
 signal action_requested(action: String)
@@ -12,13 +14,23 @@ signal action_requested(action: String)
 ## Liczba linii rejestru widocznych w panelu.
 const REGISTER_LINES: int = 14
 
+const COL_VIEW_BG := Color("101318")
+
 var _world: SimWorld = null
-var _plan: PulpitView = null
+var _plan: KomputerPlan = null
 var _pending_label: Label = null
 var _confirm_button: Button = null
 var _cancel_button: Button = null
 var _active_list: VBoxContainer = null
 var _register_text: RichTextLabel = null
+var _routes_hint: Label = null
+## Przyciski przebiegów wg semafora początkowego (filtr po kliku w plan).
+var _route_buttons: Array[Dictionary] = []
+var _filter_signal: StringName = &""
+
+
+func _draw() -> void:
+	draw_rect(Rect2(Vector2.ZERO, size), COL_VIEW_BG)
 
 
 func build_view(world: SimWorld) -> void:
@@ -27,12 +39,13 @@ func build_view(world: SimWorld) -> void:
 	root.add_theme_constant_override("separation", 12)
 	add_child(root)
 
-	# Plan stacji (schemat synoptyczny) — renderer kafelkowy jako referencja.
-	_plan = PulpitView.new()
+	# Plan stacji: ciemny schemat synoptyczny (KomputerPlan, docs/14 §2).
+	_plan = KomputerPlan.new()
 	_plan.build(world.station, world.interlocking, world.block_lines, world)
 	_plan.action_requested.connect(func(action: String) -> void:
 		action_requested.emit(action)
 	)
+	_plan.signal_clicked.connect(_on_plan_signal_clicked)
 	root.add_child(_plan)
 
 	var side := VBoxContainer.new()
@@ -63,6 +76,11 @@ func build_view(world: SimWorld) -> void:
 
 	# Nastawianie przebiegowe (docs/14 §5): przebieg z listy, zwrotnice same.
 	side.add_child(_header("PRZEBIEGI (nastawianie przebiegowe)"))
+	_routes_hint = Label.new()
+	_routes_hint.add_theme_font_size_override("font_size", 11)
+	_routes_hint.add_theme_color_override("font_color", Color(0.55, 0.6, 0.66))
+	_routes_hint.text = "klik w semafor na planie = filtr początku drogi"
+	side.add_child(_routes_hint)
 	var routes_grid := GridContainer.new()
 	routes_grid.columns = 2
 	for route_id: StringName in world.interlocking.routes:
@@ -75,6 +93,7 @@ func build_view(world: SimWorld) -> void:
 			func() -> void: action_requested.emit("route_set:%s" % id_string)
 		)
 		routes_grid.add_child(button)
+		_route_buttons.append({"button": button, "entry": route.entry_signal})
 	side.add_child(routes_grid)
 
 	# Aktywne przebiegi z możliwością zwolnienia (docs/14 §5).
@@ -144,6 +163,18 @@ func refresh() -> void:
 	for entry: Dictionary in _world.register.last(REGISTER_LINES):
 		lines.append(EventRegister.format_line(entry))
 	_register_text.text = "\n".join(lines)
+
+
+## Klik w semafor na planie: filtr listy przebiegów od tego semafora;
+## ponowny klik w ten sam = pokaż wszystkie (docs/14 §3).
+func _on_plan_signal_clicked(signal_id: StringName) -> void:
+	_filter_signal = &"" if _filter_signal == signal_id else signal_id
+	for entry: Dictionary in _route_buttons:
+		(entry["button"] as Button).visible = \
+			_filter_signal == &"" or entry["entry"] == _filter_signal
+	_routes_hint.text = "klik w semafor na planie = filtr początku drogi" \
+		if _filter_signal == &"" \
+		else "przebiegi od %s (klik ponownie = wszystkie)" % _filter_signal
 
 
 func _header(text: String) -> Label:

@@ -630,7 +630,8 @@
       "press": "route_start:C3",
       "pull": "signal_cancel:C3"
      }
-    }
+    },
+    "section": "it3"
    },
    {
     "xy": [
@@ -702,7 +703,8 @@
       "press": "route_start:A",
       "pull": "signal_cancel:A"
      }
-    }
+    },
+    "section": "iodw2"
    },
    {
     "xy": [
@@ -781,7 +783,8 @@
       "press": "route_start:C1",
       "pull": "signal_cancel:C1"
      }
-    }
+    },
+    "section": "it1"
    },
    {
     "xy": [
@@ -925,7 +928,8 @@
       "press": "route_start:D2",
       "pull": "signal_cancel:D2"
      }
-    }
+    },
+    "section": "it2"
    },
    {
     "xy": [
@@ -981,7 +985,8 @@
       "press": "route_start:B",
       "pull": "signal_cancel:B"
      }
-    }
+    },
+    "section": "it2"
    },
    {
     "xy": [

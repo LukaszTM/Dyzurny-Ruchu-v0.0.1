@@ -111,9 +111,10 @@ czego dotyczy wątpliwość, źródło w docs.
     (zdalne sterowanie 2 posterunkami, docs/systemy/14 §5) ODŁOŻONE** —
     wymaga wielu stacji w SimWorld; do osobnej iteracji po zbudowaniu
     docelowego GUI. Konwencja barw planu CBI (docs/14 §2
-    [DO WERYFIKACJI]) nie jest implementowana w widoku referencyjnym —
-    plan synoptyczny współdzieli renderer pulpitu; docelowe GUI
-    użytkownika powinno ją zastosować.
+    [DO WERYFIKACJI]) jest zaimplementowana w `ui/komputer/
+    komputer_plan.gd` z paletą roboczą (szary wolny, zielony przebieg,
+    czerwony zajęty, miganie bez kontroli, Sz biały migający) —
+    odcienie do strojenia po materiałach referencyjnych.
 26. **Lista poleceń specjalnych** — `core/sim_world.gd`
     (`SPECIAL_COMMANDS`). Przyjęto: Sz, dZw, zamknięcie zwrotnicy,
     RADIOSTOP, otwarcie przejazdu kat. A, pozwolenie blokady (Poz);
