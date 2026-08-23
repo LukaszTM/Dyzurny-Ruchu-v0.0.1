@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## GUI v1.6 — zobrazowanie wg konwencji Ie-104 (2026-08-23)
+
+### Zmieniono
+
+- Plan komputerowy upodobniony do rzeczywistych zobrazowań SCS
+  (wytyczne Ie-104 PKP PLK, na których bazują polskie systemy):
+  czarne tło bez siatki, segmentowe pasy torów z przerwami na
+  granicach odcinków, zwrotnica pokazuje położenie CIĄGŁOŚCIĄ drogi
+  (noga niepołożona szara i odsunięta od krzyżownicy), gołe symbole
+  semaforów (maszt + okrągła głowica, zgaszony = szary pierścień),
+  numery zwrotnic drobnym tekstem.
+- Stanowisko: zegar czasu symulacji w pasku menu, pole KOMUNIKATY
+  (rejestr zdarzeń) pełną szerokością na dole ekranu — układ jak
+  w rzeczywistych stanowiskach (pasek menu / plan / linia dialogowa
+  / komunikaty).
+- Uwaga prawna: odwzorowana jest KONWENCJA zobrazowania z publicznych
+  wytycznych Ie-104, bez kopiowania interfejsu żadnego produktu
+  (docs/01-podstawy-prawne.md).
+
 ## GUI v1.5 — pełne stanowisko komputerowe (2026-08-23)
 
 ### Zmieniono

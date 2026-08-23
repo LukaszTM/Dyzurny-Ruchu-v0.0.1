@@ -15,12 +15,12 @@ const TILE: float = 48.0
 const FRAME: float = 14.0
 
 # Paleta CBI (docs/14 §2 [DO WERYFIKACJI] — robocza).
-const COL_BG := Color("14161a")
-const COL_GRID := Color("1d2026")
-const COL_FREE := Color("767d87")
+const COL_BG := Color("060708")
+const COL_GRID := Color("111317")
+const COL_FREE := Color("5b626c")
 const COL_ROUTE := Color("35d45e")
 const COL_OCCUPIED := Color("f04438")
-const COL_LEG_OFF := Color("3a3f46")
+const COL_LEG_OFF := Color("363b42")
 const COL_TEXT := Color("a9b0ba")
 const COL_TEXT_DIM := Color("6b7280")
 const COL_BOX := Color("1b1f26")
@@ -100,15 +100,9 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _draw() -> void:
+	# Czarne zobrazowanie bez siatki (Ie-104): widać tylko elementy planu.
 	_hotspots.clear()
 	draw_rect(Rect2(Vector2.ZERO, size), COL_BG)
-	# Delikatna siatka pól.
-	for x: int in _grid.x + 1:
-		var gx := FRAME + x * TILE
-		draw_line(Vector2(gx, FRAME), Vector2(gx, FRAME + _grid.y * TILE), COL_GRID, 1.0)
-	for y: int in _grid.y + 1:
-		var gy := FRAME + y * TILE
-		draw_line(Vector2(FRAME, gy), Vector2(FRAME + _grid.x * TILE, gy), COL_GRID, 1.0)
 	for tile: Dictionary in _tiles:
 		_draw_tile(tile)
 
@@ -206,32 +200,47 @@ func _draw_curve(from_point: Vector2, control: Vector2, to_point: Vector2,
 	draw_polyline(points, color, TRACK_W)
 
 
-## Zwrotnica: świeci noga zgodna z położeniem, druga przygaszona;
-## w ruchu / bez kontroli symbol miga (docs/14 §2).
+## Zwrotnica wg konwencji Ie-104: położenie pokazuje CIĄGŁOŚĆ drogi —
+## noga niepołożona jest szara i ODSUNIĘTA od krzyżownicy (przerwa);
+## w ruchu / bez kontroli symbol miga.
 func _draw_turnout(tile: Dictionary, o: Vector2, branch_ne: bool) -> void:
 	var section_color := _section_color(StringName(String(tile.get("section", ""))))
 	var turnout := _graph.get_turnout(StringName(String(tile.get("turnout", ""))))
 	var corner := o + (Vector2(TILE, 0) if branch_ne else Vector2.ZERO)
-	var center := o + Vector2(24, 24)
-	var main_color := section_color
-	var branch_color := COL_LEG_OFF
-	if turnout != null:
-		if not turnout.has_control():
-			var blink_color := COL_OCCUPIED if _blink_on else COL_LAMP_DARK
-			main_color = blink_color
-			branch_color = blink_color
-		elif turnout.is_minus():
-			branch_color = section_color
-			main_color = COL_LEG_OFF
-	# Nogi: prosto (segment kanciasty) i w bok (od środka do narożnika).
-	_draw_h_segment(tile, o, main_color)
-	draw_line(center, corner, branch_color, TRACK_W)
-	var label := String(tile.get("label", ""))
-	var label_pos := o + (Vector2(4, 44) if branch_ne else Vector2(30, 44))
-	draw_rect(Rect2(label_pos + Vector2(-1.0, -10.0), Vector2(16.0, 13.0)), COL_BOX)
-	draw_rect(Rect2(label_pos + Vector2(-1.0, -10.0), Vector2(16.0, 13.0)),
-		COL_BOX_EDGE, false, 1.0)
-	_draw_text(label_pos, 14.0, label, COL_TEXT)
+	var center := o + Vector2(24.0, 24.0)
+	var half := TRACK_W / 2.0
+	var is_minus := turnout != null and turnout.is_minus()
+	var no_control := turnout != null and not turnout.has_control()
+	var blink_color := COL_OCCUPIED if _blink_on else COL_LAMP_DARK
+	# Kierunek jazdy w bok: dla NE odgałęzienie odchodzi w prawo-górę,
+	# więc przy MINUS przerwę dostaje prawa połowa toru prostego (i odwrotnie).
+	var branch_side_right := branch_ne
+	var straight_l := Rect2(o.x, o.y + 24.0 - half, 24.0, TRACK_W)
+	var straight_r := Rect2(o.x + 24.0, o.y + 24.0 - half, 24.0, TRACK_W)
+	var gap := 7.0
+	if is_minus:
+		if branch_side_right:
+			straight_r.position.x += gap
+			straight_r.size.x -= gap
+		else:
+			straight_l.size.x -= gap
+	var straight_color := blink_color if no_control else section_color
+	var off_color := blink_color if no_control else COL_LEG_OFF
+	draw_rect(straight_l, straight_color if not (is_minus and not branch_side_right) \
+		else off_color)
+	draw_rect(straight_r, straight_color if not (is_minus and branch_side_right) \
+		else off_color)
+	# Odgałęzienie: położone = od krzyżownicy, niepołożone = z przerwą.
+	var branch_start := center
+	var branch_color := straight_color if is_minus else off_color
+	if no_control:
+		branch_color = blink_color
+	if not is_minus:
+		branch_start = center.lerp(corner, 0.25)
+	draw_line(branch_start, corner, branch_color, TRACK_W)
+	# Numer zwrotnicy drobnym tekstem obok krzyżownicy (bez ramki).
+	var label_pos := o + (Vector2(2.0, 44.0) if branch_ne else Vector2(32.0, 44.0))
+	_draw_text(label_pos, 14.0, String(tile.get("label", "")), COL_TEXT_DIM)
 	# Klik w zwrotnicę = przestawienie (mapowanie akcji z JSON).
 	_register_press(tile, center, 14.0)
 
@@ -249,18 +258,20 @@ func _draw_signal(tile: Dictionary, o: Vector2, travel_east: bool) -> void:
 			color = COL_OCCUPIED
 		else:
 			color = COL_ROUTE
-	# Symbol SCS: krótki maszt + kaseta z kloszem (nie obraz semafora).
-	var mast_x := head.x - 12.0 if travel_east else head.x + 12.0
-	draw_line(Vector2(mast_x, o.y + 24.0), Vector2(mast_x, head.y), COL_TEXT_DIM, 2.0)
-	draw_line(Vector2(mast_x, head.y), Vector2(head.x - 8.0 if travel_east \
-		else head.x + 8.0, head.y), COL_TEXT_DIM, 2.0)
-	var box := Rect2(head - Vector2(8.0, 8.0), Vector2(16.0, 16.0))
-	draw_rect(box, Color("141920"))
-	draw_rect(box, COL_BOX_EDGE, false, 1.5)
-	draw_circle(head, 4.5, color)
-	var letter_y := 49.0 if travel_east else 9.0
-	var letter_x := -14.0 if travel_east else 14.0
-	_draw_text(o + Vector2(letter_x, letter_y), TILE, String(signal_id), COL_TEXT)
+	# Goły symbol Ie-104: maszt prostopadły od toru + okrągła głowica;
+	# zgaszony = sam szary pierścień, litera drobnym tekstem obok.
+	var mast_x := head.x - 11.0 if travel_east else head.x + 11.0
+	draw_line(Vector2(mast_x, o.y + 24.0), Vector2(mast_x, head.y), COL_FREE, 2.0)
+	draw_line(Vector2(mast_x, head.y), Vector2(head.x - 6.0 if travel_east \
+		else head.x + 6.0, head.y), COL_FREE, 2.0)
+	if color == COL_LAMP_DARK:
+		draw_arc(head, 5.5, 0.0, TAU, 20, COL_FREE, 2.0)
+	else:
+		draw_circle(head, 5.5, color)
+		draw_arc(head, 6.0, 0.0, TAU, 20, COL_FREE, 1.5)
+	var letter_y := 50.0 if travel_east else 8.0
+	var letter_x := -12.0 if travel_east else 12.0
+	_draw_text(o + Vector2(letter_x, letter_y), TILE, String(signal_id), COL_TEXT_DIM)
 	_hotspots.append({"center": head, "r": 12.0, "signal": String(signal_id)})
 
 

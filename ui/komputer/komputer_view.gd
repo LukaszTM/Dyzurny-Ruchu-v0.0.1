@@ -10,8 +10,8 @@ extends Control
 ## Akcja w formacie "polecenie:arg[:arg2]" — jak na pulpicie.
 signal action_requested(action: String)
 
-const REGISTER_LINES: int = 12
-const COL_VIEW_BG := Color("101318")
+const REGISTER_LINES: int = 6
+const COL_VIEW_BG := Color("08090b")
 const COL_BAR_BG := Color("1a1f27")
 const COL_BOX_BG := Color("161a21")
 const COL_BOX_EDGE := Color("2c323b")
@@ -26,6 +26,7 @@ var _cancel_button: Button = null
 var _active_list: VBoxContainer = null
 var _register_text: RichTextLabel = null
 var _routes_hint: Label = null
+var _clock_label: Label = null
 var _dialog_label: Label = null
 var _alarm_label: Label = null
 var _alarm_panel: PanelContainer = null
@@ -70,6 +71,10 @@ func build_view(world: SimWorld) -> void:
 	_add_menu_button(bar_box, "sz", "Sz…")
 	_add_menu_button(bar_box, "cancel", "Cofnij przebieg…")
 	_add_menu_button(bar_box, "dzw", "dZw…")
+	_clock_label = Label.new()
+	_clock_label.add_theme_color_override("font_color", Color(0.9, 0.92, 0.95))
+	_clock_label.text = "  00:00:00  "
+	bar_box.add_child(_clock_label)
 	root.add_child(bar)
 
 	# --- Plan + panel boczny. --------------------------------------------
@@ -139,16 +144,9 @@ func build_view(world: SimWorld) -> void:
 	_active_list = VBoxContainer.new()
 	side.add_child(_boxed("AKTYWNE PRZEBIEGI", _active_list))
 
-	# Rejestr zdarzeń (docs/14 §4).
-	_register_text = RichTextLabel.new()
-	_register_text.fit_content = false
-	_register_text.scroll_following = true
-	_register_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_register_text.custom_minimum_size = Vector2(0, 180)
-	_register_text.add_theme_font_size_override("normal_font_size", 12)
-	var register_box := _boxed("REJESTR ZDARZEŃ", _register_text)
-	register_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	side.add_child(register_box)
+	var side_spacer := Control.new()
+	side_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	side.add_child(side_spacer)
 
 	# --- Linia dialogowa + pole alarmów (docs/14 §1). ---------------------
 	var bottom := HBoxContainer.new()
@@ -175,6 +173,14 @@ func build_view(world: SimWorld) -> void:
 	alarm_box.add_child(_kwit_button)
 	_alarm_panel.add_child(alarm_box)
 	bottom.add_child(_alarm_panel)
+
+	# --- Pole komunikatów pełną szerokością (rejestr zdarzeń, docs/14 §4).
+	_register_text = RichTextLabel.new()
+	_register_text.fit_content = false
+	_register_text.scroll_following = true
+	_register_text.custom_minimum_size = Vector2(0, 108)
+	_register_text.add_theme_font_size_override("normal_font_size", 12)
+	root.add_child(_boxed("KOMUNIKATY", _register_text))
 
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	custom_minimum_size = Vector2(_plan.custom_minimum_size.x + 450,
@@ -223,11 +229,17 @@ func refresh() -> void:
 		var pending := Label.new()
 		pending.text = "%s (układanie drogi…)" % _world.interlocking.pending_route_id
 		_active_list.add_child(pending)
-	# Rejestr zdarzeń.
+	# Pole komunikatów (rejestr zdarzeń) + zegar stanowiska.
 	var lines: Array[String] = []
 	for entry: Dictionary in _world.register.last(REGISTER_LINES):
 		lines.append(EventRegister.format_line(entry))
 	_register_text.text = "\n".join(lines)
+	var total: int = int(_world.time_of_day_s()) % 86400
+	@warning_ignore("integer_division")
+	var clock_h: int = total / 3600
+	@warning_ignore("integer_division")
+	var clock_m: int = (total % 3600) / 60
+	_clock_label.text = "  %02d:%02d:%02d  " % [clock_h, clock_m, total % 60]
 	_refresh_dialog_line()
 	_refresh_alarms()
 
