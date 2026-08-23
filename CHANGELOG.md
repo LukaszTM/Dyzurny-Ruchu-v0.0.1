@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## GUI v1.1 — poprawiona plansza torowa (2026-08-23)
+
+### Zmieniono
+
+- Nowe tekstury z poprawionej planszy użytkownika: łuki `curve_se/sw`
+  (narożnik → środek krawędzi, geometria domyka się z sąsiadami),
+  kostki rozjazdowe `turnout_ne/nw` (tor poziomy + odgałęzienie 45°
+  z iglicami — zastępują wektorowe odgałęzienie), nowa przerwa
+  izolacyjna. Zapas na przyszłość: `track_v` (tor pionowy),
+  `crossing_diag` (skrzyżowanie).
+- Cała droga zwrotnicowa (rozjazd → ukos → łuk → tor) jest teraz
+  fotorealistyczna; fallback wektorowy pozostaje przy braku plików.
+
 ## GUI v1 — skórka fotorealistyczna pulpitu (2026-08-22)
 
 ### Dodano

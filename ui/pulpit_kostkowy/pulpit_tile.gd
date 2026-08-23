@@ -276,13 +276,14 @@ func _draw_insulation_gap() -> void:
 
 
 func _draw_turnout(branch_ne: bool) -> void:
-	# Skórka: kostka torowa jako podkład, odgałęzienie dorysowane (kierunek
-	# zależy od stacji — tekstura wspólna).
-	if not _draw_tile_tex("track_h"):
-		_draw_track_h()
-	# Odgałęzienie 45° do narożnika: turnout_ne → NE, turnout_nw → NW.
-	var corner := Vector2(TILE, 0.0) if branch_ne else Vector2(0.0, 0.0)
-	draw_line(Vector2(24.0, 24.0), corner, COL_TRACK, TRACK_WIDTH)
+	# Skórka: kostka rozjazdowa (tor poziomy + odgałęzienie 45° od środka
+	# do narożnika); fallback: tor poziomy + odgałęzienie wektorowe.
+	if not _draw_tile_tex("turnout_ne" if branch_ne else "turnout_nw"):
+		if not _draw_tile_tex("track_h"):
+			_draw_track_h()
+		# Odgałęzienie 45° do narożnika: turnout_ne → NE, turnout_nw → NW.
+		var corner := Vector2(TILE, 0.0) if branch_ne else Vector2(0.0, 0.0)
+		draw_line(Vector2(24.0, 24.0), corner, COL_TRACK, TRACK_WIDTH)
 	# Okienko lampki sekcji zwrotnicowej — odsunięte od rozgałęzienia.
 	var lamp_x := 10.0 if branch_ne else 38.0
 	_draw_section_lamp(Vector2(lamp_x, 24.0), 14.0)
