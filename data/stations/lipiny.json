@@ -594,6 +594,87 @@
   "tiles": [
    {
     "xy": [
+     6,
+     1
+    ],
+    "tile": "track_curve_se",
+    "section": "it3"
+   },
+   {
+    "xy": [
+     7,
+     1
+    ],
+    "tile": "track_h",
+    "section": "it3"
+   },
+   {
+    "xy": [
+     8,
+     1
+    ],
+    "tile": "track_h",
+    "section": "it3",
+    "label": "tor 3"
+   },
+   {
+    "xy": [
+     9,
+     1
+    ],
+    "tile": "track_h",
+    "section": "it3"
+   },
+   {
+    "xy": [
+     10,
+     1
+    ],
+    "tile": "signal_e",
+    "signal": "C3",
+    "button": {
+     "id": "przyc_C3",
+     "actions": {
+      "press": "route_start:C3",
+      "pull": "signal_cancel:C3"
+     }
+    }
+   },
+   {
+    "xy": [
+     11,
+     1
+    ],
+    "tile": "track_curve_sw",
+    "section": "it3"
+   },
+   {
+    "xy": [
+     18,
+     1
+    ],
+    "tile": "crossing_ctrl",
+    "crossing": "przA",
+    "label": "PRZEJAZD kat. A (tor 2)"
+   },
+   {
+    "xy": [
+     5,
+     2
+    ],
+    "tile": "track_diag_ne",
+    "section": "izw1"
+   },
+   {
+    "xy": [
+     12,
+     2
+    ],
+    "tile": "track_diag_nw",
+    "section": "izw2"
+   },
+   {
+    "xy": [
      0,
      3
     ],
@@ -759,155 +840,77 @@
    },
    {
     "xy": [
-     6,
-     1
+     18,
+     3
     ],
-    "tile": "track_curve_se",
-    "section": "it3"
+    "tile": "ssp_ctrl",
+    "crossing": "przB",
+    "label": "ssp KALINA"
    },
    {
     "xy": [
-     7,
-     1
+     18,
+     5
     ],
+    "tile": "dsat_ctrl",
+    "dsat": "dsat1",
+    "label": "dSAT szlak W"
+   },
+   {
+    "xy": [
+     0,
+     6
+    ],
+    "tile": "label",
+    "text": "KALINA <-"
+   },
+   {
     "tile": "track_h",
-    "section": "it3"
+    "xy": [
+     1,
+     6
+    ],
+    "section": ""
    },
    {
-    "xy": [
-     8,
-     1
-    ],
     "tile": "track_h",
-    "section": "it3",
-    "label": "tor 3"
+    "xy": [
+     2,
+     6
+    ],
+    "section": ""
    },
    {
-    "xy": [
-     9,
-     1
-    ],
     "tile": "track_h",
-    "section": "it3"
+    "xy": [
+     3,
+     6
+    ],
+    "section": ""
    },
    {
+    "tile": "track_h",
     "xy": [
-     10,
-     1
+     4,
+     6
     ],
-    "tile": "signal_e",
-    "signal": "C3",
-    "button": {
-     "id": "przyc_C3",
-     "actions": {
-      "press": "route_start:C3",
-      "pull": "signal_cancel:C3"
-     }
-    }
-   },
-   {
-    "xy": [
-     11,
-     1
-    ],
-    "tile": "track_curve_sw",
-    "section": "it3"
+    "section": ""
    },
    {
     "xy": [
      5,
-     2
-    ],
-    "tile": "track_diag_ne",
-    "section": "izw1"
-   },
-   {
-    "xy": [
-     12,
-     2
-    ],
-    "tile": "track_diag_nw",
-    "section": "izw2"
-   },
-   {
-    "xy": [
-     16,
-     6
-    ],
-    "tile": "label",
-    "text": "<- ROGÓW"
-   },
-   {
-    "xy": [
-     15,
      6
     ],
     "tile": "track_h",
-    "section": "iodew1"
+    "section": "iodww2"
    },
    {
     "xy": [
-     14,
+     6,
      6
     ],
     "tile": "track_h",
-    "section": "iodew2"
-   },
-   {
-    "xy": [
-     13,
-     6
-    ],
-    "tile": "signal_w",
-    "signal": "B",
-    "button": {
-     "id": "przyc_B",
-     "actions": {
-      "press": "route_start:B",
-      "pull": "signal_cancel:B"
-     }
-    }
-   },
-   {
-    "xy": [
-     12,
-     6
-    ],
-    "tile": "track_h",
-    "section": "it2"
-   },
-   {
-    "xy": [
-     11,
-     6
-    ],
-    "tile": "track_h",
-    "section": "it2"
-   },
-   {
-    "xy": [
-     10,
-     6
-    ],
-    "tile": "track_h",
-    "section": "it2",
-    "label": "tor 2"
-   },
-   {
-    "xy": [
-     9,
-     6
-    ],
-    "tile": "track_h",
-    "section": "it2"
-   },
-   {
-    "xy": [
-     8,
-     6
-    ],
-    "tile": "track_h",
-    "section": "it2"
+    "section": "iodww1"
    },
    {
     "xy": [
@@ -926,54 +929,83 @@
    },
    {
     "xy": [
-     6,
+     8,
      6
     ],
     "tile": "track_h",
-    "section": "iodww1"
+    "section": "it2"
    },
    {
     "xy": [
-     5,
+     9,
      6
     ],
     "tile": "track_h",
-    "section": "iodww2"
+    "section": "it2"
    },
    {
     "xy": [
-     4,
+     10,
+     6
+    ],
+    "tile": "track_h",
+    "section": "it2",
+    "label": "tor 2"
+   },
+   {
+    "xy": [
+     11,
+     6
+    ],
+    "tile": "track_h",
+    "section": "it2"
+   },
+   {
+    "xy": [
+     12,
+     6
+    ],
+    "tile": "track_h",
+    "section": "it2"
+   },
+   {
+    "xy": [
+     13,
+     6
+    ],
+    "tile": "signal_w",
+    "signal": "B",
+    "button": {
+     "id": "przyc_B",
+     "actions": {
+      "press": "route_start:B",
+      "pull": "signal_cancel:B"
+     }
+    }
+   },
+   {
+    "xy": [
+     14,
+     6
+    ],
+    "tile": "track_h",
+    "section": "iodew2"
+   },
+   {
+    "xy": [
+     15,
+     6
+    ],
+    "tile": "track_h",
+    "section": "iodew1"
+   },
+   {
+    "xy": [
+     16,
      6
     ],
     "tile": "label",
-    "text": "KALINA <-"
-   },
-   {
-    "xy": [
-     18,
-     1
-    ],
-    "tile": "crossing_ctrl",
-    "crossing": "przA",
-    "label": "PRZEJAZD kat. A (tor 2)"
-   },
-   {
-    "xy": [
-     18,
-     3
-    ],
-    "tile": "ssp_ctrl",
-    "crossing": "przB",
-    "label": "ssp KALINA"
-   },
-   {
-    "xy": [
-     18,
-     5
-    ],
-    "tile": "dsat_ctrl",
-    "dsat": "dsat1",
-    "label": "dSAT szlak W"
+    "text": "<- ROGÓW"
    },
    {
     "xy": [

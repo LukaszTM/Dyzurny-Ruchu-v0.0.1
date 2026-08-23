@@ -423,7 +423,9 @@ static func _validate_panel(
 		var tile: Dictionary = tile_variant
 		var where := "panel.tiles[%d]" % tile_index
 		tile_index += 1
-		if tile.has("section") and not section_ids.has(String(tile["section"])):
+		# Pusta sekcja = kostka ozdobna (tor biegnie poza plan, bez lampki).
+		if tile.has("section") and not String(tile["section"]).is_empty() \
+				and not section_ids.has(String(tile["section"])):
 			errors.append("%s: sekcja '%s' nie istnieje" % [where, tile["section"]])
 		if tile.has("turnout") and not turnout_ids.has(String(tile["turnout"])):
 			errors.append("%s: zwrotnica '%s' nie istnieje" % [where, tile["turnout"]])

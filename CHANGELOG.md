@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## GUI v1.2 — proceduralny tileset torowy (2026-08-23)
+
+### Zmieniono
+
+- `tools/gen_pulpit_tiles.py` — generator kafelków torowych: geometria
+  liczona (oś toru w 50% kostki, ukosy 45° narożnik–narożnik, łuki
+  Béziera styczne do sąsiadów), metaliczne szyny z rozbłyskiem, blacha
+  z szumem, fazą i śrubami. Zastępuje kafelki torowe generowane przez
+  AI (nie trzymały geometrii); lampki, kogut i licznik nadal z paczek
+  graficznych użytkownika. Nowy kafelek = jedna funkcja w generatorze.
+- Kostki torowe łączą się co do piksela: rozjazd → ukos → łuk → tor.
+- Loader: kafelek torowy z pustą sekcją jest legalny (kostka ozdobna,
+  tor biegnie poza plan — bez lampki).
+- Brzeziny/Lipiny: tor 2 dociągnięty do lewej krawędzi planu (etykieta
+  + kostki ozdobne), zgłoszone jako urwany tor.
+
 ## GUI v1.1 — poprawiona plansza torowa (2026-08-23)
 
 ### Zmieniono

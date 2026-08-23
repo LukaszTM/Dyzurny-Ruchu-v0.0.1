@@ -1,212 +1,1090 @@
 {
-  "meta": {
-    "id": "brzeziny",
-    "name": "Brzeziny",
-    "type": "stacja",
-    "devices": "przekaznikowe",
-    "neighbours": {"W": "Sosnów", "E": "Dęby"},
-    "_comment": "Stacja poziomu 4 na linii dwutorowej: sbl 3-stawna w obu kierunkach, przejazd ssp kat. B na wjezdzie z W, przejazd kat. A na torze 2, dSAT na szlaku. Tor gorny (t1/t3) kierunek E, tor dolny (t2) kierunek W."
+ "meta": {
+  "id": "brzeziny",
+  "name": "Brzeziny",
+  "type": "stacja",
+  "devices": "przekaznikowe",
+  "neighbours": {
+   "W": "Sosnów",
+   "E": "Dęby"
   },
-
-  "nodes": [
-    {"id": "nW0"}, {"id": "nW1"}, {"id": "nA"}, {"id": "nB"},
-    {"id": "nE1"}, {"id": "nE2"},
-    {"id": "nE3"}, {"id": "nE4"}, {"id": "nC"}, {"id": "nD"},
-    {"id": "nW2"}, {"id": "nW3"}
-  ],
-
-  "edges": [
-    {"id": "e_ow1", "from": "nW0", "to": "nW1", "len_m": 1000, "vmax_kmh": 100},
-    {"id": "e_ow2", "from": "nW1", "to": "nA",  "len_m": 1000, "vmax_kmh": 100},
-    {"id": "e_t1",  "from": "nA",  "to": "nB",  "len_m": 500,  "vmax_kmh": 100},
-    {"id": "e_t3",  "from": "nA",  "to": "nB",  "len_m": 480,  "vmax_kmh": 40},
-    {"id": "e_oe1", "from": "nB",  "to": "nE1", "len_m": 1000, "vmax_kmh": 100},
-    {"id": "e_oe2", "from": "nE1", "to": "nE2", "len_m": 1000, "vmax_kmh": 100},
-
-    {"id": "e_ie1", "from": "nE3", "to": "nE4", "len_m": 1000, "vmax_kmh": 100},
-    {"id": "e_ie2", "from": "nE4", "to": "nC",  "len_m": 1000, "vmax_kmh": 100},
-    {"id": "e_t2",  "from": "nC",  "to": "nD",  "len_m": 500,  "vmax_kmh": 100},
-    {"id": "e_ww1", "from": "nD",  "to": "nW2", "len_m": 1000, "vmax_kmh": 100},
-    {"id": "e_ww2", "from": "nW2", "to": "nW3", "len_m": 1000, "vmax_kmh": 100}
-  ],
-
-  "turnouts": [
-    {"id": "z1", "node": "nA", "edge_root": "e_ow2", "edge_plus": "e_t1",
-     "edge_minus": "e_t3", "throw_time_s": 5, "v_minus_kmh": 40},
-    {"id": "z2", "node": "nB", "edge_root": "e_oe1", "edge_plus": "e_t1",
-     "edge_minus": "e_t3", "throw_time_s": 5, "v_minus_kmh": 40}
-  ],
-
-  "sections": [
-    {"id": "iodw1", "type": "approach", "edges": ["e_ow1"]},
-    {"id": "iodw2", "type": "approach", "edges": ["e_ow2"]},
-    {"id": "izw1",  "type": "turnout",  "edges": [], "turnout": "z1", "len_m": 40},
-    {"id": "it1",   "type": "track",    "edges": ["e_t1"]},
-    {"id": "it3",   "type": "track",    "edges": ["e_t3"]},
-    {"id": "izw2",  "type": "turnout",  "edges": [], "turnout": "z2", "len_m": 40},
-    {"id": "iode1", "type": "approach", "edges": ["e_oe1"]},
-    {"id": "iode2", "type": "approach", "edges": ["e_oe2"]},
-
-    {"id": "iodew1", "type": "approach", "edges": ["e_ie1"]},
-    {"id": "iodew2", "type": "approach", "edges": ["e_ie2"]},
-    {"id": "it2",    "type": "track",    "edges": ["e_t2"]},
-    {"id": "iodww1", "type": "approach", "edges": ["e_ww1"]},
-    {"id": "iodww2", "type": "approach", "edges": ["e_ww2"]}
-  ],
-
-  "signals": [
-    {"id": "O1", "kind": "semafor", "at_node": "nW0", "dir": "N", "heads": 3, "sbl": true},
-    {"id": "O2", "kind": "semafor", "at_node": "nW1", "dir": "N", "heads": 3, "sbl": true},
-    {"id": "A",  "kind": "semafor", "at_node": "nA", "dir": "N", "heads": 5,
-     "bar_green": true, "can_ms2": true, "can_sz": true},
-    {"id": "C1", "kind": "semafor", "at_node": "nB", "dir": "N", "heads": 3,
-     "can_ms2": true, "can_sz": true},
-    {"id": "C3", "kind": "semafor", "at_node": "nB", "dir": "N", "heads": 3,
-     "can_ms2": true, "can_sz": false},
-    {"id": "P1", "kind": "semafor", "at_node": "nE1", "dir": "N", "heads": 3, "sbl": true},
-
-    {"id": "Q1", "kind": "semafor", "at_node": "nE3", "dir": "N", "heads": 3, "sbl": true},
-    {"id": "Q2", "kind": "semafor", "at_node": "nE4", "dir": "N", "heads": 3, "sbl": true},
-    {"id": "B",  "kind": "semafor", "at_node": "nC", "dir": "N", "heads": 5,
-     "bar_green": true, "can_ms2": true, "can_sz": true},
-    {"id": "D2", "kind": "semafor", "at_node": "nD", "dir": "N", "heads": 3,
-     "can_ms2": true, "can_sz": true},
-    {"id": "R1", "kind": "semafor", "at_node": "nW2", "dir": "N", "heads": 3, "sbl": true}
-  ],
-
-  "routes": [
-    {"id": "A_t1", "class": "train", "entry_signal": "A", "target": "t1",
-     "exit_signal": "C1", "sections": ["izw1", "it1"],
-     "turnouts": {"z1": "PLUS"}, "flank": {},
-     "overlap": {"sections": ["izw2"], "turnouts": {"z2": "PLUS"}, "release_s": 90},
-     "v_route_kmh": 100,
-     "conflicts": ["A_t3", "C1_out", "C3_out"]},
-
-    {"id": "A_t3", "class": "train", "entry_signal": "A", "target": "t3",
-     "exit_signal": "C3", "sections": ["izw1", "it3"],
-     "turnouts": {"z1": "MINUS"}, "flank": {},
-     "overlap": {"sections": ["izw2"], "turnouts": {"z2": "MINUS"}, "release_s": 90},
-     "v_route_kmh": 40,
-     "conflicts": ["A_t1", "C1_out", "C3_out"]},
-
-    {"id": "C1_out", "class": "train", "entry_signal": "C1", "target": "szlak_E",
-     "sections": ["izw2", "iode1"], "turnouts": {"z2": "PLUS"}, "flank": {},
-     "overlap": null, "block": "blk_ee", "v_route_kmh": 100,
-     "conflicts": ["C3_out", "A_t1", "A_t3"]},
-
-    {"id": "C3_out", "class": "train", "entry_signal": "C3", "target": "szlak_E",
-     "sections": ["izw2", "iode1"], "turnouts": {"z2": "MINUS"}, "flank": {},
-     "overlap": null, "block": "blk_ee", "v_route_kmh": 40,
-     "conflicts": ["C1_out", "A_t1", "A_t3"]},
-
-    {"id": "B_t2", "class": "train", "entry_signal": "B", "target": "t2",
-     "exit_signal": "D2", "sections": ["it2"],
-     "turnouts": {}, "flank": {},
-     "overlap": {"sections": ["iodww1"], "turnouts": {}, "release_s": 90},
-     "v_route_kmh": 100,
-     "conflicts": ["D2_out"]},
-
-    {"id": "D2_out", "class": "train", "entry_signal": "D2", "target": "szlak_W",
-     "sections": ["iodww1"], "turnouts": {}, "flank": {},
-     "overlap": null, "block": "blk_ww", "v_route_kmh": 100,
-     "conflicts": ["B_t2"]}
-  ],
-
-  "blocks": [
-    {"id": "blk_we", "type": "samoczynna_3staw", "neighbour": "Sosnów",
-     "track": "szlak_W_tor1", "entry_signal": "A", "exit_signals": [],
-     "odstepy": ["iodw1", "iodw2"], "signals": ["O1", "O2"]},
-    {"id": "blk_ee", "type": "samoczynna_3staw", "neighbour": "Dęby",
-     "track": "szlak_E_tor1", "entry_signal": "", "exit_signals": ["C1", "C3"],
-     "odstepy": ["iode1", "iode2"], "signals": ["", "P1"]},
-    {"id": "blk_ew", "type": "samoczynna_3staw", "neighbour": "Dęby",
-     "track": "szlak_E_tor2", "entry_signal": "B", "exit_signals": [],
-     "odstepy": ["iodew1", "iodew2"], "signals": ["Q1", "Q2"]},
-    {"id": "blk_ww", "type": "samoczynna_3staw", "neighbour": "Sosnów",
-     "track": "szlak_W_tor2", "entry_signal": "", "exit_signals": ["D2"],
-     "odstepy": ["iodww1", "iodww2"], "signals": ["", "R1"]}
-  ],
-
-  "crossings": [
-    {"id": "przA", "type": "kat_A_rogatki", "close_time_s": 25,
-     "on_sections": ["it2"]},
-    {"id": "przB", "type": "ssp_B", "close_time_s": 12,
-     "on_sections": ["iodw1", "iodw2"]}
-  ],
-
-  "dsat": [
-    {"id": "dsat1", "on_edge": "e_ow1", "types": ["GM", "GH", "PM"]}
-  ],
-
-  "panel": {
-    "type": "kostkowy",
-    "grid": [26, 12],
-    "route_setting": "indywidualne",
-    "tiles": [
-      {"xy": [0, 3], "tile": "label", "text": "SOSNÓW ->"},
-      {"xy": [1, 3], "tile": "track_h", "section": "iodw1"},
-      {"xy": [2, 3], "tile": "track_h", "section": "iodw2"},
-      {"xy": [3, 3], "tile": "signal_e", "signal": "A",
-       "button": {"id": "przyc_A", "actions": {"press": "route_start:A", "pull": "signal_cancel:A"}}},
-      {"xy": [4, 3], "tile": "insulation_gap"},
-      {"xy": [5, 3], "tile": "turnout_ne", "turnout": "z1", "label": "1", "section": "izw1",
-       "button": {"id": "przyc_z1", "actions": {"press": "turnout_throw:z1"}}},
-      {"xy": [6, 3], "tile": "track_h", "section": "it1"},
-      {"xy": [7, 3], "tile": "track_h", "section": "it1"},
-      {"xy": [8, 3], "tile": "track_h", "section": "it1", "label": "tor 1"},
-      {"xy": [9, 3], "tile": "track_h", "section": "it1"},
-      {"xy": [10, 3], "tile": "track_h", "section": "it1"},
-      {"xy": [11, 3], "tile": "signal_e", "signal": "C1",
-       "button": {"id": "przyc_C1", "actions": {"press": "route_start:C1", "pull": "signal_cancel:C1"}}},
-      {"xy": [12, 3], "tile": "turnout_nw", "turnout": "z2", "label": "2", "section": "izw2",
-       "button": {"id": "przyc_z2", "actions": {"press": "turnout_throw:z2"}}},
-      {"xy": [13, 3], "tile": "insulation_gap"},
-      {"xy": [14, 3], "tile": "track_h", "section": "iode1"},
-      {"xy": [15, 3], "tile": "track_h", "section": "iode2"},
-      {"xy": [16, 3], "tile": "label", "text": "-> DĘBY"},
-
-      {"xy": [6, 1], "tile": "track_curve_se", "section": "it3"},
-      {"xy": [7, 1], "tile": "track_h", "section": "it3"},
-      {"xy": [8, 1], "tile": "track_h", "section": "it3", "label": "tor 3"},
-      {"xy": [9, 1], "tile": "track_h", "section": "it3"},
-      {"xy": [10, 1], "tile": "signal_e", "signal": "C3",
-       "button": {"id": "przyc_C3", "actions": {"press": "route_start:C3", "pull": "signal_cancel:C3"}}},
-      {"xy": [11, 1], "tile": "track_curve_sw", "section": "it3"},
-      {"xy": [5, 2], "tile": "track_diag_ne", "section": "izw1"},
-      {"xy": [12, 2], "tile": "track_diag_nw", "section": "izw2"},
-
-      {"xy": [16, 6], "tile": "label", "text": "<- DĘBY"},
-      {"xy": [15, 6], "tile": "track_h", "section": "iodew1"},
-      {"xy": [14, 6], "tile": "track_h", "section": "iodew2"},
-      {"xy": [13, 6], "tile": "signal_w", "signal": "B",
-       "button": {"id": "przyc_B", "actions": {"press": "route_start:B", "pull": "signal_cancel:B"}}},
-      {"xy": [12, 6], "tile": "track_h", "section": "it2"},
-      {"xy": [11, 6], "tile": "track_h", "section": "it2"},
-      {"xy": [10, 6], "tile": "track_h", "section": "it2", "label": "tor 2"},
-      {"xy": [9, 6], "tile": "track_h", "section": "it2"},
-      {"xy": [8, 6], "tile": "track_h", "section": "it2"},
-      {"xy": [7, 6], "tile": "signal_w", "signal": "D2",
-       "button": {"id": "przyc_D2", "actions": {"press": "route_start:D2", "pull": "signal_cancel:D2"}}},
-      {"xy": [6, 6], "tile": "track_h", "section": "iodww1"},
-      {"xy": [5, 6], "tile": "track_h", "section": "iodww2"},
-      {"xy": [4, 6], "tile": "label", "text": "SOSNÓW <-"},
-
-      {"xy": [18, 1], "tile": "crossing_ctrl", "crossing": "przA", "label": "PRZEJAZD kat. A (tor 2)"},
-      {"xy": [18, 3], "tile": "ssp_ctrl", "crossing": "przB", "label": "ssp SOSNÓW"},
-      {"xy": [18, 5], "tile": "dsat_ctrl", "dsat": "dsat1", "label": "dSAT szlak W"},
-
-      {"xy": [2, 9], "tile": "counter_button", "label": "dSz A", "counter": true, "sealed": true,
-       "actions": {"press": "sub_signal:A"}},
-      {"xy": [4, 9], "tile": "counter_button", "label": "dSz B", "counter": true, "sealed": true,
-       "actions": {"press": "sub_signal:B"}},
-      {"xy": [6, 9], "tile": "counter_button", "label": "dSz C1", "counter": true, "sealed": true,
-       "actions": {"press": "sub_signal:C1"}},
-      {"xy": [8, 9], "tile": "counter_button", "label": "dSz D2", "counter": true, "sealed": true,
-       "actions": {"press": "sub_signal:D2"}},
-      {"xy": [10, 9], "tile": "counter_button", "label": "dZw", "counter": true, "sealed": true,
-       "actions": {"press": "route_emergency_release"}},
-      {"xy": [12, 9], "tile": "counter_button", "label": "zamkn. zwr.", "counter": false, "sealed": false,
-       "actions": {"press": "turnout_lock_toggle"}}
-    ]
+  "_comment": "Stacja poziomu 4 na linii dwutorowej: sbl 3-stawna w obu kierunkach, przejazd ssp kat. B na wjezdzie z W, przejazd kat. A na torze 2, dSAT na szlaku. Tor gorny (t1/t3) kierunek E, tor dolny (t2) kierunek W."
+ },
+ "nodes": [
+  {
+   "id": "nW0"
+  },
+  {
+   "id": "nW1"
+  },
+  {
+   "id": "nA"
+  },
+  {
+   "id": "nB"
+  },
+  {
+   "id": "nE1"
+  },
+  {
+   "id": "nE2"
+  },
+  {
+   "id": "nE3"
+  },
+  {
+   "id": "nE4"
+  },
+  {
+   "id": "nC"
+  },
+  {
+   "id": "nD"
+  },
+  {
+   "id": "nW2"
+  },
+  {
+   "id": "nW3"
   }
+ ],
+ "edges": [
+  {
+   "id": "e_ow1",
+   "from": "nW0",
+   "to": "nW1",
+   "len_m": 1000,
+   "vmax_kmh": 100
+  },
+  {
+   "id": "e_ow2",
+   "from": "nW1",
+   "to": "nA",
+   "len_m": 1000,
+   "vmax_kmh": 100
+  },
+  {
+   "id": "e_t1",
+   "from": "nA",
+   "to": "nB",
+   "len_m": 500,
+   "vmax_kmh": 100
+  },
+  {
+   "id": "e_t3",
+   "from": "nA",
+   "to": "nB",
+   "len_m": 480,
+   "vmax_kmh": 40
+  },
+  {
+   "id": "e_oe1",
+   "from": "nB",
+   "to": "nE1",
+   "len_m": 1000,
+   "vmax_kmh": 100
+  },
+  {
+   "id": "e_oe2",
+   "from": "nE1",
+   "to": "nE2",
+   "len_m": 1000,
+   "vmax_kmh": 100
+  },
+  {
+   "id": "e_ie1",
+   "from": "nE3",
+   "to": "nE4",
+   "len_m": 1000,
+   "vmax_kmh": 100
+  },
+  {
+   "id": "e_ie2",
+   "from": "nE4",
+   "to": "nC",
+   "len_m": 1000,
+   "vmax_kmh": 100
+  },
+  {
+   "id": "e_t2",
+   "from": "nC",
+   "to": "nD",
+   "len_m": 500,
+   "vmax_kmh": 100
+  },
+  {
+   "id": "e_ww1",
+   "from": "nD",
+   "to": "nW2",
+   "len_m": 1000,
+   "vmax_kmh": 100
+  },
+  {
+   "id": "e_ww2",
+   "from": "nW2",
+   "to": "nW3",
+   "len_m": 1000,
+   "vmax_kmh": 100
+  }
+ ],
+ "turnouts": [
+  {
+   "id": "z1",
+   "node": "nA",
+   "edge_root": "e_ow2",
+   "edge_plus": "e_t1",
+   "edge_minus": "e_t3",
+   "throw_time_s": 5,
+   "v_minus_kmh": 40
+  },
+  {
+   "id": "z2",
+   "node": "nB",
+   "edge_root": "e_oe1",
+   "edge_plus": "e_t1",
+   "edge_minus": "e_t3",
+   "throw_time_s": 5,
+   "v_minus_kmh": 40
+  }
+ ],
+ "sections": [
+  {
+   "id": "iodw1",
+   "type": "approach",
+   "edges": [
+    "e_ow1"
+   ]
+  },
+  {
+   "id": "iodw2",
+   "type": "approach",
+   "edges": [
+    "e_ow2"
+   ]
+  },
+  {
+   "id": "izw1",
+   "type": "turnout",
+   "edges": [],
+   "turnout": "z1",
+   "len_m": 40
+  },
+  {
+   "id": "it1",
+   "type": "track",
+   "edges": [
+    "e_t1"
+   ]
+  },
+  {
+   "id": "it3",
+   "type": "track",
+   "edges": [
+    "e_t3"
+   ]
+  },
+  {
+   "id": "izw2",
+   "type": "turnout",
+   "edges": [],
+   "turnout": "z2",
+   "len_m": 40
+  },
+  {
+   "id": "iode1",
+   "type": "approach",
+   "edges": [
+    "e_oe1"
+   ]
+  },
+  {
+   "id": "iode2",
+   "type": "approach",
+   "edges": [
+    "e_oe2"
+   ]
+  },
+  {
+   "id": "iodew1",
+   "type": "approach",
+   "edges": [
+    "e_ie1"
+   ]
+  },
+  {
+   "id": "iodew2",
+   "type": "approach",
+   "edges": [
+    "e_ie2"
+   ]
+  },
+  {
+   "id": "it2",
+   "type": "track",
+   "edges": [
+    "e_t2"
+   ]
+  },
+  {
+   "id": "iodww1",
+   "type": "approach",
+   "edges": [
+    "e_ww1"
+   ]
+  },
+  {
+   "id": "iodww2",
+   "type": "approach",
+   "edges": [
+    "e_ww2"
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "O1",
+   "kind": "semafor",
+   "at_node": "nW0",
+   "dir": "N",
+   "heads": 3,
+   "sbl": true
+  },
+  {
+   "id": "O2",
+   "kind": "semafor",
+   "at_node": "nW1",
+   "dir": "N",
+   "heads": 3,
+   "sbl": true
+  },
+  {
+   "id": "A",
+   "kind": "semafor",
+   "at_node": "nA",
+   "dir": "N",
+   "heads": 5,
+   "bar_green": true,
+   "can_ms2": true,
+   "can_sz": true
+  },
+  {
+   "id": "C1",
+   "kind": "semafor",
+   "at_node": "nB",
+   "dir": "N",
+   "heads": 3,
+   "can_ms2": true,
+   "can_sz": true
+  },
+  {
+   "id": "C3",
+   "kind": "semafor",
+   "at_node": "nB",
+   "dir": "N",
+   "heads": 3,
+   "can_ms2": true,
+   "can_sz": false
+  },
+  {
+   "id": "P1",
+   "kind": "semafor",
+   "at_node": "nE1",
+   "dir": "N",
+   "heads": 3,
+   "sbl": true
+  },
+  {
+   "id": "Q1",
+   "kind": "semafor",
+   "at_node": "nE3",
+   "dir": "N",
+   "heads": 3,
+   "sbl": true
+  },
+  {
+   "id": "Q2",
+   "kind": "semafor",
+   "at_node": "nE4",
+   "dir": "N",
+   "heads": 3,
+   "sbl": true
+  },
+  {
+   "id": "B",
+   "kind": "semafor",
+   "at_node": "nC",
+   "dir": "N",
+   "heads": 5,
+   "bar_green": true,
+   "can_ms2": true,
+   "can_sz": true
+  },
+  {
+   "id": "D2",
+   "kind": "semafor",
+   "at_node": "nD",
+   "dir": "N",
+   "heads": 3,
+   "can_ms2": true,
+   "can_sz": true
+  },
+  {
+   "id": "R1",
+   "kind": "semafor",
+   "at_node": "nW2",
+   "dir": "N",
+   "heads": 3,
+   "sbl": true
+  }
+ ],
+ "routes": [
+  {
+   "id": "A_t1",
+   "class": "train",
+   "entry_signal": "A",
+   "target": "t1",
+   "exit_signal": "C1",
+   "sections": [
+    "izw1",
+    "it1"
+   ],
+   "turnouts": {
+    "z1": "PLUS"
+   },
+   "flank": {},
+   "overlap": {
+    "sections": [
+     "izw2"
+    ],
+    "turnouts": {
+     "z2": "PLUS"
+    },
+    "release_s": 90
+   },
+   "v_route_kmh": 100,
+   "conflicts": [
+    "A_t3",
+    "C1_out",
+    "C3_out"
+   ]
+  },
+  {
+   "id": "A_t3",
+   "class": "train",
+   "entry_signal": "A",
+   "target": "t3",
+   "exit_signal": "C3",
+   "sections": [
+    "izw1",
+    "it3"
+   ],
+   "turnouts": {
+    "z1": "MINUS"
+   },
+   "flank": {},
+   "overlap": {
+    "sections": [
+     "izw2"
+    ],
+    "turnouts": {
+     "z2": "MINUS"
+    },
+    "release_s": 90
+   },
+   "v_route_kmh": 40,
+   "conflicts": [
+    "A_t1",
+    "C1_out",
+    "C3_out"
+   ]
+  },
+  {
+   "id": "C1_out",
+   "class": "train",
+   "entry_signal": "C1",
+   "target": "szlak_E",
+   "sections": [
+    "izw2",
+    "iode1"
+   ],
+   "turnouts": {
+    "z2": "PLUS"
+   },
+   "flank": {},
+   "overlap": null,
+   "block": "blk_ee",
+   "v_route_kmh": 100,
+   "conflicts": [
+    "C3_out",
+    "A_t1",
+    "A_t3"
+   ]
+  },
+  {
+   "id": "C3_out",
+   "class": "train",
+   "entry_signal": "C3",
+   "target": "szlak_E",
+   "sections": [
+    "izw2",
+    "iode1"
+   ],
+   "turnouts": {
+    "z2": "MINUS"
+   },
+   "flank": {},
+   "overlap": null,
+   "block": "blk_ee",
+   "v_route_kmh": 40,
+   "conflicts": [
+    "C1_out",
+    "A_t1",
+    "A_t3"
+   ]
+  },
+  {
+   "id": "B_t2",
+   "class": "train",
+   "entry_signal": "B",
+   "target": "t2",
+   "exit_signal": "D2",
+   "sections": [
+    "it2"
+   ],
+   "turnouts": {},
+   "flank": {},
+   "overlap": {
+    "sections": [
+     "iodww1"
+    ],
+    "turnouts": {},
+    "release_s": 90
+   },
+   "v_route_kmh": 100,
+   "conflicts": [
+    "D2_out"
+   ]
+  },
+  {
+   "id": "D2_out",
+   "class": "train",
+   "entry_signal": "D2",
+   "target": "szlak_W",
+   "sections": [
+    "iodww1"
+   ],
+   "turnouts": {},
+   "flank": {},
+   "overlap": null,
+   "block": "blk_ww",
+   "v_route_kmh": 100,
+   "conflicts": [
+    "B_t2"
+   ]
+  }
+ ],
+ "blocks": [
+  {
+   "id": "blk_we",
+   "type": "samoczynna_3staw",
+   "neighbour": "Sosnów",
+   "track": "szlak_W_tor1",
+   "entry_signal": "A",
+   "exit_signals": [],
+   "odstepy": [
+    "iodw1",
+    "iodw2"
+   ],
+   "signals": [
+    "O1",
+    "O2"
+   ]
+  },
+  {
+   "id": "blk_ee",
+   "type": "samoczynna_3staw",
+   "neighbour": "Dęby",
+   "track": "szlak_E_tor1",
+   "entry_signal": "",
+   "exit_signals": [
+    "C1",
+    "C3"
+   ],
+   "odstepy": [
+    "iode1",
+    "iode2"
+   ],
+   "signals": [
+    "",
+    "P1"
+   ]
+  },
+  {
+   "id": "blk_ew",
+   "type": "samoczynna_3staw",
+   "neighbour": "Dęby",
+   "track": "szlak_E_tor2",
+   "entry_signal": "B",
+   "exit_signals": [],
+   "odstepy": [
+    "iodew1",
+    "iodew2"
+   ],
+   "signals": [
+    "Q1",
+    "Q2"
+   ]
+  },
+  {
+   "id": "blk_ww",
+   "type": "samoczynna_3staw",
+   "neighbour": "Sosnów",
+   "track": "szlak_W_tor2",
+   "entry_signal": "",
+   "exit_signals": [
+    "D2"
+   ],
+   "odstepy": [
+    "iodww1",
+    "iodww2"
+   ],
+   "signals": [
+    "",
+    "R1"
+   ]
+  }
+ ],
+ "crossings": [
+  {
+   "id": "przA",
+   "type": "kat_A_rogatki",
+   "close_time_s": 25,
+   "on_sections": [
+    "it2"
+   ]
+  },
+  {
+   "id": "przB",
+   "type": "ssp_B",
+   "close_time_s": 12,
+   "on_sections": [
+    "iodw1",
+    "iodw2"
+   ]
+  }
+ ],
+ "dsat": [
+  {
+   "id": "dsat1",
+   "on_edge": "e_ow1",
+   "types": [
+    "GM",
+    "GH",
+    "PM"
+   ]
+  }
+ ],
+ "panel": {
+  "type": "kostkowy",
+  "grid": [
+   26,
+   12
+  ],
+  "route_setting": "indywidualne",
+  "tiles": [
+   {
+    "xy": [
+     6,
+     1
+    ],
+    "tile": "track_curve_se",
+    "section": "it3"
+   },
+   {
+    "xy": [
+     7,
+     1
+    ],
+    "tile": "track_h",
+    "section": "it3"
+   },
+   {
+    "xy": [
+     8,
+     1
+    ],
+    "tile": "track_h",
+    "section": "it3",
+    "label": "tor 3"
+   },
+   {
+    "xy": [
+     9,
+     1
+    ],
+    "tile": "track_h",
+    "section": "it3"
+   },
+   {
+    "xy": [
+     10,
+     1
+    ],
+    "tile": "signal_e",
+    "signal": "C3",
+    "button": {
+     "id": "przyc_C3",
+     "actions": {
+      "press": "route_start:C3",
+      "pull": "signal_cancel:C3"
+     }
+    }
+   },
+   {
+    "xy": [
+     11,
+     1
+    ],
+    "tile": "track_curve_sw",
+    "section": "it3"
+   },
+   {
+    "xy": [
+     18,
+     1
+    ],
+    "tile": "crossing_ctrl",
+    "crossing": "przA",
+    "label": "PRZEJAZD kat. A (tor 2)"
+   },
+   {
+    "xy": [
+     5,
+     2
+    ],
+    "tile": "track_diag_ne",
+    "section": "izw1"
+   },
+   {
+    "xy": [
+     12,
+     2
+    ],
+    "tile": "track_diag_nw",
+    "section": "izw2"
+   },
+   {
+    "xy": [
+     0,
+     3
+    ],
+    "tile": "label",
+    "text": "SOSNÓW ->"
+   },
+   {
+    "xy": [
+     1,
+     3
+    ],
+    "tile": "track_h",
+    "section": "iodw1"
+   },
+   {
+    "xy": [
+     2,
+     3
+    ],
+    "tile": "track_h",
+    "section": "iodw2"
+   },
+   {
+    "xy": [
+     3,
+     3
+    ],
+    "tile": "signal_e",
+    "signal": "A",
+    "button": {
+     "id": "przyc_A",
+     "actions": {
+      "press": "route_start:A",
+      "pull": "signal_cancel:A"
+     }
+    }
+   },
+   {
+    "xy": [
+     4,
+     3
+    ],
+    "tile": "insulation_gap"
+   },
+   {
+    "xy": [
+     5,
+     3
+    ],
+    "tile": "turnout_ne",
+    "turnout": "z1",
+    "label": "1",
+    "section": "izw1",
+    "button": {
+     "id": "przyc_z1",
+     "actions": {
+      "press": "turnout_throw:z1"
+     }
+    }
+   },
+   {
+    "xy": [
+     6,
+     3
+    ],
+    "tile": "track_h",
+    "section": "it1"
+   },
+   {
+    "xy": [
+     7,
+     3
+    ],
+    "tile": "track_h",
+    "section": "it1"
+   },
+   {
+    "xy": [
+     8,
+     3
+    ],
+    "tile": "track_h",
+    "section": "it1",
+    "label": "tor 1"
+   },
+   {
+    "xy": [
+     9,
+     3
+    ],
+    "tile": "track_h",
+    "section": "it1"
+   },
+   {
+    "xy": [
+     10,
+     3
+    ],
+    "tile": "track_h",
+    "section": "it1"
+   },
+   {
+    "xy": [
+     11,
+     3
+    ],
+    "tile": "signal_e",
+    "signal": "C1",
+    "button": {
+     "id": "przyc_C1",
+     "actions": {
+      "press": "route_start:C1",
+      "pull": "signal_cancel:C1"
+     }
+    }
+   },
+   {
+    "xy": [
+     12,
+     3
+    ],
+    "tile": "turnout_nw",
+    "turnout": "z2",
+    "label": "2",
+    "section": "izw2",
+    "button": {
+     "id": "przyc_z2",
+     "actions": {
+      "press": "turnout_throw:z2"
+     }
+    }
+   },
+   {
+    "xy": [
+     13,
+     3
+    ],
+    "tile": "insulation_gap"
+   },
+   {
+    "xy": [
+     14,
+     3
+    ],
+    "tile": "track_h",
+    "section": "iode1"
+   },
+   {
+    "xy": [
+     15,
+     3
+    ],
+    "tile": "track_h",
+    "section": "iode2"
+   },
+   {
+    "xy": [
+     16,
+     3
+    ],
+    "tile": "label",
+    "text": "-> DĘBY"
+   },
+   {
+    "xy": [
+     18,
+     3
+    ],
+    "tile": "ssp_ctrl",
+    "crossing": "przB",
+    "label": "ssp SOSNÓW"
+   },
+   {
+    "xy": [
+     18,
+     5
+    ],
+    "tile": "dsat_ctrl",
+    "dsat": "dsat1",
+    "label": "dSAT szlak W"
+   },
+   {
+    "xy": [
+     0,
+     6
+    ],
+    "tile": "label",
+    "text": "SOSNÓW <-"
+   },
+   {
+    "tile": "track_h",
+    "xy": [
+     1,
+     6
+    ],
+    "section": ""
+   },
+   {
+    "tile": "track_h",
+    "xy": [
+     2,
+     6
+    ],
+    "section": ""
+   },
+   {
+    "tile": "track_h",
+    "xy": [
+     3,
+     6
+    ],
+    "section": ""
+   },
+   {
+    "tile": "track_h",
+    "xy": [
+     4,
+     6
+    ],
+    "section": ""
+   },
+   {
+    "xy": [
+     5,
+     6
+    ],
+    "tile": "track_h",
+    "section": "iodww2"
+   },
+   {
+    "xy": [
+     6,
+     6
+    ],
+    "tile": "track_h",
+    "section": "iodww1"
+   },
+   {
+    "xy": [
+     7,
+     6
+    ],
+    "tile": "signal_w",
+    "signal": "D2",
+    "button": {
+     "id": "przyc_D2",
+     "actions": {
+      "press": "route_start:D2",
+      "pull": "signal_cancel:D2"
+     }
+    }
+   },
+   {
+    "xy": [
+     8,
+     6
+    ],
+    "tile": "track_h",
+    "section": "it2"
+   },
+   {
+    "xy": [
+     9,
+     6
+    ],
+    "tile": "track_h",
+    "section": "it2"
+   },
+   {
+    "xy": [
+     10,
+     6
+    ],
+    "tile": "track_h",
+    "section": "it2",
+    "label": "tor 2"
+   },
+   {
+    "xy": [
+     11,
+     6
+    ],
+    "tile": "track_h",
+    "section": "it2"
+   },
+   {
+    "xy": [
+     12,
+     6
+    ],
+    "tile": "track_h",
+    "section": "it2"
+   },
+   {
+    "xy": [
+     13,
+     6
+    ],
+    "tile": "signal_w",
+    "signal": "B",
+    "button": {
+     "id": "przyc_B",
+     "actions": {
+      "press": "route_start:B",
+      "pull": "signal_cancel:B"
+     }
+    }
+   },
+   {
+    "xy": [
+     14,
+     6
+    ],
+    "tile": "track_h",
+    "section": "iodew2"
+   },
+   {
+    "xy": [
+     15,
+     6
+    ],
+    "tile": "track_h",
+    "section": "iodew1"
+   },
+   {
+    "xy": [
+     16,
+     6
+    ],
+    "tile": "label",
+    "text": "<- DĘBY"
+   },
+   {
+    "xy": [
+     2,
+     9
+    ],
+    "tile": "counter_button",
+    "label": "dSz A",
+    "counter": true,
+    "sealed": true,
+    "actions": {
+     "press": "sub_signal:A"
+    }
+   },
+   {
+    "xy": [
+     4,
+     9
+    ],
+    "tile": "counter_button",
+    "label": "dSz B",
+    "counter": true,
+    "sealed": true,
+    "actions": {
+     "press": "sub_signal:B"
+    }
+   },
+   {
+    "xy": [
+     6,
+     9
+    ],
+    "tile": "counter_button",
+    "label": "dSz C1",
+    "counter": true,
+    "sealed": true,
+    "actions": {
+     "press": "sub_signal:C1"
+    }
+   },
+   {
+    "xy": [
+     8,
+     9
+    ],
+    "tile": "counter_button",
+    "label": "dSz D2",
+    "counter": true,
+    "sealed": true,
+    "actions": {
+     "press": "sub_signal:D2"
+    }
+   },
+   {
+    "xy": [
+     10,
+     9
+    ],
+    "tile": "counter_button",
+    "label": "dZw",
+    "counter": true,
+    "sealed": true,
+    "actions": {
+     "press": "route_emergency_release"
+    }
+   },
+   {
+    "xy": [
+     12,
+     9
+    ],
+    "tile": "counter_button",
+    "label": "zamkn. zwr.",
+    "counter": false,
+    "sealed": false,
+    "actions": {
+     "press": "turnout_lock_toggle"
+    }
+   }
+  ]
+ }
 }
