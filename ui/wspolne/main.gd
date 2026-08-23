@@ -11,8 +11,10 @@ const MESSAGE_TIME_S: float = 4.0
 var _world: SimWorld = SimWorld.new()
 var _message_left_s: float = 0.0
 var _started: bool = false
-## Bieżący widok urządzeń (PulpitView albo MechView).
+## Bieżący widok urządzeń (PulpitView / MechView / KomputerView).
 var _view: Control = null
+## Odtwarzacze dźwięków gry (nazwa -> AudioStreamPlayer).
+var _sounds: Dictionary = {}
 
 @onready var _plaque_label: Label = %PlaqueLabel
 @onready var _clock_label: Label = %ClockLabel
@@ -37,11 +39,26 @@ var _view: Control = null
 
 func _ready() -> void:
 	SimClock.paused = true
-	var scenarios := _list_scenarios()
-	if scenarios.size() == 1:
-		_start_scenario(String(scenarios[0]["path"]))
-	else:
-		_show_scenario_picker(scenarios)
+	_setup_audio()
+	_show_scenario_picker(_list_scenarios())
+
+
+## Dźwięki gry (assets/audio, syntezowane — tools/gen_sounds.py).
+func _setup_audio() -> void:
+	for sound_name: String in ["phone_ring", "buzzer", "click", "ding"]:
+		var path := "res://assets/audio/%s.wav" % sound_name
+		if not ResourceLoader.exists(path):
+			continue
+		var player := AudioStreamPlayer.new()
+		player.stream = load(path)
+		add_child(player)
+		_sounds[sound_name] = player
+
+
+func _play(sound_name: String) -> void:
+	var player: AudioStreamPlayer = _sounds.get(sound_name)
+	if player != null:
+		player.play()
 
 
 ## Lista scenariuszy z data/scenarios (dane, nie kod — CLAUDE.md zasada 4).
@@ -65,36 +82,97 @@ func _list_scenarios() -> Array[Dictionary]:
 	return result
 
 
+## Menu główne (F10 „szlif"): lista służb z opisami, wznowienie zapisu,
+## ustawienia głośności. Dane z data/scenarios (dane, nie kod).
 func _show_scenario_picker(scenarios: Array[Dictionary]) -> void:
 	var dim := ColorRect.new()
 	dim.name = "ScenarioPicker"
-	dim.color = Color(0.05, 0.06, 0.08, 0.95)
+	dim.color = Color(0.04, 0.045, 0.06)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.add_child(center)
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 16)
+	vbox.add_theme_constant_override("separation", 10)
 	center.add_child(vbox)
 	var title := Label.new()
-	title.text = "SYMULATOR DYŻURNEGO RUCHU — wybierz służbę"
-	title.add_theme_font_size_override("font_size", 30)
+	title.text = "SYMULATOR DYŻURNEGO RUCHU"
+	title.add_theme_font_size_override("font_size", 34)
 	vbox.add_child(title)
+	var subtitle := Label.new()
+	subtitle.text = "wybierz służbę"
+	subtitle.add_theme_font_size_override("font_size", 15)
+	subtitle.add_theme_color_override("font_color", Color(0.55, 0.6, 0.68))
+	vbox.add_child(subtitle)
+	vbox.add_child(HSeparator.new())
 	for scenario: Dictionary in scenarios:
-		var button := Button.new()
-		button.text = String(scenario["name"])
-		button.tooltip_text = String(scenario["description"])
-		button.add_theme_font_size_override("font_size", 22)
 		var path := String(scenario["path"])
-		button.pressed.connect(func() -> void:
+		var scenario_id := path.get_file().get_basename()
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		var texts := VBoxContainer.new()
+		texts.custom_minimum_size = Vector2(560, 0)
+		texts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var name_label := Label.new()
+		name_label.text = String(scenario["name"])
+		name_label.add_theme_font_size_override("font_size", 21)
+		texts.add_child(name_label)
+		var desc := Label.new()
+		desc.text = String(scenario["description"])
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.add_theme_font_size_override("font_size", 12)
+		desc.add_theme_color_override("font_color", Color(0.55, 0.6, 0.68))
+		texts.add_child(desc)
+		row.add_child(texts)
+		var start := Button.new()
+		start.text = "Rozpocznij"
+		start.custom_minimum_size = Vector2(130, 0)
+		start.pressed.connect(func() -> void:
+			_play("click")
 			dim.queue_free()
 			_start_scenario(path)
 		)
-		vbox.add_child(button)
+		row.add_child(start)
+		var resume := Button.new()
+		resume.text = "Wznów zapis"
+		resume.custom_minimum_size = Vector2(130, 0)
+		resume.disabled = not GameState.has_save(scenario_id)
+		resume.pressed.connect(func() -> void:
+			_play("click")
+			dim.queue_free()
+			_start_scenario(path, true)
+		)
+		row.add_child(resume)
+		vbox.add_child(row)
+	vbox.add_child(HSeparator.new())
+	# Ustawienia: głośność (magistrala Master); w grze F5 zapis / F9 odczyt.
+	var settings := HBoxContainer.new()
+	settings.add_theme_constant_override("separation", 12)
+	var volume_label := Label.new()
+	volume_label.text = "Głośność"
+	volume_label.add_theme_font_size_override("font_size", 13)
+	settings.add_child(volume_label)
+	var volume := HSlider.new()
+	volume.min_value = 0.0
+	volume.max_value = 1.0
+	volume.step = 0.05
+	volume.value = db_to_linear(AudioServer.get_bus_volume_db(0))
+	volume.custom_minimum_size = Vector2(220, 0)
+	volume.value_changed.connect(func(v: float) -> void:
+		AudioServer.set_bus_volume_db(0, linear_to_db(maxf(v, 0.001)))
+		AudioServer.set_bus_mute(0, v <= 0.0)
+	)
+	settings.add_child(volume)
+	var hint := Label.new()
+	hint.text = "w grze: Spacja pauza · 1/2/5 tempo · F5 zapis · F9 wczytanie · T telefon · D dziennik · R rozkazy"
+	hint.add_theme_font_size_override("font_size", 12)
+	hint.add_theme_color_override("font_color", Color(0.45, 0.5, 0.58))
+	settings.add_child(hint)
+	vbox.add_child(settings)
 
 
-func _start_scenario(path: String) -> void:
+func _start_scenario(path: String, resume: bool = false) -> void:
 	var result := _world.load_scenario_file(path)
 	if not result["ok"]:
 		push_error("Błąd wczytywania scenariusza: %s" % [result["errors"]])
@@ -103,6 +181,8 @@ func _start_scenario(path: String) -> void:
 	var scenario_id := path.get_file().get_basename()
 	GameState.new_game(scenario_id, 0, _world.start_of_day_s)
 	_world.rng = GameState.rng
+	if resume and GameState.load_game(_world):
+		_show_message("Wznowiono zapisaną służbę")
 	_plaque_label.text = _world.station.display_name().to_upper()
 
 	# Widok urządzeń wg typu panelu stacji (jedna logika, różne „skóry").
@@ -213,6 +293,8 @@ func _on_ui_action(action: String) -> void:
 func _on_command(name: StringName, args: Dictionary) -> void:
 	if _world.station == null:
 		return
+	if not String(name).begins_with("debug_"):
+		_play("click")
 	var result := _world.execute(name, args)
 	EventBus.emit_command_result(name, result.ok, result.reason)
 	if not result.ok:
@@ -240,9 +322,14 @@ func _dispatch_world_events() -> void:
 			&"penalty":
 				GameState.add_penalty(int(event["points"]), String(event["reason"]))
 				_show_message("KARA −%d: %s" % [int(event["points"]), String(event["reason"])])
+				_play("buzzer")
 			&"alarm":
 				_show_message(String(event["text"]), 8.0)
+				_play("buzzer")
+			&"phone_ring":
+				_play("phone_ring")
 			&"shift_end":
+				_play("ding")
 				_show_shift_summary()
 			_:
 				pass

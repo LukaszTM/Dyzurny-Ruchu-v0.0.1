@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## F10 szlif cz. 1 — menu główne i dźwięki (2026-08-23)
+
+### Dodano
+
+- Menu główne zamiast prowizorycznego wyboru: tytuł, lista służb
+  z opisami, przycisk „Wznów zapis" przy scenariuszach z zapisem
+  (user://saves), suwak głośności (magistrala Master), ściąga
+  klawiszy. Dane wciąż z data/scenarios.
+- `tools/gen_sounds.py` + `assets/audio/*.wav` — dźwięki syntezowane
+  (zero nagrań z zewnątrz): terkot dzwonka telefonu zapowiadawczego,
+  buczek alarmowy, stuk przekaźnikowy przycisku, gong końca służby.
+- Dźwięki wpięte w zdarzenia: telefonogram → dzwonek, alarm/kara →
+  buczek, polecenie → klik, koniec służby → gong.
+
+### Jak przetestować ręcznie
+
+Po starcie gry: menu ze służbami (opisy, głośność), start „Poranka
+na Borkach" — kliknięcia przycisków słyszalne, telefonogram od Lipna
+dzwoni. F5 w grze, wyjście, ponowne uruchomienie → „Wznów zapis"
+aktywny przy tym scenariuszu.
+
 ## GUI v1.7 — zobrazowanie cienkoliniowe SCS + linia komend (2026-08-23)
 
 ### Zmieniono
