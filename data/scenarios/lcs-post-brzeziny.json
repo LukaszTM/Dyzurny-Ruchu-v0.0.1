@@ -1,0 +1,65 @@
+{
+ "meta": {
+  "id": "lcs-post-brzeziny",
+  "name": "LCS — posterunek Brzeziny",
+  "station": "brzeziny",
+  "hidden": true,
+  "description": "Posterunek A zestawu LCS Brzeziny–Lipiny (uruchamiany z zestawu, nie osobno).",
+  "difficulty": {
+   "auto_docs": true,
+   "hints": true,
+   "time_multiplier_allowed": [
+    1,
+    2,
+    5
+   ]
+  }
+ },
+ "start_time": "09:00",
+ "duration_min": 90,
+ "timetable": [
+  {
+   "nr": "31601",
+   "kind": "osobowy",
+   "from": "Sosnów",
+   "to": "Dęby",
+   "arr": "09:06",
+   "dep": "09:07",
+   "track": "t1",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  },
+  {
+   "nr": "645330",
+   "kind": "towarowy",
+   "from": "Sosnów",
+   "to": "Dęby",
+   "arr": "09:18",
+   "dep": "09:18",
+   "track": "t1",
+   "stop": false,
+   "len_m": 500,
+   "vmax_kmh": 70,
+   "mass_t": 1800,
+   "power_class": "lok_el"
+  },
+  {
+   "nr": "31603",
+   "kind": "osobowy",
+   "from": "Sosnów",
+   "to": "Dęby",
+   "arr": "09:34",
+   "dep": "09:35",
+   "track": "t1",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  }
+ ],
+ "events": []
+}

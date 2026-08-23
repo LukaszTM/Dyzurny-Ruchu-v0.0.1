@@ -5,6 +5,7 @@ extends Control
 ## właścicielem rdzenia (SimWorld) jest ta scena (docs/02-architektura.md).
 
 const SCENARIOS_DIR := "res://data/scenarios"
+const LCS_DIR := "res://data/lcs"
 ## Jak długo pokazujemy komunikat odmowy (s czasu rzeczywistego).
 const MESSAGE_TIME_S: float = 4.0
 
@@ -18,6 +19,9 @@ var _sounds: Dictionary = {}
 ## Nakładka samouczka (tworzona przy scenariuszu z sekcją "tutorial").
 var _tutorial_panel: PanelContainer = null
 var _tutorial_label: Label = null
+## Tryb LCS: kilka posterunków w zakładkach (null poza LCS).
+var _lcs: LcsWorld = null
+var _lcs_tabs: TabContainer = null
 
 @onready var _plaque_label: Label = %PlaqueLabel
 @onready var _clock_label: Label = %ClockLabel
@@ -77,6 +81,8 @@ func _list_scenarios() -> Array[Dictionary]:
 		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 		if parsed is Dictionary:
 			var meta: Dictionary = (parsed as Dictionary).get("meta", {})
+			if bool(meta.get("hidden", false)):
+				continue  # posterunki zestawów LCS uruchamia się z zestawu
 			result.append({
 				"path": path,
 				"name": String(meta.get("name", file_name)),
@@ -164,6 +170,42 @@ func _show_scenario_picker(scenarios: Array[Dictionary]) -> void:
 		)
 		row.add_child(resume)
 		vbox.add_child(row)
+	# Zestawy LCS (kilka posterunków w zakładkach) — z data/lcs.
+	var lcs_sets := _list_lcs()
+	if not lcs_sets.is_empty():
+		var lcs_header := Label.new()
+		lcs_header.text = "LCS — ZDALNE STEROWANIE"
+		lcs_header.add_theme_font_size_override("font_size", 13)
+		lcs_header.add_theme_color_override("font_color", Color(0.5, 0.62, 0.78))
+		vbox.add_child(lcs_header)
+		for lcs_set: Dictionary in lcs_sets:
+			var lcs_row := HBoxContainer.new()
+			lcs_row.add_theme_constant_override("separation", 12)
+			var lcs_texts := VBoxContainer.new()
+			lcs_texts.custom_minimum_size = Vector2(560, 0)
+			lcs_texts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var lcs_name := Label.new()
+			lcs_name.text = String(lcs_set["name"])
+			lcs_name.add_theme_font_size_override("font_size", 21)
+			lcs_texts.add_child(lcs_name)
+			var lcs_desc := Label.new()
+			lcs_desc.text = String(lcs_set["description"])
+			lcs_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			lcs_desc.add_theme_font_size_override("font_size", 12)
+			lcs_desc.add_theme_color_override("font_color", Color(0.55, 0.6, 0.68))
+			lcs_texts.add_child(lcs_desc)
+			lcs_row.add_child(lcs_texts)
+			var lcs_start := Button.new()
+			lcs_start.text = "Rozpocznij"
+			lcs_start.custom_minimum_size = Vector2(130, 0)
+			var lcs_path := String(lcs_set["path"])
+			lcs_start.pressed.connect(func() -> void:
+				_play("click")
+				dim.queue_free()
+				_start_lcs(lcs_path)
+			)
+			lcs_row.add_child(lcs_start)
+			vbox.add_child(lcs_row)
 	vbox.add_child(HSeparator.new())
 	# Ustawienia: głośność (magistrala Master); w grze F5 zapis / F9 odczyt.
 	var settings := HBoxContainer.new()
@@ -203,26 +245,89 @@ func _start_scenario(path: String, resume: bool = false) -> void:
 	if resume and GameState.load_game(_world):
 		_show_message("Wznowiono zapisaną służbę")
 	_plaque_label.text = _world.station.display_name().to_upper()
+	_view = _make_device_view(_world)
+	_finish_start()
 
-	# Widok urządzeń wg typu panelu stacji (jedna logika, różne „skóry").
-	if _world.lever_frame != null:
+
+## Zestawy LCS z data/lcs (docs/systemy/14 §5).
+func _list_lcs() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var dir := DirAccess.open(LCS_DIR)
+	if dir == null:
+		return result
+	for file_name: String in dir.get_files():
+		if not file_name.ends_with(".json"):
+			continue
+		var path := "%s/%s" % [LCS_DIR, file_name]
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+		if parsed is Dictionary:
+			var meta: Dictionary = (parsed as Dictionary).get("meta", {})
+			result.append({
+				"path": path,
+				"name": String(meta.get("name", file_name)),
+				"description": String(meta.get("description", "")),
+			})
+	return result
+
+
+## Start zestawu LCS: posterunki w zakładkach, wspólny zegar i scoring.
+func _start_lcs(path: String) -> void:
+	_lcs = LcsWorld.new()
+	var result := _lcs.load_file(path)
+	if not result["ok"]:
+		push_error("Błąd zestawu LCS: %s" % [result["errors"]])
+		_show_message("BŁĄD ZESTAWU LCS: %s" % [result["errors"]])
+		_lcs = null
+		return
+	GameState.new_game(path.get_file().get_basename(), 0,
+		_lcs.posts[0].start_of_day_s)
+	for post: SimWorld in _lcs.posts:
+		post.rng = GameState.rng
+	_world = _lcs.posts[0]
+	_plaque_label.text = "LCS: %s" % " – ".join(_lcs.names)
+	_lcs_tabs = TabContainer.new()
+	for i: int in _lcs.posts.size():
+		var view := _make_device_view(_lcs.posts[i])
+		view.name = _lcs.names[i]
+		_lcs_tabs.add_child(view)
+	_lcs_tabs.tab_changed.connect(_on_lcs_tab_changed)
+	_view = _lcs_tabs
+	_finish_start()
+
+
+## Zmiana zakładki LCS: polecenia i panele boczne idą do tego posterunku.
+func _on_lcs_tab_changed(tab: int) -> void:
+	_world = _lcs.posts[tab]
+	_debug_panel.build(_world.station, _world.interlocking, _world)
+	_phone_panel.build(_world)
+	_dziennik_panel.build(_world)
+	_orders_panel.build(_world)
+	_refresh_views()
+
+
+## Widok urządzeń wg typu panelu stacji (jedna logika, różne „skóry").
+func _make_device_view(world: SimWorld) -> Control:
+	if world.lever_frame != null:
 		var mech := MechView.new()
-		mech.build_view(_world)
+		mech.build_view(world)
 		mech.action_requested.connect(
 			func(command_name: StringName, args: Dictionary) -> void:
 				EventBus.send_command(command_name, args)
 		)
-		_view = mech
-	elif _world.confirm_mode:
+		return mech
+	if world.confirm_mode:
 		var komputer := KomputerView.new()
-		komputer.build_view(_world)
+		komputer.build_view(world)
 		komputer.action_requested.connect(_on_ui_action)
-		_view = komputer
-	else:
-		var pulpit := PulpitView.new()
-		pulpit.build(_world.station, _world.interlocking, _world.block_lines, _world)
-		pulpit.action_requested.connect(_on_ui_action)
-		_view = pulpit
+		return komputer
+	var pulpit := PulpitView.new()
+	pulpit.build(world.station, world.interlocking, world.block_lines, world)
+	pulpit.action_requested.connect(_on_ui_action)
+	return pulpit
+
+
+## Wspólna końcówka startu (scenariusz pojedynczy i zestaw LCS).
+func _finish_start() -> void:
 	_view_center.add_child(_view)
 
 	_debug_panel.build(_world.station, _world.interlocking, _world)
@@ -286,10 +391,14 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_R:
 			_orders_panel.visible = not _orders_panel.visible
 		KEY_F5:
-			if GameState.save_game(_world):
+			if _lcs != null:
+				_show_message("Zapis w trybie LCS jeszcze niedostępny")
+			elif GameState.save_game(_world):
 				_show_message("Zapisano grę (wczytanie: F9)")
 		KEY_F9:
-			if GameState.load_game(_world):
+			if _lcs != null:
+				_show_message("Zapis w trybie LCS jeszcze niedostępny")
+			elif GameState.load_game(_world):
 				_show_message("Wczytano zapis")
 				_refresh_views()
 			else:
@@ -324,7 +433,10 @@ func _on_command(name: StringName, args: Dictionary) -> void:
 
 
 func _on_sim_tick(dt: float) -> void:
-	_world.tick(dt)
+	if _lcs != null:
+		_lcs.tick(dt)
+	else:
+		_world.tick(dt)
 	_dispatch_world_events()
 	_refresh_clock()
 	_refresh_controls()
@@ -333,8 +445,12 @@ func _on_sim_tick(dt: float) -> void:
 
 ## Rozprowadza zdarzenia rdzenia: scoring do GameState, dzwonek telefonu,
 ## alarmy, koniec zmiany (podsumowanie) — i publikuje je na szynie zdarzeń.
+## W LCS zdarzenia niosą posterunek — komunikaty dostają przedrostek.
 func _dispatch_world_events() -> void:
-	for event: Dictionary in _world.drain_events():
+	var events := _lcs.drain_events() if _lcs != null else _world.drain_events()
+	for event: Dictionary in events:
+		if event.has("post_name") and event.has("text"):
+			event["text"] = "[%s] %s" % [String(event["post_name"]), String(event["text"])]
 		var type: StringName = event["type"]
 		EventBus.emit_sim_event(type, event)
 		match type:
@@ -396,7 +512,14 @@ func _toggle_phone() -> void:
 
 
 ## Podsumowanie zmiany (scoring v1, docs/05 §7) — nakładka na koniec służby.
+## W LCS koniec zmiany obu posterunków wypada razem — jedna nakładka.
+var _summary_shown: bool = false
+
+
 func _show_shift_summary() -> void:
+	if _summary_shown:
+		return
+	_summary_shown = true
 	SimClock.paused = true
 	var dim := ColorRect.new()
 	dim.color = Color(0.0, 0.0, 0.0, 0.72)
@@ -424,7 +547,11 @@ func _show_shift_summary() -> void:
 
 
 func _refresh_views() -> void:
-	if _view != null:
+	if _lcs_tabs != null:
+		var current := _lcs_tabs.get_current_tab_control()
+		if current != null:
+			current.call("refresh")
+	elif _view != null:
 		_view.refresh()
 	if _debug_panel.visible:
 		_debug_panel.refresh()

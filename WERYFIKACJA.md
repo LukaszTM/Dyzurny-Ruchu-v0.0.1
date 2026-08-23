@@ -107,10 +107,8 @@ czego dotyczy wątpliwość, źródło w docs.
 
 25. **Zakres F9 (komputerowe)** — zrealizowano mechaniki rdzenia:
     nastawianie przebiegowe (`route_set`), polecenia dwustopniowe
-    (`command_confirm`/`command_cancel`), rejestr zdarzeń. **LCS-lite
-    (zdalne sterowanie 2 posterunkami, docs/systemy/14 §5) ODŁOŻONE** —
-    wymaga wielu stacji w SimWorld; do osobnej iteracji po zbudowaniu
-    docelowego GUI. Konwencja barw planu CBI (docs/14 §2
+    (`command_confirm`/`command_cancel`), rejestr zdarzeń. LCS-lite
+    zrealizowane później w `core/lcs_world.gd` (poz. 29). Konwencja barw planu CBI (docs/14 §2
     [DO WERYFIKACJI]) jest zaimplementowana w `ui/komputer/
     komputer_plan.gd` z paletą roboczą (szary wolny, zielony przebieg,
     czerwony zajęty, miganie bez kontroli, Sz biały migający) —
@@ -129,6 +127,13 @@ czego dotyczy wątpliwość, źródło w docs.
     w UI i w danych JSON; ekstrakcja do `tr()`/CSV odłożona do czasu
     decyzji o tłumaczeniach (docs/08-wydania.md). Nazwy w kodzie już
     po angielsku, więc refaktor będzie mechaniczny.
+
+29. **LCS-lite** — `core/lcs_world.gd`. Uproszczenia względem
+    docs/systemy/14 §5: zapowiadanie na wspólnym szlaku prowadzi
+    automatyka mostka (docelowo gracz telefonuje sam do siebie między
+    posterunkami), awarie łącza do posterunku zdalnego nie są
+    modelowane, zapis gry w trybie LCS odłożony. Czas jazdy między
+    posterunkami stały (run_s w zestawie).
 
 ## Zweryfikowane / zamknięte
 

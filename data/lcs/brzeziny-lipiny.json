@@ -1,0 +1,30 @@
+{
+ "meta": {
+  "id": "lcs-brzeziny-lipiny",
+  "name": "LCS Brzeziny–Lipiny",
+  "description": "Lokalne centrum sterowania: dwa posterunki na jednej linii (zakładki). Pociąg wyprawiony z Brzezin w stronę Dęby po chwili melduje się w Lipinach — i odwrotnie."
+ },
+ "lcs": {
+  "posts": [
+   {
+    "scenario": "res://data/scenarios/lcs-post-brzeziny.json"
+   },
+   {
+    "scenario": "res://data/scenarios/lcs-post-lipiny.json"
+   }
+  ],
+  "links": [
+   {
+    "a": 0,
+    "a_neighbour": "Dęby",
+    "a_to": "Sosnów",
+    "a_track": "t2",
+    "b": 1,
+    "b_neighbour": "Kalina",
+    "b_to": "Rogów",
+    "b_track": "t1",
+    "run_s": 150
+   }
+  ]
+ }
+}

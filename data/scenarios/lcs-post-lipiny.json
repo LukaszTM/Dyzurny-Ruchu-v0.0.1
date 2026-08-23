@@ -1,0 +1,51 @@
+{
+ "meta": {
+  "id": "lcs-post-lipiny",
+  "name": "LCS — posterunek Lipiny",
+  "station": "lipiny",
+  "hidden": true,
+  "description": "Posterunek B zestawu LCS Brzeziny–Lipiny (uruchamiany z zestawu, nie osobno).",
+  "difficulty": {
+   "auto_docs": true,
+   "hints": true,
+   "time_multiplier_allowed": [
+    1,
+    2,
+    5
+   ]
+  }
+ },
+ "start_time": "09:00",
+ "duration_min": 90,
+ "timetable": [
+  {
+   "nr": "41611",
+   "kind": "osobowy",
+   "from": "Rogów",
+   "to": "Kalina",
+   "arr": "09:10",
+   "dep": "09:11",
+   "track": "t2",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  },
+  {
+   "nr": "41613",
+   "kind": "osobowy",
+   "from": "Rogów",
+   "to": "Kalina",
+   "arr": "09:30",
+   "dep": "09:31",
+   "track": "t2",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  }
+ ],
+ "events": []
+}

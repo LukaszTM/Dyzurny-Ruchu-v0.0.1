@@ -833,6 +833,15 @@ func train_departed(nr: String) -> bool:
 	return bool((_train_meta.get(nr, {}) as Dictionary).get("departed", false))
 
 
+## Nazwa sąsiada, w którego stronę pociąg wyjechał (dla mostka LCS).
+func train_exit_neighbour(nr: String) -> String:
+	var meta: Dictionary = _train_meta.get(nr, {})
+	if meta.is_empty():
+		return ""
+	var block: BlockLine = block_lines.get(meta.get("exit_block", &""))
+	return block.neighbour_name if block != null else ""
+
+
 ## Blokada od/do sąsiada: przyjazdowa (z entry_signal) albo wyjazdowa
 ## (z exit_signals) — na dwutorówce to osobne bloki per tor.
 func _block_for_neighbour(neighbour_name: String, for_exit: bool) -> StringName:

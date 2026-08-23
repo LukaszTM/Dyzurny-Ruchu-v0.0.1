@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## F10 szlif cz. 5 — LCS-lite (2026-08-23)
+
+### Dodano
+
+- `core/lcs_world.gd` — LCS-lite (docs/systemy/14 §5): jedno stanowisko
+  steruje kilkoma posterunkami. Każdy posterunek to pełny SimWorld;
+  MOSTEK przekazuje pociągi po wspólnym szlaku — pociąg wyprawiony
+  z posterunku A po czasie jazdy trafia do rozkładu posterunku B
+  i wchodzi normalnym obiegiem zapowiadania. Zdarzenia niosą posterunek
+  (GUI dokleja przedrostek [NAZWA]).
+- Zestaw `data/lcs/brzeziny-lipiny.json` + dwa scenariusze posterunków
+  (ukryte w menu, wspólny start 09:00); sekcja „LCS — ZDALNE STEROWANIE"
+  w menu głównym.
+- GUI: posterunki w zakładkach (pulpit Brzezin + stanowisko komputerowe
+  Lipin obok siebie), polecenia i panele boczne idą do aktywnej
+  zakładki, wspólny zegar i scoring.
+- Uproszczenia zapisane w WERYFIKACJA 29 (m.in. zapis w LCS odłożony).
+- Testy: 4 nowe (wczytanie zestawu, adresowanie poleceń, transfer
+  pociągu mostkiem, znakowanie zdarzeń). Razem 145.
+
 ## F10 szlif cz. 4 — ustawienia, eksport, ikona (2026-08-23)
 
 ### Dodano
