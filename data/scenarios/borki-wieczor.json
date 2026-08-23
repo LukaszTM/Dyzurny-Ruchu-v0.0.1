@@ -1,0 +1,114 @@
+{
+ "meta": {
+  "id": "borki-wieczor",
+  "name": "Wieczorny szczyt na Borkach",
+  "station": "borki",
+  "description": "Sześć pociągów w 75 minut. O 19:20 awaria blokady do Suchowoli — przejście na telefoniczne zapowiadanie.",
+  "difficulty": {
+   "auto_docs": true,
+   "hints": true,
+   "time_multiplier_allowed": [
+    1,
+    2,
+    5
+   ]
+  }
+ },
+ "start_time": "19:00",
+ "duration_min": 75,
+ "timetable": [
+  {
+   "nr": "45211",
+   "kind": "osobowy",
+   "from": "Lipno",
+   "to": "Suchowola",
+   "arr": "19:06",
+   "dep": "19:07",
+   "track": "t1",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  },
+  {
+   "nr": "45312",
+   "kind": "osobowy",
+   "from": "Suchowola",
+   "to": "Lipno",
+   "arr": "19:14",
+   "dep": "19:15",
+   "track": "t2",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  },
+  {
+   "nr": "631050",
+   "kind": "towarowy",
+   "from": "Lipno",
+   "to": "Suchowola",
+   "arr": "19:26",
+   "dep": "19:26",
+   "track": "t1",
+   "stop": false,
+   "len_m": 480,
+   "vmax_kmh": 65,
+   "mass_t": 1700,
+   "power_class": "lok_el"
+  },
+  {
+   "nr": "45213",
+   "kind": "osobowy",
+   "from": "Lipno",
+   "to": "Suchowola",
+   "arr": "19:41",
+   "dep": "19:42",
+   "track": "t1",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  },
+  {
+   "nr": "45314",
+   "kind": "osobowy",
+   "from": "Suchowola",
+   "to": "Lipno",
+   "arr": "19:52",
+   "dep": "19:53",
+   "track": "t2",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  },
+  {
+   "nr": "45215",
+   "kind": "osobowy",
+   "from": "Lipno",
+   "to": "Suchowola",
+   "arr": "20:05",
+   "dep": "20:06",
+   "track": "t1",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  }
+ ],
+ "events": [
+  {
+   "at": "19:20",
+   "type": "block_failure",
+   "target": "blk_e",
+   "repair_min": 15,
+   "_uwaga": "wyprawianie do Suchowoli tylko za pozwoleniem telefonicznym"
+  }
+ ]
+}

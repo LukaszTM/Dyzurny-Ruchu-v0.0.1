@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## F10 szlif cz. 3 — 15 scenariuszy (2026-08-23)
+
+### Dodano
+
+- 5 nowych służb (razem 15 scenariuszy z lekcjami): „Wieczorny szczyt
+  na Borkach" (awaria blokady → telefoniczne zapowiadanie), „Nocna
+  zmiana na Borkach" (towarowe + utrata kontroli z2), „Wieczór
+  w Jodłowie" (mechaniczna, dwie usterki), „Burza nad Brzezinami"
+  (awaria ssp + alarm dSAT GH + padnięta sbl), „Tryb swobodny —
+  Lipiny" (generator na stanowisku komputerowym).
+- Test regresyjny danych: każdy scenariusz z data/scenarios wczytuje
+  się i przechodzi 50 ticków; wymagane meta.name/description.
+  Razem 140 testów.
+
 ## F10 szlif cz. 2 — samouczek (2026-08-23)
 
 ### Dodano

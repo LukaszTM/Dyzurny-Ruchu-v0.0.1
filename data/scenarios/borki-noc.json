@@ -1,0 +1,86 @@
+{
+ "meta": {
+  "id": "borki-noc",
+  "name": "Nocna zmiana na Borkach",
+  "station": "borki",
+  "description": "Spokojna noc z ciężkimi towarowymi. O 23:25 zwrotnica 2 traci kontrolę położenia.",
+  "difficulty": {
+   "auto_docs": true,
+   "hints": true,
+   "time_multiplier_allowed": [
+    1,
+    2,
+    5
+   ]
+  }
+ },
+ "start_time": "23:00",
+ "duration_min": 60,
+ "timetable": [
+  {
+   "nr": "642011",
+   "kind": "towarowy",
+   "from": "Lipno",
+   "to": "Suchowola",
+   "arr": "23:08",
+   "dep": "23:08",
+   "track": "t1",
+   "stop": false,
+   "len_m": 550,
+   "vmax_kmh": 60,
+   "mass_t": 2000,
+   "power_class": "lok_el"
+  },
+  {
+   "nr": "45391",
+   "kind": "osobowy",
+   "from": "Suchowola",
+   "to": "Lipno",
+   "arr": "23:19",
+   "dep": "23:20",
+   "track": "t2",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  },
+  {
+   "nr": "642112",
+   "kind": "towarowy",
+   "from": "Suchowola",
+   "to": "Lipno",
+   "arr": "23:34",
+   "dep": "23:34",
+   "track": "t2",
+   "stop": false,
+   "len_m": 520,
+   "vmax_kmh": 60,
+   "mass_t": 1900,
+   "power_class": "lok_el"
+  },
+  {
+   "nr": "45293",
+   "kind": "osobowy",
+   "from": "Lipno",
+   "to": "Suchowola",
+   "arr": "23:48",
+   "dep": "23:49",
+   "track": "t1",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  }
+ ],
+ "events": [
+  {
+   "at": "23:25",
+   "type": "turnout_no_control",
+   "target": "z2",
+   "repair_min": 10,
+   "_uwaga": "przebiegi przez z2 niemożliwe do naprawy — rozważ rozkaz S/Sz"
+  }
+ ]
+}

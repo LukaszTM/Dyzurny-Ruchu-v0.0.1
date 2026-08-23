@@ -1,0 +1,105 @@
+{
+ "meta": {
+  "id": "jodlow-wieczor",
+  "name": "Wieczór w Jodłowie",
+  "station": "jodlow",
+  "description": "Nastawnia mechaniczna po zmroku: krzyżowania, awaria blokady do Cisowa i pęknięta pędnia zwrotnicy 1.",
+  "difficulty": {
+   "auto_docs": true,
+   "hints": true,
+   "time_multiplier_allowed": [
+    1,
+    2,
+    5
+   ]
+  }
+ },
+ "start_time": "17:00",
+ "duration_min": 75,
+ "timetable": [
+  {
+   "nr": "52111",
+   "kind": "osobowy",
+   "from": "Cisów",
+   "to": "Grabno",
+   "arr": "17:06",
+   "dep": "17:07",
+   "track": "t1",
+   "stop": true,
+   "len_m": 110,
+   "vmax_kmh": 80,
+   "mass_t": 160,
+   "power_class": "osobowy"
+  },
+  {
+   "nr": "52312",
+   "kind": "osobowy",
+   "from": "Grabno",
+   "to": "Cisów",
+   "arr": "17:12",
+   "dep": "17:14",
+   "track": "t2",
+   "stop": true,
+   "len_m": 110,
+   "vmax_kmh": 80,
+   "mass_t": 160,
+   "power_class": "osobowy"
+  },
+  {
+   "nr": "641230",
+   "kind": "towarowy",
+   "from": "Cisów",
+   "to": "Grabno",
+   "arr": "17:38",
+   "dep": "17:38",
+   "track": "t1",
+   "stop": false,
+   "len_m": 420,
+   "vmax_kmh": 60,
+   "mass_t": 1500,
+   "power_class": "lok_sp"
+  },
+  {
+   "nr": "52113",
+   "kind": "osobowy",
+   "from": "Cisów",
+   "to": "Grabno",
+   "arr": "17:56",
+   "dep": "17:57",
+   "track": "t1",
+   "stop": true,
+   "len_m": 110,
+   "vmax_kmh": 80,
+   "mass_t": 160,
+   "power_class": "osobowy"
+  },
+  {
+   "nr": "52314",
+   "kind": "osobowy",
+   "from": "Grabno",
+   "to": "Cisów",
+   "arr": "18:05",
+   "dep": "18:06",
+   "track": "t2",
+   "stop": true,
+   "len_m": 110,
+   "vmax_kmh": 80,
+   "mass_t": 160,
+   "power_class": "osobowy"
+  }
+ ],
+ "events": [
+  {
+   "at": "17:30",
+   "type": "block_failure",
+   "target": "blk_w",
+   "repair_min": 12
+  },
+  {
+   "at": "17:50",
+   "type": "turnout_no_control",
+   "target": "z1",
+   "repair_min": 8
+  }
+ ]
+}

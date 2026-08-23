@@ -1,0 +1,130 @@
+{
+ "meta": {
+  "id": "brzeziny-burza",
+  "name": "Burza nad Brzezinami",
+  "station": "brzeziny",
+  "description": "Front burzowy: awaria ssp, alarm dSAT na towarowym i padnięta blokada samoczynna od Sosnowa.",
+  "difficulty": {
+   "auto_docs": true,
+   "hints": true,
+   "time_multiplier_allowed": [
+    1,
+    2,
+    5
+   ]
+  }
+ },
+ "start_time": "15:00",
+ "duration_min": 75,
+ "timetable": [
+  {
+   "nr": "31511",
+   "kind": "osobowy",
+   "from": "Sosnów",
+   "to": "Dęby",
+   "arr": "15:07",
+   "dep": "15:08",
+   "track": "t1",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  },
+  {
+   "nr": "31512",
+   "kind": "osobowy",
+   "from": "Dęby",
+   "to": "Sosnów",
+   "arr": "15:13",
+   "dep": "15:14",
+   "track": "t2",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  },
+  {
+   "nr": "645320",
+   "kind": "towarowy",
+   "from": "Sosnów",
+   "to": "Dęby",
+   "arr": "15:24",
+   "dep": "15:24",
+   "track": "t1",
+   "stop": false,
+   "len_m": 550,
+   "vmax_kmh": 70,
+   "mass_t": 1900,
+   "power_class": "lok_el"
+  },
+  {
+   "nr": "31513",
+   "kind": "osobowy",
+   "from": "Sosnów",
+   "to": "Dęby",
+   "arr": "15:39",
+   "dep": "15:40",
+   "track": "t1",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  },
+  {
+   "nr": "31514",
+   "kind": "osobowy",
+   "from": "Dęby",
+   "to": "Sosnów",
+   "arr": "15:49",
+   "dep": "15:50",
+   "track": "t2",
+   "stop": true,
+   "len_m": 120,
+   "vmax_kmh": 100,
+   "mass_t": 180,
+   "power_class": "EZT"
+  },
+  {
+   "nr": "13102",
+   "kind": "pospieszny",
+   "from": "Sosnów",
+   "to": "Dęby",
+   "arr": "16:02",
+   "dep": "16:02",
+   "track": "t1",
+   "stop": false,
+   "len_m": 220,
+   "vmax_kmh": 100,
+   "mass_t": 420,
+   "power_class": "lok_el"
+  }
+ ],
+ "events": [
+  {
+   "at": "15:12",
+   "type": "crossing_failure",
+   "target": "przB",
+   "repair_min": 10
+  },
+  {
+   "at": "15:20",
+   "type": "dsat_alarm",
+   "target": "dsat1",
+   "payload": {
+    "code": "GH",
+    "level": "ALARM",
+    "axle": 22
+   }
+  },
+  {
+   "at": "15:45",
+   "type": "block_failure",
+   "target": "blk_we",
+   "repair_min": 10,
+   "_uwaga": "sbl od Sosnowa pada — semafory odstępowe na stój"
+  }
+ ]
+}
