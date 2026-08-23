@@ -15,12 +15,12 @@ const TILE: float = 48.0
 const FRAME: float = 14.0
 
 # Paleta CBI (docs/14 §2 [DO WERYFIKACJI] — robocza).
-const COL_BG := Color("060708")
+const COL_BG := Color("020303")
 const COL_GRID := Color("111317")
-const COL_FREE := Color("5b626c")
+const COL_FREE := Color("8d939b")
 const COL_ROUTE := Color("35d45e")
 const COL_OCCUPIED := Color("f04438")
-const COL_LEG_OFF := Color("363b42")
+const COL_LEG_OFF := Color("41464d")
 const COL_TEXT := Color("a9b0ba")
 const COL_TEXT_DIM := Color("6b7280")
 const COL_BOX := Color("1b1f26")
@@ -29,9 +29,12 @@ const COL_WHITE := Color("f2f4f7")
 const COL_LAMP_DARK := Color("2a2e35")
 const COL_BUTTON := Color("262c35")
 
-const TRACK_W: float = 9.0
+const TRACK_W: float = 2.5
+## Kolory opisów wg konwencji zobrazowań: żółte nagłówki, cyjan numerów.
+const COL_YELLOW := Color("e8d44d")
+const COL_CYAN := Color("41b9d6")
 ## Wcięcie segmentu na granicy odcinków (kanciasta „kreska" planu SCS).
-const SECTION_NOTCH: float = 2.5
+const SECTION_NOTCH: float = 2.0
 ## Kafelki rysujące tor poziomy (do wykrywania granic odcinków).
 const H_TRACK_TILES: Array[String] = [
 	"track_h", "signal_e", "signal_w", "insulation_gap",
@@ -49,10 +52,13 @@ var _blink_on: bool = true
 var _hotspots: Array[Dictionary] = []
 ## Sekcja toru poziomego per pole siatki (granice odcinków na planie).
 var _section_at: Dictionary = {}
+## Nazwa posterunku — żółty nagłówek zobrazowania (konwencja SCS).
+var _station_name: String = ""
 
 
 func build(station: StationData, interlocking: Interlocking,
 		blocks: Dictionary, world: SimWorld) -> void:
+	_station_name = station.display_name().to_upper()
 	_graph = station.graph
 	_interlocking = interlocking
 	_blocks = blocks
@@ -103,6 +109,9 @@ func _draw() -> void:
 	# Czarne zobrazowanie bez siatki (Ie-104): widać tylko elementy planu.
 	_hotspots.clear()
 	draw_rect(Rect2(Vector2.ZERO, size), COL_BG)
+	# Żółty nagłówek posterunku na osi zobrazowania (konwencja SCS).
+	draw_string(ThemeDB.fallback_font, Vector2(0.0, FRAME + 8.0), _station_name,
+		HORIZONTAL_ALIGNMENT_CENTER, size.x, 14, COL_YELLOW)
 	for tile: Dictionary in _tiles:
 		_draw_tile(tile)
 
@@ -238,9 +247,9 @@ func _draw_turnout(tile: Dictionary, o: Vector2, branch_ne: bool) -> void:
 	if not is_minus:
 		branch_start = center.lerp(corner, 0.25)
 	draw_line(branch_start, corner, branch_color, TRACK_W)
-	# Numer zwrotnicy drobnym tekstem obok krzyżownicy (bez ramki).
+	# Numer zwrotnicy drobnym cyjanowym tekstem (konwencja zobrazowań).
 	var label_pos := o + (Vector2(2.0, 44.0) if branch_ne else Vector2(32.0, 44.0))
-	_draw_text(label_pos, 14.0, String(tile.get("label", "")), COL_TEXT_DIM)
+	_draw_text(label_pos, 14.0, String(tile.get("label", "")), COL_CYAN)
 	# Klik w zwrotnicę = przestawienie (mapowanie akcji z JSON).
 	_register_press(tile, center, 14.0)
 
@@ -258,17 +267,20 @@ func _draw_signal(tile: Dictionary, o: Vector2, travel_east: bool) -> void:
 			color = COL_OCCUPIED
 		else:
 			color = COL_ROUTE
-	# Goły symbol Ie-104: maszt prostopadły od toru + okrągła głowica;
-	# zgaszony = sam szary pierścień, litera drobnym tekstem obok.
-	var mast_x := head.x - 11.0 if travel_east else head.x + 11.0
-	draw_line(Vector2(mast_x, o.y + 24.0), Vector2(mast_x, head.y), COL_FREE, 2.0)
-	draw_line(Vector2(mast_x, head.y), Vector2(head.x - 6.0 if travel_east \
-		else head.x + 6.0, head.y), COL_FREE, 2.0)
+	# Symbol semafora jak na zobrazowaniach SCS: grot strzałki w kierunku
+	# jazdy obok toru, w kolorze obrazu; maszt-kreska do linii toru.
+	var dir := 1.0 if travel_east else -1.0
+	var mast_x := head.x - 9.0 * dir
+	draw_line(Vector2(mast_x, o.y + 24.0), Vector2(mast_x, head.y), COL_FREE, 1.5)
+	var tip := head + Vector2(7.0 * dir, 0.0)
+	var glyph := PackedVector2Array([
+		tip, head + Vector2(-5.0 * dir, -5.5), head + Vector2(-5.0 * dir, 5.5),
+	])
 	if color == COL_LAMP_DARK:
-		draw_arc(head, 5.5, 0.0, TAU, 20, COL_FREE, 2.0)
+		draw_polyline(PackedVector2Array([glyph[0], glyph[1], glyph[2], glyph[0]]),
+			COL_FREE, 1.5)
 	else:
-		draw_circle(head, 5.5, color)
-		draw_arc(head, 6.0, 0.0, TAU, 20, COL_FREE, 1.5)
+		draw_colored_polygon(glyph, color)
 	var letter_y := 50.0 if travel_east else 8.0
 	var letter_x := -12.0 if travel_east else 12.0
 	_draw_text(o + Vector2(letter_x, letter_y), TILE, String(signal_id), COL_TEXT_DIM)
@@ -276,10 +288,11 @@ func _draw_signal(tile: Dictionary, o: Vector2, travel_east: bool) -> void:
 
 
 func _draw_box(o: Vector2, cells_w: float, cells_h: float, title: String) -> Rect2:
+	# Kaseta urządzenia jak na zobrazowaniach: cienka ramka na czarnym tle.
 	var rect := Rect2(o + Vector2(3, 3), Vector2(cells_w * TILE - 6, cells_h * TILE - 6))
-	draw_rect(rect, COL_BOX)
-	draw_rect(rect, COL_BOX_EDGE, false, 1.5)
-	_draw_text(o + Vector2(8, 17), cells_w * TILE - 16, title, COL_TEXT)
+	draw_rect(rect, Color("07090b"))
+	draw_rect(rect, COL_FREE, false, 1.0)
+	_draw_text(o + Vector2(8, 17), cells_w * TILE - 16, title, COL_YELLOW)
 	return rect
 
 

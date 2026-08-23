@@ -27,6 +27,9 @@ var _active_list: VBoxContainer = null
 var _register_text: RichTextLabel = null
 var _routes_hint: Label = null
 var _clock_label: Label = null
+var _command_edit: LineEdit = null
+## Komunikat linii komend (np. nieznane polecenie) — do następnego użycia.
+var _cmd_feedback: String = ""
 var _dialog_label: Label = null
 var _alarm_label: Label = null
 var _alarm_panel: PanelContainer = null
@@ -148,10 +151,19 @@ func build_view(world: SimWorld) -> void:
 	side_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	side.add_child(side_spacer)
 
-	# --- Linia dialogowa + pole alarmów (docs/14 §1). ---------------------
+	# --- Linia komend + dialogowa + pole alarmów (docs/14 §1). ------------
 	var bottom := HBoxContainer.new()
 	bottom.add_theme_constant_override("separation", 8)
 	root.add_child(bottom)
+	_command_edit = LineEdit.new()
+	_command_edit.custom_minimum_size = Vector2(300, 0)
+	_command_edit.placeholder_text = "polecenie… (przebieg A_t1 / sz B / kwit)"
+	_command_edit.text_submitted.connect(func(_t: String) -> void: _run_command_line())
+	bottom.add_child(_command_edit)
+	var exec_button := Button.new()
+	exec_button.text = "Wykonaj"
+	exec_button.pressed.connect(_run_command_line)
+	bottom.add_child(exec_button)
 	var dialog_panel := _panel(COL_BAR_BG)
 	dialog_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_dialog_label = Label.new()
@@ -244,8 +256,49 @@ func refresh() -> void:
 	_refresh_alarms()
 
 
+## Linia komend (docs/14 §1): polecenia tekstowe jak na stanowiskach —
+## czasownik + adresat, wykonanie klawiszem Enter albo „Wykonaj".
+func _run_command_line() -> void:
+	var parts := _command_edit.text.strip_edges().split(" ", false)
+	_command_edit.text = ""
+	_cmd_feedback = ""
+	if parts.is_empty():
+		return
+	var verb := String(parts[0]).to_lower()
+	var arg := String(parts[1]) if parts.size() > 1 else ""
+	match verb:
+		"przebieg", "p":
+			action_requested.emit("route_set:%s" % arg)
+		"sz":
+			action_requested.emit("sub_signal:%s" % arg)
+		"cofnij", "odwolaj", "odwołaj":
+			action_requested.emit("signal_cancel:%s" % arg)
+		"dzw":
+			action_requested.emit("route_emergency_release")
+			action_requested.emit("route_start:%s" % arg)
+		"zwrotnica", "zw":
+			action_requested.emit("turnout_throw:%s" % arg)
+		"zamk", "zamknij":
+			action_requested.emit("crossing_close:%s" % arg)
+		"otw", "otworz", "otwórz":
+			action_requested.emit("crossing_open:%s" % arg)
+		"kwit":
+			action_requested.emit("dsat_ack")
+		"tak":
+			action_requested.emit("command_confirm")
+		"nie":
+			action_requested.emit("command_cancel")
+		_:
+			_cmd_feedback = "nieznane polecenie: %s (przebieg/sz/cofnij/dzw/zw/zamk/otw/kwit/tak/nie)" % verb
+	_refresh_dialog_line()
+
+
 ## Linia dialogowa: uzbrojone polecenie > potwierdzenie > ostatni wpis.
 func _refresh_dialog_line() -> void:
+	if not _cmd_feedback.is_empty():
+		_dialog_label.text = " " + _cmd_feedback
+		_dialog_label.add_theme_color_override("font_color", Color(1, 0.55, 0.4))
+		return
 	if not _armed.is_empty():
 		_dialog_label.text = " " + String(ARMED_LABELS[_armed])
 		_dialog_label.add_theme_color_override("font_color", COL_ACCENT)

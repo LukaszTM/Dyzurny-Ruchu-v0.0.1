@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## GUI v1.7 — zobrazowanie cienkoliniowe SCS + linia komend (2026-08-23)
+
+### Zmieniono
+
+- Plan komputerowy w stylu rzeczywistych zobrazowań SCS (konwencja
+  Ie-104, bez kopiowania żadnego produktu): cienkie linie torów na
+  czarnym tle (nie grube pasy), semafory jako groty strzałek
+  w kierunku jazdy z literą, cyjanowe numery zwrotnic, żółty nagłówek
+  posterunku i żółte tytuły kaset urządzeń (cienkie ramki).
+- Linia komend z przyciskiem „Wykonaj" (docs/14 §1): polecenia
+  tekstowe `przebieg <id>`, `sz <semafor>`, `cofnij <semafor>`,
+  `dzw <semafor>`, `zw <zwrotnica>`, `zamk/otw <przejazd>`, `kwit`,
+  `tak`/`nie` (potwierdzenia) — Enter albo klik.
+
 ## GUI v1.6 — zobrazowanie wg konwencji Ie-104 (2026-08-23)
 
 ### Zmieniono
